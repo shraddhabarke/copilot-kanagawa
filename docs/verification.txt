@@ -1,0 +1,694 @@
+Verification
+
+- RTL Verification Hierarchical references
+- Coverage Parser Coverage Types Branch Coverage Basic Block Coverage Block Coverage Lower Bound Condition Coverage References Expression Coverage
+- RTL Coverage RTL Map RTL Map Contents basic_blocks nets debug_signals constant_signals unused_signals Global debug_signals Global constant_signals global_variables nets top_level_signals fifos nets top_level_signals named_ranges loop_generators nets top_level_signals
+- Basic Block Profiler Run-time changes Parser Profile Report By State Bit By State Bit (% of samples) By State Value Statistics Example
+- Collecting and parsing inspectables data Examples
+- ECC Error Injection
+- Interpreter options
+- Tracing options for the interpreter Creating VCD files Viewing VCD files Keyboard shortcuts with signal names pane selected Keyboard shortcuts with waveform pane selected Mouse actions with waveform pane selected
+
+- Hierarchical references
+
+- Parser
+- Coverage Types Branch Coverage Basic Block Coverage Block Coverage Lower Bound Condition Coverage References Expression Coverage
+
+- Branch Coverage
+- Basic Block Coverage Block Coverage Lower Bound
+- Condition Coverage References
+- Expression Coverage
+
+- Block Coverage Lower Bound
+
+- References
+
+- RTL Map RTL Map Contents basic_blocks nets debug_signals constant_signals unused_signals Global debug_signals Global constant_signals global_variables nets top_level_signals fifos nets top_level_signals named_ranges loop_generators nets top_level_signals
+
+- RTL Map Contents basic_blocks nets debug_signals constant_signals unused_signals Global debug_signals Global constant_signals global_variables nets top_level_signals fifos nets top_level_signals named_ranges loop_generators nets top_level_signals
+
+- basic_blocks nets debug_signals constant_signals unused_signals
+- Global debug_signals
+- Global constant_signals
+- global_variables nets top_level_signals
+- fifos nets top_level_signals named_ranges
+- loop_generators nets top_level_signals
+
+- nets
+- debug_signals
+- constant_signals
+- unused_signals
+
+- nets
+- top_level_signals
+
+- nets
+- top_level_signals
+- named_ranges
+
+- nets
+- top_level_signals
+
+- Run-time changes
+- Parser
+- Profile Report By State Bit By State Bit (% of samples) By State Value Statistics
+- Example
+
+- By State Bit
+- By State Bit (% of samples)
+- By State Value
+- Statistics
+
+- Examples
+
+- Creating VCD files
+- Viewing VCD files Keyboard shortcuts with signal names pane selected Keyboard shortcuts with waveform pane selected Mouse actions with waveform pane selected
+
+- Keyboard shortcuts with signal names pane selected
+- Keyboard shortcuts with waveform pane selected
+- Mouse actions with waveform pane selected
+
+
+RTL Verification
+
+
+Hierarchical references
+
+Shared variables (including memories) map to modules instances in the generated RTL. The mapping is stable across compilations and preserves names. It is possible to determine the name of a module instance corresponding to a shared variable in the source code. An RTL testbench can use a hierarchical reference to read the value of a shared variable directly. The mapping of source variables to module instance names is implementation dependent and may change with each version of the compiler.
+
+
+Coverage
+
+Code coverage can be enabled with the --code-coverage flag. This will automatically generate hardware to calculate code coverage. By default, these values are exposed as inspectable variables.
+
+Instead of exposing code coverage as inspectable variables, the --code-coverage-coverpoint will add the code coverage variables as coverpoints in the generated SystemVerilog. With the --code-coverage-coverpoint flag, code coverage is not generated for the interpreter.
+
+
+Parser
+
+The InspectablesParser tool can be used to process collected coverage data, provide summary percentages, and produce a pdrpt file that can be viewed using the Sandpiper VSCode Extension:
+
+InspectablesParser --coverage-report --inspectables CodeCoverage.csv --symbols PipeDreamGeneratedSymbols.csv --output coverage_report.pdrpt
+
+CodeCoverage.csv is created using the ReadInspectables API and PipeDreamGeneratedSymbols.csv is created when the Sandpiper compiler is run. See here for an example of using the ReadInspectables API.
+
+The InspectablesParser tool can also be used to combine individual coverage files.
+
+InspectablesParser --combine-inspectables --output CombinedCoverage.csv --inspectables CodeCoverage0.csv --other-inspectables CodeCoverage1.csv
+
+You can also exclude source files from the coverage analysis:
+
+InspectablesParser --coverage-report --inspectables CodeCoverage.csv --exclude fifo.pd --exclude chl/semaphore.pd --symbols PipeDreamGeneratedSymbols.csv --output coverage_report.pdrpt
+
+In determining whether there is a match, the InspectablesParser tool attempts to match the right-most portion of the source file for the inspectable against the value supplied to the --exclude option.
+
+
+Coverage Types
+
+
+Branch Coverage
+
+Coverage of an if or if/else statement is: (T + F) / 2 . T is 1 if the condition expression ever evaluated to true (0 otherwise). F is 1 if the condition expression ever evaluated to false (0 otherwise).
+
+uint32 a;
+uint32 b;
+
+// The condition is: a < b
+if (a < b)
+{
+
+}
+
+Coverage of a loop is: (T + F) / 2 . T is 1 if the loop condition expression ever evaluated to true (0 otherwise). F is 1 if the loop condition expression ever evaluated to false (0 otherwise).
+
+uint32 a;
+uint32 b;
+
+// The loop condition is: i < a
+for (const auto i : a)
+{
+
+}
+
+Coverage of a switch statement is: (C[0] + C[1] + ... + C[N-1]) / N . N is the number of cases in the switch statement (3 in the example below). C[i] is 1 if case i was ever executed (0 otherwise).
+
+uint32 a;
+
+// N = 3
+switch (a)
+{
+case 0:
+    break;
+
+case 1:
+    break;
+
+default:
+    break;
+}
+
+Coverage of a mux or ternary (e.g., condition ? a : b ) statement is: (C[0] + C[1] + ... + C[N-1]) / N where N is the number of cases in the mux statement. C[i] is 1 if the mux statement was executed with condition equal to i (0 otherwise). Note that for a mux that uses an enum as its select, only valid values for the enum are counted as cases.
+
+bool condition;
+// 2 cases
+uint32 ternary_result = condition ? 1 : 0;
+
+uint2 muxsel;
+// 4 cases
+uint32 mux_result = mux(muxsel, 0, 1, 2, 3);
+
+enum MuxSelEnum : uint2
+{
+    ZERO = 0,
+    ONE = 1,
+    THREE = 3
+}
+
+void Run()
+{
+    MuxSelEnum e;
+    // 3 cases (0, 1, 3)
+    uint32 mux_result = mux(e, 0, 1, 2, 3);
+}
+
+
+Basic Block Coverage
+
+Sandpiper code is divided into basic blocks. Each basic block is a list of statements with the property that if a thread executes the first statement in the list, the thread will execute every statement in the list.
+
+The decomposition of code into basic blocks occurs after an important transformation: if-conversion. If-conversion replaces if and switch statements with the ternary operator, as illustrated below.
+
+bool b;
+uint32 x;
+
+// Original
+if (b)
+{
+    x = 3;
+}
+
+// After if-conversion
+x = b ? 3 : x;
+
+The language constructs that cause new basic blocks to be introduced are:
+
+- Calls to non-inline functions
+- Returns from non-inline functions
+- Loops (including atomic do )
+- reorder
+
+Coverage of a basic block is 1 if the basic block was ever executed, and is 0 otherwise.
+
+
+Block Coverage Lower Bound
+
+Some code coverage tools report block coverage (before if-conversion). Sandpiper code coverage tools do not. However, the following lower bound holds:
+
+If basic block coverage (after if-conversion) is 100% then block coverage (before if-conversion) is greater than or equal to branch coverage.
+
+For example, in the function below there are 4 relevant executions:
+
+1. b = false, c = false
+2. b = false, c = true
+3. b = true, c = false
+4. b = true, c = true
+
+- If all 4 executions occur, then branch coverage is 4/4 and block coverage is 5/5
+- If executions 1 and 2 occur, then branch coverage is 1/4 and block coverage is 2/5
+- If executions 1 and 3 occur, then branch coverage is 3/4 and block coverage is 4/5
+
+void F(bool b, bool c)
+{
+    // Block 1
+
+    if (b)
+    {
+        // Block 2
+
+        if (c)
+        {
+            // Block 3
+        }
+
+        // Block 4
+    }
+
+    // Block 5
+}
+
+
+Condition Coverage
+
+Condition coverage seeks to break down branch conditions into the constituent Boolean sub-expressions and check for coverage on these Boolean sub-expressions. For example, this would break down the condition (A && B) to the Boolean sub-expressions A and B . Sandpiper implements a form of condition coverage called Modified Condition/Decision Coverage (MC/DC) [1], also referred to as Focused Expression Coverage (FEC) [2]. The idea is to check that each Boolean sub-expression independently affects the outcome of the branch condition [3]. For details, see [3], [4], and [5].
+
+From a user perspective, coverage for each Boolean sub-expression is (T + F) / 2 . T is 1 if the Boolean sub-expression evalutes to true and the associated non-masking condition evalutes to true. F is 1 if the Boolean sub-expression evalutes to false and the associated non-masking condition evalutes to true. The non-masking conditions are determined by the compiler under the rules of MC/DC. Each of these are specified in the coverage report by the “case” field. For example:
+
+(A)_1 with non-masking condition (B)
+
+This specifies the A is true case with associated non-masking condition B .
+
+In some cases (specifically when a sub-expression operates in both inverting and non-inverting mode such as in an XOR [6]), condition coverage also tracks whether the Boolean sub-expression is seen to cause the original top-level condition to evaluate to both true and false. For example:
+
+(A)_0 with non-masking condition (X)
+(A)_1 with non-masking condition (X)
+(A)->0 with non-masking condition (X)
+(A)->1 with non-masking condition (X)
+
+The case (A)->0 with non-masking condition (X) is covered when the original top-level condition evalutes to false and the non-masking condition X evalutes to true. The case (A)->1 with non-masking condition (X) is covered when the original top-level condition evalutes to true and the non-masking condition X evalutes to true. For these sub-expressions, condition coverage is (T + F + ->T + ->F) / 4 .
+
+
+References
+
+1. Modified conditon/decision coverage. https://en.wikipedia.org/wiki/Modified_condition/decision_coverage
+2. Open Source VDHL Verification Methodology/Code Coverage. http://www.simhard.com/wiki/index.php/Open_Source_VHDL_Verification_Methodology/Code_Coverage#Focused_Expression_Coverage
+3. John Joseph Chilenski and Steven P. Miller. Applicability of modified condition/decision coverage to software testing. Software Engineering Journal, September 1994.
+4. Kelly J. Hayhurst and Dan S. Veerhusen. A Practical Approach to Modified Condition/Decision Coverage. https://ntrs.nasa.gov/api/citations/20040086014/downloads/20040086014.pdf
+5. Kelly J. Hayhurst et al. A Practical Tutorial on Modified Condition/Decision Coverage. https://ntrs.nasa.gov/api/citations/20010057789/downloads/20010057789.pdf
+6. ModelSim PE User’s Manual, Software Version 10.0d. https://wikis.ece.iastate.edu/cpre584/images/3/3c/Modelsim_pe_user_10.0d.pdf
+
+
+Expression Coverage
+
+Expression coverage breaks down expressions into their consituent Boolean sub-expressions and checks for coverage on these Boolean sub-expressions. This is simlar to condition coverage but for expressions that do not occur as a condition. For example, expression coverage will break down and generate coverage for the following expression:
+
+void F(bool A, bool B)
+{
+    // Generate coverage for Boolean sub-expressions A and B
+    bool C = A && B;
+}
+
+Expressions are broken down and measured in the same manner as for Condition Coverage .
+
+Coverage for each Boolean sub-expression is (T + F) / 2 . T is 1 if the Boolean sub-expression evalutes to true and the associated non-masking condition evalutes to true. F is 1 if the Boolean sub-expression evalutes to false and the associated non-masking condition evalutes to true.
+
+In some cases the value of the top-level expression is also tracked for expression coverage. In these cases, expression coverage is (T + F + ->T + ->F) / 4 .
+
+
+RTL Coverage
+
+The compiler imposes a maximum identifier length on the generated RTL to meet EDA tool requirements. If users have problems with truncated variable names making exclusions difficult, they can increase the maximum identifier length by adding compile flag “–identifier-length=[target length]”
+
+
+RTL Map
+
+When --backend=sv is specified during compilation, the compiler produces a file named: *RtlMap.json . This file contains names of modules, register, and nets in the generated SystemVerilog. This can be useful for programmatically generating exclusion for RTL coverage tools that do not support wildcards in exclusion expressions.
+
+
+RTL Map Contents
+
+The root of the RTL map is a JSON object. It contains the following members, each of which is a JSON array.
+
+
+basic_blocks
+
+The basic_blocks array contains 1 object per basic block (pipeline) in the generated RTL. Each basic block contains the identifiers for the corresponding module and instance. Basic blocks also contain the following members, each of which is a JSON array.
+
+
+nets
+
+The nets array contains one entry for each register or wire declared in the basic block. Each entry comprises an identifier name, a width (in bits), and the index of the pipeline stage that writes to the net.
+
+
+debug_signals
+
+The per-basic-block debug_signals array contains one entry for each debug signal declared in the basic block. A debug signal should always be 0. A value of 1 indicates a bug during the Sandpiper compilation process.
+
+
+constant_signals
+
+The per-basic-block constant_signals array contains one entry for each bit in the basic block that is known to be constant. The generated RTL has assertions to verify that these bits are indeed constant.
+
+
+unused_signals
+
+The per-basic-block unused_signals array contains one entry for each bit in the basic block that does not output from generated top-level module. The generated RTL has code to set these bits to x (unknown) during simulation.
+
+
+Global debug_signals
+
+The global debug_signals array contains one entry for each debug signal declared in the top-level module. A debug signal should always be 0. A value of 1 indicates a bug during the Sandpiper compilation process.
+
+
+Global constant_signals
+
+The global constant_signals array contains one entry for each bit that is part of a signal declared in the top-level generated module and is known to be constant. The generated RTL has assertions to verify that these bits are indeed constant.
+
+
+global_variables
+
+The global_variables array contains 1 object per global variable instance in the generated RTL. Each global variable contains the identifiers for the corresponding module and instance. global variables also contain the following members, each of which is a JSON array.
+
+
+nets
+
+The nets array contains one entry for each register or wire declared in the global variable. Each entry comprises and identifier name and a width (in bits).
+
+
+top_level_signals
+
+The per-global-variable top_level_signals array contains one entry for each signal declared in top-level and connected to this global variable. Each entry comprises and identifier name and a width(in bits).
+
+
+fifos
+
+The fifos array contains 1 object per FIFO instance in the generated RTL. Each FIFO contains the identifiers for the corresponding module and instance. FIFOs also contain the following members, each of which is a JSON array.
+
+
+nets
+
+The nets array contains one entry for each register or wire declared inside the FIFO including its sub-instances. Each entry comprises and identifier name and a width (in bits).
+
+
+top_level_signals
+
+The per-FIFO top_level_signals array contains one entry for each signal declared in top-level and connected to this FIFO. Each entry comprises and identifier name and a width(in bits).
+
+
+named_ranges
+
+Each element of the named_ranges array associates a name with a contiguous set of bits in the FIFO. This can be used to generate exclusions for a subset of bits in a FIFO.
+
+
+loop_generators
+
+The loop_generators array contains 1 object per loop generator instance in the generated RTL. Each loop generator contains the identifiers for the corresponding module and instance. loop generators also contain the following members, each of which is a JSON array.
+
+
+nets
+
+The nets array contains one entry for each register or wire declared in the loop generator. Each entry comprises and identifier name and a width (in bits).
+
+
+top_level_signals
+
+The per-loop-generator top_level_signals array contains one entry for each signal declared in top-level and connected to this loop generator. Each entry comprises and identifier name and a width(in bits).
+
+
+Basic Block Profiler
+
+The basic block profiler is intended to help identify performance bottlenecks in Sandpiper programs. It is a host-side facility that collects data during the execution of a program, either in hardware or in the interpreter, and a tool to analyze the data and create a visualizable report.
+
+Profiling works by periodically recording the status of all basic blocks, using the inspectables mechanism. Some status bits are indicative of poor performance, for instance being blocked on an output FIFO full condition. The visualized report make those conditions apparent to the user.
+
+The profiler is based on statistical sampling and cannot guarantee that all exceptional conditions will be caught. The assumption is that poor performance is caused by sub-optimal conditions that are frequently occurring.
+
+
+Run-time changes
+
+A host program uses the profiler via the C++ class PipeDream::Profiler defined in the header file PipeDreamProfiler.h. The profiler communicates with the PipeDream::Proxy in order to access the inspectables. The profiler can be Started/Stopped and restarted as appropriate to analyze the relevant execution stages. Profile data is written by the object’s destructor into a CSV-formatted text file.
+
+
+Parser
+
+The InspectablesParser tool processes code coverage and profile data, using the program’s symbol files to create a JSON-formatted report. The tool takes the following arguments specific to profiling.
+
+profiler-report Required. Selects the profiling facility.
+
+symbols filename Required. Selects the symbols for the Sandpiper program, for instance PipeDreamGeneratedSymbols.csv.
+
+profile filename Required. Selects the profile data generated by the PipeDream::Profiler.
+
+output filename Required. Name of the report file to be generated, for instance test.pdrpt.
+
+sources path Optional. Location of the program’s sources. Sandpiper symbol files only contain filenames, no filesystem paths. The report visualizer in the VSCode extension instead requires full paths. The tool uses the path argument to resolve all filenames in the symbol file. It searches down from path and selects the first match. User will want to be specific in case they have duplicate filenames in their source repositories.
+
+
+Profile Report
+
+The report is best visualized using the Sandpiper extension for Visual Studio Code. The user selects the report file, for instance test.pdrpt, in the explorer pane. The Sandpiper extension opens the file and reformats the data into a tabular shape.
+
+There are four selectable views (projections) in the report: By State Bit , By State Bit (% of samples) , By State Value , and Statistics . Each view creates a table that can be re-sorted by clicking on a column. The following columns are common to all views.
+
+Name The basic block name, in the form functionName_BasicBlock_number
+
+Location Source filename and line number. Clicking on a location opens an editor pane at the given line number.
+
+
+By State Bit
+
+In the By State Bit view each column corresponds to a state bit, as follows. Values are the times the profiler found the bit set in the given basic block. The last two columns indicate error conditions.
+
+InputEmpty The input FIFO was empty
+
+WaitNotMet The atomic do loop condition did not evaluate to false
+
+OutputFull The output FIFO was full
+
+SemaphoreFull The semaphore count limit was reached
+
+InputUndfl The input FIFO underflowed
+
+OutputOvfl The output FIFO overflowed
+
+
+By State Bit (% of samples)
+
+This view is similar to By State Bit , but the values are expressed as percentages relative to the number of samples collected.
+
+
+By State Value
+
+In the By State Value view each column corresponds to a combination of state bits. In the monikers S-number the number part is the decimal value of the bit combo, interpreted as follows.
+
+S0_9 Block active(0) or WaitNotMet(9)
+
+S9 InputEmpty and WaitNotMet
+
+S3 InputEmpty and OutputFull
+
+S10 OutputFull and WaitNotMet
+
+S11 InputEmpty and OutputFull and WaitNotMet
+
+S5 InputEmpty and SemaphoreFull
+
+S6 OutputFull and SemaphoreFull
+
+S7 InputEmpty and OutputFull and SemaphoreFull
+
+S12 SemaphoreFull and WaitNotMet
+
+S13 InputEmpty and SemaphoreFull and WaitNotMet
+
+S14 SemaphoreFull and OutputFull and WaitNotMet
+
+S15 InputEmpty and SemaphoreFull and OutputFull and WaitNotMet
+
+
+Statistics
+
+The Statistics view currently only reports the number of samples collected to produce the profile. Can be used to compute percentages.
+
+
+Example
+
+Let us assume the following filesystem layout for a Sandpiper application:
+
+C:\MyRepo // root of the enlistment
+
+C:\MyRepo\src\pd // Sandpiper sources here
+
+C:\MyRepo\src\myApp.pd // Sandpiper source file
+
+C:\MyRepo\src\simpleTest // host-side test code
+
+C:\MyRepo\src\simpleTest\main.cpp
+
+The first step is to add the run-time data collection object to the host-side code, say into main.cpp. This is done by adding the code lines marked as 1-3 in the following C++ code snippet.
+
+// (1) Add this include after the generated Sandpiper header file has been included
+#include "PipeDreamProfiler.h"
+
+int main(...)
+{
+    PipeDream::ProxyDescription proxyDescription;
+
+    ...
+
+    std::shared_ptr<PipeDream::Proxy> proxy = PipeDream::CreateProxy(&proxyDescription);
+
+    ...
+
+    // (2) Create the profiler object, passing the filename for the profile output
+    PipeDream::Profiler profiler(proxy, "simpleTest.profile.csv");
+
+    // (3) Start profiling. Could be done later, if desired.
+    profiler.Start();
+
+    ...
+    // Run the test as usual, for instance:
+    proxy->GetThreadProxy(0)->InvokeSomeTest(...)
+
+    // The profiler will stop and produce the output file here, when it goes out of scope.
+}
+
+The build process invokes the Sandpiper compiler to generate a few files. One of those files contains symbolic information needed by the report generator. Unless the compiler is instructed otherwise, this file will be called myAppSymbols.csv
+
+After running the simpleTest program the profile data will be in the file simpleTest.profile.csv
+
+This is how to invoke the parser to produce the report file simpleTest.report.pdrpt :
+
+InspectablesParser --profiler-report --profile simpleTest.profile.csv --symbols myAppSymbols.csv --sources C:\MyRepo\src\pd --output simpleTest.report.pdrpt
+
+Opening the file simpleTest.report.pdrpt in VSCode will produce the views previously described. The Location column will include references to the source file myApp.pd . Clicking on that cell will open an editor window at the relevant source line. Just make sure the Sandpiper extension is installed.
+
+
+Collecting and parsing inspectables data
+
+The ReadInspectables runtime API collects the values of all inspectable variables, either from the hardware or from the interpreter, in textual form. It is then up to the user to interpret the meaning of the hexadecimal string values describing the data. For complex types such as, say, an Ethernet packet this can be cumbersome. The InspectablesParser tool can simplify the task by parsing the data with the help of the symbols file.
+
+There are two options in the tool, each parses the data and adds some type information. The first option is – pretty-print and will produce a text file, using a C++ compatible syntax. The second option is – inspectables-report and will produce a JSON-formatted report, to be used by the VScode report visualizer. Both cases require the – inspectables option for the raw data file, and the – symbols option for the symbols file.
+
+Additionally, the inspectables-report option can reduce the size of the output report by ignoring the basic block control state variables. The option – no-control-state selects this behavior.
+
+
+Examples
+
+The following C++ snippet shows how to use the ReadInspectables API.
+
+int main(...)
+{
+    PipeDream::ProxyDescription proxyDescription;
+
+    ...
+
+    std::shared_ptr<PipeDream::Proxy> proxy = PipeDream::CreateProxy(&proxyDescription);
+
+    ...
+
+    // Run the test as usual, for instance:
+    proxy->GetThreadProxy(0)->InvokeSomeTest(...)
+
+    // Invoke the API to collect the status of all inspectable variables
+    std::ostringstream str;
+    ReadInspectables(proxy, str);
+
+    ...
+
+}
+
+The following command line examples assume that the inspectables data has been saved in the file simpleTest.inspectables.csv . This command line example uses the pretty-print output option:
+
+InspectablesParser --pretty-print --inspectables simpleTest.inspectables.csv --symbols myAppSymbols.csv --no-control-state 1 --output simpleTest.inspectables.txt
+
+This command line example uses the inspectables-report output option:
+
+InspectablesParser --inspectables-report --inspectables simpleTest.inspectables.csv --symbols myAppSymbols.csv --output simpleTest.inspectables.report.pdrpt
+
+
+ECC Error Injection
+
+ECC error handling code can be verified by inserting errors during simulation. This can be accomplished in a SystemVerilog testbench by setting one of two counters directly on a memory instance. For example:
+
+dut.memory_instance_name.correctable_errors_to_inject_ff = 16;
+
+will cause up to 16 correctable errors to be injected during memory writes.
+
+Similarly:
+
+dut.memory_instance_name.uncorrectable_errors_to_inject_ff = 32;
+
+will cause up to 32 uncorrectable errors to be injected during memory writes.
+
+
+Interpreter options
+
+There are a number of options that can be passed to the interpreter, they are enumerated in the header file KanagawaInterpreter.h. The options include the following.
+
+- PbOption_verbose Print most of the execution events
+- PbOption_executionTrace Print every bytecode instruction executed
+- PbOption_cppTrace Print basic block entry and exit events
+- PbOption_sourceTrace Print source file and line number executed
+- PbOption_traceFifos Print FIFO enqueue/dequeue operations
+- PbOption_traceExtern Print calls to external simulation functions
+- PbOption_parseOnly No execution, only parse the bytecode file. Use in conjunction with the verbose option.
+- PbOption_deepDisasm Generate a more verbose disassembly
+- PbOption_singleThreaded Execute sequentially even on a multiprocessor
+- PbOption_noBackpressure Use FIFOs of infinite depth
+- PbOption_overflowPrint Print if the assigned depth of a FIFO is exceeded
+- `PbOption_printCycles’ Tag the output from println() with the current cycle counter value
+- PbOption_initRandom Use random numbers for un-initialized values of memories and global registers
+- PbOption_initZero Use zero for un-initialized values of memories and global registers
+- PbOption_initAllOnes Use all-ones (0xfff….) for un-initialized values of memories and global registers
+
+PbOption_verbose Print most of the execution events
+
+PbOption_executionTrace Print every bytecode instruction executed
+
+PbOption_cppTrace Print basic block entry and exit events
+
+PbOption_sourceTrace Print source file and line number executed
+
+PbOption_traceFifos Print FIFO enqueue/dequeue operations
+
+PbOption_traceExtern Print calls to external simulation functions
+
+PbOption_parseOnly No execution, only parse the bytecode file. Use in conjunction with the verbose option.
+
+PbOption_deepDisasm Generate a more verbose disassembly
+
+PbOption_singleThreaded Execute sequentially even on a multiprocessor
+
+PbOption_noBackpressure Use FIFOs of infinite depth
+
+PbOption_overflowPrint Print if the assigned depth of a FIFO is exceeded
+
+`PbOption_printCycles’ Tag the output from println() with the current cycle counter value
+
+PbOption_initRandom Use random numbers for un-initialized values of memories and global registers
+
+PbOption_initZero Use zero for un-initialized values of memories and global registers
+
+PbOption_initAllOnes Use all-ones (0xfff….) for un-initialized values of memories and global registers
+
+When using the option PbOption_initRandom the interpreter prints the value of the seed used for the random number generator. The seed is obtained by the time-of-day function, and will therefore change on every run. It is possible to select a specific seed by setting the environment variable KANAGAWA_INTERPRETER_RANDOM_SEED_VALUE . The value is in decimal.
+
+When simulating an external DRAM module the default value for un-initialized locations is zero. The user code compilation-time macro PIPEDREAM_UNINITIALIZED_DRAM_VALUE can be predefined to select a different 64-bit base pattern.
+
+
+Tracing options for the interpreter
+
+The option PbOption_waveform causes the interpreter to create a trace file that describes the incremental changes occurring during execution. This trace file can later be used to reproduce the execution at a fine level of detail. For instance, the Sandpiper debugger can use the trace instead of the interpreter for debugging.
+
+One use case is for bugs that occur non-deterministically: the trace allows a faithful reproduction for later debugging.
+
+Another use case is for reporting errors to the Sandpiper team, without requiring them to rebuild the entire user application.
+
+Additional use cases are for studying the performance of the Sandpiper program at the basic block level.
+
+The default trace filename is PbTrace.txt . It can be changed by setting the environment variable KANAGAWA_INTERPRETER_TRACE_FILE .
+
+
+Creating VCD files
+
+The Value Change Dump (VCD) format is an IEEE standard for representing traces, especially as generated by HDL simulators. This Wikipedia article describes the format of VCD files: https://en.wikipedia.org/wiki/Value_change_dump
+
+Converting a Sandpiper trace to the VCD format is performed by the WaveformReader tool:
+
+WaveformReader --output MyPbTrace.vcd --vcd MyDebugSymbols.csv MyPbTrace.txt
+
+where MyDebugSymbols.csv are the debug symbols for the Sandpiper program, and MyPbTrace.txt is a Sandpiper trace, for instance generated by the interpreter using the option PbOption_waveform . The output goes to the file MyPbTrace.vcd . The default output file is called wave.vcd .
+
+The Sandpiper Debugger will generate VCD traces when using the wave option in the launch.json configuration file. The value of the wave option is a file path.
+
+
+Viewing VCD files
+
+VCD files can be viewed graphically by various tools, for instance GTKWave: https://sourceforge.net/projects/gtkwave/
+
+The Questa simulator requires an additional step to tranform the file into their proprietary format Waveform Log File (WLF). The Questa distribution includes a command line tool to perform this conversion:
+
+vcd2wlf.exe MyPbTrace.vcd MyPbTrace.wlf
+
+After opening MyPbTrace.wlf from Questa’s File::Open menu, the user can add the desired signals to the Wave window by right-clicking and selecting Add Wave .
+
+The Sandcastle VSIX extension includes a VCD waveform viewer as of version 0.0.8 . Opening a file with the vcd extension in VSCode will enable viewing it in an editor panel. The controls are as follows.
+
+
+Keyboard shortcuts with signal names pane selected
+
+
+Keyboard shortcuts with waveform pane selected
+
+
+Mouse actions with waveform pane selected

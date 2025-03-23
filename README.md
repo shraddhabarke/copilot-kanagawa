@@ -1,1 +1,1 @@
-# copilot-kanagawa
+# kanagawa-copilot
