@@ -1,3 +1,10 @@
+template <typename T, auto N /*< Maximum size.*/>
+struct vector
+{
+    T[N] data;
+    count_t<N> size;
+}
+
 template <typename R, typename T, auto N>
 inline vector<R, N> prefix_sum(vector<T, N> v)
 {

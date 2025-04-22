@@ -1,3 +1,10 @@
+template <typename T, auto N /*< Maximum size.*/>
+struct vector
+{
+    T[N] data;
+    count_t<N> size;
+}
+
 template <typename L, typename R, auto N>
 inline pair<vector<L, N>, vector<R, N>> unzip(vector<pair<L, R>, N> v)
 {
