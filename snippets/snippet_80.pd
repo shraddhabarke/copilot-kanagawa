@@ -1,2 +1,8 @@
+import data.array
+import data.optional
+import type.coerce
+import type.stdtype
+
+template<typename T>
 inline T reverse_bytes(T data) { const auto bytesize = bytesizeof(T); using bytes_t = uint8[bytesize];  bytes_t data_bytes = cast<bytes_t>(data); bytes_t result; static for (const auto i : bytesize) { result[i] = data_bytes[bytesize - 1 - i]; }
 return cast<T>(result); }

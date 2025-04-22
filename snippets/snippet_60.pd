@@ -1,7 +1,40 @@
-inline bool read_bit(bit_addr_t addr)
+import data.array
+import numeric.int.operator
+
+template
+    < auto Size                                             //< Number of bits in the bit vector.
+    , auto WordWidth                                        //< Number of bits in each word.
+    , template <typename, auto> typename Memory = memory    //< Memory implementation.
+    >
+class bitarray
 {
-    sim_assert(addr < Size);
-    auto decomposed_addr = div_mod(addr, WordWidth);
-    bool[WordWidth] word = cast<bool[WordWidth]>(_mem[decomposed_addr.first]);
-    return word[decomposed_addr.second];
+private:
+    //| Size must be a multiple of word width
+    static_assert(0 == (Size % WordWidth));
+
+    const auto WordCount = Size / WordWidth;
+
+public:
+    //| Represents the address of a single bit.
+    using bit_addr_t = index_t<Size>;
+
+    //| Represents the address of a single word.
+    using word_addr_t = index_t<WordCount>;
+
+    //| A single word which can be read or written.
+    using word_t = uint<WordWidth>;
+
+    //| Get the value of a single bit from the bitarray.
+    inline bool read_bit
+        ( bit_addr_t addr   //< Address of bit to read.
+        )
+    {
+        sim_assert(addr < Size);
+
+        auto decomposed_addr = div_mod(addr, WordWidth);
+
+        bool[WordWidth] word = cast<bool[WordWidth]>(_mem[decomposed_addr.first]);
+
+        return word[decomposed_addr.second];
+    }
 }

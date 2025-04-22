@@ -1,1 +1,27 @@
-inline auto just(auto value) { return make_optional(true, value); }
+import data.order as O
+import data.tuple as P
+
+template <typename T>
+struct optional
+{
+    bool is_valid;
+    T value;
+}
+
+template <typename T>
+inline bool is_valid(optional<T> x)
+{
+    return x.is_valid;
+}
+
+template <typename T>
+inline myoptional<T> make_optional(bool is_valid, T value)
+{
+    return {is_valid, value};
+}
+
+//| Create optional with `is_valid` set to true.
+inline auto just(auto value)
+{
+    return make_optional(true, value);
+}

@@ -1,3 +1,8 @@
+import data.array
+const auto Depth = 512;
+
+// An integer wide enough to represent an index into _input_data
+using element_index_t = index_t<Depth>;
 template<auto N>
 uint32 sum_unrolled()
 {

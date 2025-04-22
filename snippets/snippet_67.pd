@@ -1,1 +1,22 @@
-template <typename T> inline T from_optional(T default_value, optional<T> x) { return x.is_valid ? x.value : default_value; }
+import data.order as O
+import data.tuple as P
+
+template <typename T>
+struct optional
+{
+    bool is_valid;
+    T value;
+}
+
+//| Convert from `optional<T>` to `T`, using a default value if necessary.
+//
+// #### __Examples__
+//
+//     >>> from_optional(0x7, {false, 0x2});
+//     0x7
+//
+//     >>> from_optional(0x7, {true, 0x2});
+//     0x2
+
+template <typename T> 
+inline T from_optional(T default_value, optional<T> x) { return x.is_valid ? x.value : default_value; }

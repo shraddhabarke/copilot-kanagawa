@@ -1,1 +1,25 @@
-template <auto N, typename T> inline bool[N] mask_less_equal(T arg) { sim_assert(arg <= N); auto ret = mask_greater_than<N>(arg); static for(const auto i : N) ret[i] = !ret[i]; return ret; }
+import data.array
+import data.optional
+import type.coerce
+import type.stdtype
+
+template <auto N, typename T>
+inline bool[N] mask_greater_than(T arg)
+{
+    sim_assert(arg <= N);
+    return reinterpret_cast<bool[N]>(static((1 << N) - 2) << arg);
+}
+
+template <auto N, typename T>
+inline bool[N] mask_less_equal(T arg)
+{
+    sim_assert(arg <= N);
+    auto ret = mask_greater_than<N>(arg);
+    static for(const auto i : N)
+        ret[i] = !ret[i];
+    return ret;
+}
+
+
+
+

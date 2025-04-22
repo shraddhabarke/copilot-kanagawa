@@ -1,5 +1,33 @@
 template <typename T1, typename T2>
-inline pair<T1, T2> make_pair(T1 x, T2 y)
+struct tuple2
 {
-    return {x, y};
+    T1 first;
+    T2 second;
+}
+
+template <typename T1, typename T2, typename T3>
+struct tuple3
+{
+    T1 first;
+    T2 second;
+    T3 third;
+}
+
+template <typename T1, typename T2, typename T3, typename T4>
+struct tuple4
+{
+    T1 first;
+    T2 second;
+    T3 third;
+    T4 fourth;
+}
+
+//| For improved type inference, consume `tuple2` and produce `pair`.
+// For example, the compiler is able to infer the template of `first` in
+// `first(make_pair(1, 2))`
+
+template <typename T1, typename T2>
+inline pair<T1, T2> make_pair(T1 a, T2 b)
+{
+    return {a, b};
 }

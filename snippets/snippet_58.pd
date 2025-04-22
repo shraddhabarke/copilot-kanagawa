@@ -1,3 +1,10 @@
+import data.array
+const auto Depth = 512;
+memory<uint32, Depth> _input_data;
+uint32 _result;
+
+// An integer wide enough to represent an index into _input_data
+using element_index_t = index_t<Depth>;
 uint32 sum_pipelined_last()
 {
     uint32 result = 0;

@@ -1,1 +1,17 @@
+import data.order as O
+import data.tuple as P
+
+template <typename T>
+struct optional
+{
+    bool is_valid;
+    T value;
+}
+
+template <typename T>
+inline bool is_valid(optional<T> x)
+{
+    return x.is_valid;
+}
+
 template <typename T> inline bool equal_by((T, T) -> bool equality_fn, optional<T> x, optional<T> y) { return (!x.is_valid && !y.is_valid) || (x.is_valid && y.is_valid && equality_fn(x.value, y.value)); }

@@ -1,1 +1,2 @@
+template<typename T>
 inline bool reduction_xnor(T x) { return !reduction_xor(x); }

@@ -1,1 +1,3 @@
+
+template<typename T>
 inline bool reduction_nand(T x) { return !reduction_and(x); }

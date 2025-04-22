@@ -1,2 +1,11 @@
-inline T reverse(T data) { uint1[bitsizeof(T)] result; uint1[bitsizeof(T)] tmpData = cast<uint1[bitsizeof(T)]>(data); static for(const auto i: bitsizeof(T)) { result[i] = tmpData[static(bitsizeof(T) - i - 1)]; }
-return cast<T>(result);}
+import data.array
+import data.optional
+import type.coerce
+import type.stdtype
+
+template<typename T>
+inline T reverse(T data) { 
+    uint1[bitsizeof(T)] result; 
+    uint1[bitsizeof(T)] tmpData = cast<uint1[bitsizeof(T)]>(data); 
+    static for(const auto i: bitsizeof(T)) { result[i] = tmpData[static(bitsizeof(T) - i - 1)]; }
+}

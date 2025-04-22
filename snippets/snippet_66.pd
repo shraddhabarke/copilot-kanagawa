@@ -1,1 +1,17 @@
+import data.order as O
+import data.tuple as P
+
+template <typename T>
+struct optional
+{
+    bool is_valid;
+    T value;
+}
+
+template <typename T>
+inline bool is_valid(optional<T> x)
+{
+    return x.is_valid;
+}
+
 template <typename T> inline P::pair<bool, T> optional_to_pair(optional<T> x) { return P::make_pair(x.is_valid, x.value); }

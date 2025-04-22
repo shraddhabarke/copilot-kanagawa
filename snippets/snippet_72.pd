@@ -1,1 +1,6 @@
+import data.array
+import data.optional
+import type.coerce
+import type.stdtype
+
 template <typename T> inline T rotl(T value, bitindex_t<T> amount) { const auto Width = bitsizeof(T); sim_assert(amount <= Width);  return cast<T>(value << amount) | cast<T>(value >> (Width - amount)); }

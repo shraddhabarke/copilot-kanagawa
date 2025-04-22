@@ -1,8 +1,38 @@
+import .options as opt
+import data.array as A
+import data.function
+import data.optional as Opt
+import data.order as Ord
+import data.tuple as P
+import sync.atomic
+import numeric.int.operator
+import numeric.int.operator.unsigned as unsigned
+import type.stdtype
+
 template <typename T, auto N /*< Maximum size.*/>
 struct vector
 {
     T[N] data;
     count_t<N> size;
+}
+
+template <typename L, typename R, typename T, auto N>
+inline pair<vector<L, N>, vector<R, N>> unzip_with
+    ( (T) -> P::tuple2<L, R> f
+    , vector<T, N> v
+    )
+{
+    pair<vector<L, N>, vector<R, N>> result;
+    static for(const auto i : N)
+        if (i < v.size)
+        {
+            auto p = f(v.data[i]);
+            result.first.data[i]  = p.first;
+            result.second.data[i] = p.second;
+        }
+    result.first  = resize(result.first,  v.size);
+    result.second = resize(result.second, v.size);
+    return result;
 }
 
 template <typename L, typename R, auto N>

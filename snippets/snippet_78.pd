@@ -1,3 +1,27 @@
+import data.array
+import data.optional
+import type.coerce
+import type.stdtype
+
+
+//| Round up a value to the next larger power of two. For example,
+// all values from 33 through 64 (inclusive) round up to 64.
+// OutputType must be at least one bit larger than InputType.
+//
+// #### __Examples__
+//
+//     >>> roundup_to_pow2<uint15, uint16>(0);
+//     {0x0, 0x0}
+//
+//     >>> roundup_to_pow2<int7, int8>(0x1f);
+//     {0x1, 0x20}
+//
+//     >>> roundup_to_pow2<uint7, uint8>(0x20);
+//     {0x1, 0x20}
+//
+//     >>> roundup_to_pow2<uint15, uint16>(0x21);
+//     {0x1, 0x40}
+
 template<typename InputType, typename OutputType>
 inline optional<OutputType> roundup_to_pow2(InputType input)
 {

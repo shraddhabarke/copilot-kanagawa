@@ -1,10 +1,39 @@
-template < auto N     //< Maximum number of elements to be extracted. , 
-typename T //< Type of each element.
- > inline optional<T>[N] partial_sort ( T x , (T, T) -> bool cmp //< Binary function that returns true when the lhs //  should be swapped and stored. , bool is_last       //< Indicates a call with the last element in the //  sequence so that state can be reset for the next //  call. ) { optional<T>[N] snappedResult;  optional<T> lhs = {true, x}; static for(const auto i : N) { atomic { static optional<T> result = {};  auto rhs = result; if (lhs.is_valid && (!rhs.is_valid || cmp(lhs.value, rhs.value))) { result = lhs; lhs = rhs; }
-snappedResult[i] = result;
-if (is_last)
-    result.is_valid = false;
+template
+    < auto N     //< Maximum number of elements to be extracted.
+    , typename T //< Type of each element.
+    >
+inline optional<T>[N] partial_sort
+    ( T x
+    , (T, T) -> bool cmp //< Binary function that returns true when the lhs
+                         //  should be swapped and stored.
+    , bool is_last       //< Indicates a call with the last element in the
+                         //  sequence so that state can be reset for the next
+                         //  call.
+    )
+{
+    optional<T>[N] snappedResult;
+
+    optional<T> lhs = {true, x};
+    static for(const auto i : N)
+    {
+        atomic
+        {
+            static optional<T> result = {};
+
+            auto rhs = result;
+            if (lhs.is_valid && (!rhs.is_valid || cmp(lhs.value, rhs.value)))
+            {
+                result = lhs;
+                lhs = rhs;
+            }
+
+            snappedResult[i] = result;
+
+            if (is_last)
+                result.is_valid = false;
+        }
+    }
+
+    return snappedResult;
 }
-}
-return snappedResult;
-}
+

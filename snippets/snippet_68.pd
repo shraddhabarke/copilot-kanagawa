@@ -1,1 +1,16 @@
+import data.order as O
+import data.tuple as P
+
+template <typename T>
+struct optional
+{
+    bool is_valid;
+    T value;
+}
+
+template <typename T>
+inline bool is_valid(optional<T> x)
+{
+    return x.is_valid;
+}
 inline optional<T> join(optional<optional<T>> x) { return make_optional(x.is_valid && x.value.is_valid, x.value.value); }

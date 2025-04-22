@@ -1,3 +1,4 @@
+
 inline auto lift_optional((auto) -> auto fn)
 {
     return [fn](auto x)

@@ -1,8 +1,34 @@
+import data.vector as V
+import .options as opt
+import data.array as A
+import data.function
+import data.optional as Opt
+import data.order as Ord
+import data.tuple as P
+import sync.atomic
+import numeric.int.operator
+import numeric.int.operator.unsigned as unsigned
+import type.stdtype
+
 template <typename T, auto N /*< Maximum size.*/>
 struct vector
 {
     T[N] data;
     count_t<N> size;
+}
+
+template <typename R, typename T, auto N>
+inline vector<R, N> map_optional((T) -> optional<R> f, vector<T, N> v)
+{
+    auto opts   = map(f, v);
+    auto elems  = A::map([](optional<R> x){ return x.value; }, opts.data);
+    auto valids = A::zip_with_indices( [opts](index_t<N> i, optional<R> x)
+                                       {
+                                           return i < opts.size && x.is_valid;
+                                       }
+                                     , opts.data
+                                     );
+    return gather(valids, elems);
 }
 
 template <typename T, auto N>
