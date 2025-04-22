@@ -1,0 +1,1 @@
+template <typename T1, typename T2, auto N> inline P::pair<T1, T2>[N] zip(T1[N] x, T2[N] y) { return zip_with(P::make_pair<T1, T2>, x, y); }

@@ -1,0 +1,4 @@
+inline auto increment(auto a)
+{
+    return a + 1;
+}

@@ -1,0 +1,8 @@
+template < auto Banks, typename Address, auto Addresses   //< Number of addresses processed per call.
+>inline count_t<Addresses>[Banks] read_requests_per_bank
+    ( Address[Addresses] addresses                      //< Input addresses, duplicates allowed.
+    , (Address) -> index_t<Banks> address_to_bank_index //< Map `Address` to bank index.
+    )
+{
+    return requests_per_bank<Banks>(unique(addresses), address_to_bank_index);
+}

@@ -1,0 +1,4 @@
+void wait()
+    {
+        wait_multiple(1);
+    }

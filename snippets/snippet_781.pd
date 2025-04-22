@@ -1,0 +1,13 @@
+inline optional<decomposed_address>[Width] get_memory_access_info(input_t input, window_addr_t base_offset) {
+    optional<decomposed_address>[Width] result = {};
+    static for (const auto i : Width) {
+        if (input_kind::reference == input[i].kind) {
+            // Determine the absolute byte address of the source of this reference
+            reference_t relative_offset = input[i].payload.offset;
+            window_addr_t position = (base_offset + i) - relative_offset;
+            decomposed_address address = decompose_address(position);
+            result[i] = make_optional<decomposed_address>(true, address);
+        }
+    }
+    return result;
+}

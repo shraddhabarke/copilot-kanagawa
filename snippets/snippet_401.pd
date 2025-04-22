@@ -1,0 +1,43 @@
+inline optional<bid32_t> add_exactly(bid32_t in1, bid32_t in2)
+{
+    const auto a = parseDecimalValue<_width>(in1);
+    const auto b = parseDecimalValue<_width>(in2);
+    const auto a_flags = getSpecialCases_internal<_width>(in1);
+    const auto b_flags = getSpecialCases_internal<_width>(in2);
+
+    optional<bid32_t> result;
+    if (a_flags.nan || b_flags.nan)
+    {
+        result.is_valid = true;
+        result.value = decimal32_constants::DEFAULT_NAN;
+    }
+    else if (a_flags.inf || b_flags.inf)
+    {
+        result.is_valid = true;
+        if(a_flags.inf && b_flags.inf)
+        {
+            result.value = (a.sign != b.sign) ? decimal32_constants::DEFAULT_NAN :
+                     (a.sign == 0) ? decimal32_constants::POS_INFINITY : decimal32_constants::NEG_INFINITY;
+        }
+        else
+        {
+            result.value = ((a.sign == 1 && !b_flags.inf) || (b.sign == 1 && !a_flags.inf)) ?
+                decimal32_constants::NEG_INFINITY : decimal32_constants::POS_INFINITY;
+        }
+    }
+    else if(a_flags.zero)
+    {
+        result.is_valid = true;
+        result.value = in2;
+    }
+    else if(b_flags.zero)
+    {
+        result.is_valid = true;
+        result.value = in1;
+    }
+    else
+    {
+        result = add_exactly_internal<_width, _max_integer>(a, b);
+    }
+    return result;
+}

@@ -1,0 +1,13 @@
+inline auto lift_optional((auto) -> auto fn)
+{
+    return [fn](auto x)
+    {
+        optional<decltype(fn(x))> result = {};
+        if (x.is_valid)
+        {
+            result = make_optional(true, fn(x.value));
+        }
+
+        return result;
+    };
+}

@@ -1,0 +1,28 @@
+template < typename T, auto N     //< Source array length
+, auto M     //< Destination array length.
+>
+inline T[M] copy_array
+    ( T[N] source
+    , index_t<N> s_first          //< The index of the first element of the
+                                  //  source array to copy to the destination
+                                  //  array.
+    , T[M] destination
+    , index_t<M> d_first          //< The index in the destination array to
+                                  //  copy the first element to.
+    , count_t<N> elements_to_copy //< The number of array elements to copy
+                                  //  from source to destination.
+    )
+{
+    // Array boundary checks:
+    sim_assert(elements_to_copy + s_first <= N);
+    sim_assert(elements_to_copy + d_first <= M);
+    auto src_dest_offset = s_first - d_first;
+    static for (const auto i : M)
+    {
+        if (i >= d_first && i < (d_first + elements_to_copy))
+        {
+            destination[i] = source[i + src_dest_offset];
+        }
+    }
+    return destination;
+}

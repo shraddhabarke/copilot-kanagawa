@@ -1,0 +1,29 @@
+text_t crypto
+        ( text_t data
+        , index_t<16> num_bytes //< Indicate the number of valid bytes. A value
+                                // of 0 indicates that all 16 bytes are valid.
+        )
+    {
+        // Encrypt the IV counter
+        text_t iv_counter = _get_and_increment_iv();
+        auto encrypted_iv = _aes_ecb.encrypt(iv_counter, false, false, 0);
+        // Encrypt/decrypt data
+        text_t crypto_data = encrypted_iv ^ data;
+        // Mask invalid bytes
+        crypto_data = mask_bytes(crypto_data, num_bytes);
+        // Update hash with ciphertext
+        if (Mode == AES_GCM_CryptoMode::Encrypt)
+        {
+            _update_hash(crypto_data);
+        }
+        else
+        {
+            // In Decrypt mode, the input data is the ciphertext
+            _update_hash(mask_bytes(data, num_bytes));
+        }
+        atomic
+        {
+            _crypto_length += (num_bytes == 0 ? 16 : num_bytes);
+        }
+        return crypto_data;
+    }

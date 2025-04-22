@@ -1,0 +1,14 @@
+value_t next(optional<uint<SeedWidth>> seed /*< If `is_valid` then seed the generator, otherwise ignore.*/)
+    {
+        sim_assert(!(seed.is_valid && (seed.value == 0)));
+
+        value_t new_value;
+
+        atomic
+        {
+            new_value = lfsr(from_optional(_value, seed));
+            _value = new_value;
+        }
+
+        return new_value;
+    }

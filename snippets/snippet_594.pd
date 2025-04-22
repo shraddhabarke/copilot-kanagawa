@@ -1,0 +1,24 @@
+    Value get( Key key               //< The key to lookup.
+        , set_index_t set_index //< The hashed value of the key.
+        )
+    {
+        auto getResult = _tags.get(key, set_index, false);
+         Value val;
+         if (!getResult.hit)
+         {
+             val = load(key);
+         }
+         auto dataIndex = set_index * Associativity + getResult.idx;
+         bool hit = getResult.hit;
+         auto result = _data.atomically(dataIndex, [val, hit](Value prev)
+         {   
+             Value next = prev;
+             if (!hit)
+             {
+                 // Update data in the cache
+                 next = val;
+             }
+             return next;
+         });
+         return result.second;
+    }

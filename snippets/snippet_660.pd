@@ -1,0 +1,5 @@
+void post_multiple(sem_ctr_t amount)
+    {
+        sim_assert((cast<sem_ctr_t>(_counter.count()) + amount) <= M);
+        _counter.add(amount);
+    }

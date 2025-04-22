@@ -1,0 +1,11 @@
+inline optional<entry_index_t> GetIndexForNewEntry(cache_tag<Key, LUtime, Associativity> tag)
+{
+cache_entry_with_index<LUtime, entry_index_t>[Associativity] indexed_entries;
+
+// Conceptually this is a map operation, but map doesn't pass another parameter,
+// the index in this case, to the map function.
+static for(const auto i : Associativity)
+{
+indexed_entries[i] = MapToEntryWithIndex(tag._entries[i], i);
+auto destination = reduce(ReduceEntryForInsertion<LUtime, entry_index_t>, indexed_entries);
+return make_optional(true, destination._index); }}

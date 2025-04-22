@@ -1,0 +1,6 @@
+inline void switch_MT_sets()
+{
+// Invert these 1-bit integers
+current_mt = ~current_mt;
+next_mt = ~next_mt;
+}

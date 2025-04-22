@@ -1,0 +1,11 @@
+struct S_type
+{
+    Opcode  opcode;
+    uint5   imm_4_0;
+    Funct3  funct3;
+    Reg     rs1;]n    Reg     rs2;
+    uint7   imm_11_5;
+}inline int32 S_immediate(S_type s)
+{
+    return sign_extend(concat(s.imm_11_5, s.imm_4_0));
+}

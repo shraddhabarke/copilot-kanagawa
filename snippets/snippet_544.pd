@@ -1,0 +1,17 @@
+template<auto RecurseDepth, typename OutputType, typename InputType>
+inline OutputType _recursive_karatsuba(
+    InputType X,
+    InputType Y) {
+    OutputType result;
+    static if (RecurseDepth == 0) {
+        // Use carryless multiplier
+        result = carryless_mult<OutputType, InputType>(X, Y);
+    }
+    else {
+        const auto input_bits = bitsizeof(InputType);
+        // Check for power-of-2 input bits
+        static assert((input_bits & (input_bits - 1)) == 0);
+        using HalfInputType = uint<input_bits / 2>;
+        // Use Karatsuba multiplier
+        result = karatsuba_mult<OutputType>(_recursive_karatsuba<RecurseDepth - 1, InputType, HalfInputType>, xor, xor, X, Y); }
+    return result; }

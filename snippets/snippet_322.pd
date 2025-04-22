@@ -1,0 +1,7 @@
+uint32 get_result_data(coverage_row_index_t row, bram_word_index_t word_index)
+    {
+        uint32 result;
+        auto idx = ONE_BRAM_WORD_ROW_PER_ROW ? row : concat(row, word_index);
+        result = _detected_transitions[idx].value;
+        return result;
+    }

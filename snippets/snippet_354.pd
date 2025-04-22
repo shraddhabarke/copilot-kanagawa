@@ -1,0 +1,13 @@
+template<auto I, auto F>
+inline optional<fixed<I, F>> exp2(fixed<I, F> x)
+{
+    const auto value = x.value;
+
+    const int<I> exponent = value >> F;
+    const uint<F> fraction = value;
+
+    const auto fractionExp2Bit = I + F;
+    const uint<1 + fractionExp2Bit> fractionExp2 = exp2_lookup<F, fractionExp2Bit>(fraction);
+
+    return to_fixed<I, fractionExp2Bit, F>(exponent, fractionExp2);
+}

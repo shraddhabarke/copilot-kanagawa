@@ -1,0 +1,36 @@
+inline float32 exp(float32 x)
+{
+    const auto structValue = cast<float32PackedFormat>(x);
+    const uint32 binaryValue = cast<uint32>(x);
+
+    const uint32 MAX_EXP_INPUT = 0x42B17218;    // max input 88.7228393555
+    const uint32 MIN_EXP_INPUT = 0xC2AEAC50;    // min input -87.3365478516
+
+    const specialCaseFlags flags = getSpecialCases<Denorm::Off>(structValue);
+
+    const bool isNegative = signbit(x);
+    const bool isNegInf = flags.inf && isNegative;
+    const bool isPosInf = flags.inf && !isNegative;
+    const bool isOverflow = structValue.sign == 0 && structValue.exponent != 0xFF && binaryValue >= MAX_EXP_INPUT;
+    const bool isUnderflow = structValue.sign == 1 && structValue.exponent != 0xFF && binaryValue >= MIN_EXP_INPUT;
+
+    // translate exp to exp2
+    const int8 exponent = structValue.exponent - 127;
+    const auto significand = (1 << 23) | structValue.mantissa;
+    const auto translatedMantissaFbit = 75;
+    const auto translatedMantissa = exp2_translate<23, translatedMantissaFbit>(significand);
+
+    const auto structResult =
+        exp2_internal<float32PackedFormat, 2, translatedMantissaFbit, 23>( {translatedMantissa, exponent, structValue.sign} );
+
+    // output
+    float32PackedFormat result;
+    result.sign = 0;
+    result.exponent = (isNegInf || isUnderflow) ? 0 :
+                        (isPosInf || isOverflow || flags.nan) ? 0xFF :
+                        flags.zero ? 127 : structResult.exponent;
+    result.mantissa = (isNegInf || isUnderflow || isPosInf || isOverflow || flags.zero) ? 0 :
+                        flags.nan ? 1 : structResult.mantissa;
+
+    return cast<float32>(result);
+}

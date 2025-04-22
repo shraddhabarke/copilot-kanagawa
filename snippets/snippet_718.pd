@@ -1,0 +1,11 @@
+inline cache_entry_with_index<LUtime, entry_index_t> MapToEntryWithIndex(cache_entry<Key, LUtime> entry, entry_index_t idx)
+{
+cache_entry_with_index<LUtime, entry_index_t> result;
+
+result._valid = entry._valid;
+result._unwritten = entry._unwritten;
+result._lastUsed = entry._lastUsed;
+result._index = idx;
+
+return result;
+}

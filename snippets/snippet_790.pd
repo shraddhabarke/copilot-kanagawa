@@ -1,0 +1,18 @@
+template <typename T, auto N>
+inline auto reduce(T[N] a, (T, T) -> T fn) {
+    static assert((N & (N-1)) == 0);
+    static if (N == 1) {
+        return a[0];
+    }
+    else {
+        const auto b = split(a);
+        return fn(reduce(b.first, fn), reduce(b.second, fn));
+    }
+}
+template <typename T, auto N>
+inline auto maximum(T[N] a)
+{
+return reduce(a, [](uint32 x, uint32 y){
+    return x > y ? x : y;
+});
+}

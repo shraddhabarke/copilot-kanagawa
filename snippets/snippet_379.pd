@@ -1,0 +1,4 @@
+void compute(thread_addr_t thread_num, FftDirection d){
+        _direction[thread_num] = d;
+        compute_slice_folded(_num_threads_launched + 2, thread_num);
+    }

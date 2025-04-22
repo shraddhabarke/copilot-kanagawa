@@ -1,0 +1,5 @@
+inline bool isinf(uint64 x)
+{
+    const auto flags = getSpecialCases<Denorm::On>(cast<float64PackedFormat>(x));
+    return flags.inf;
+}

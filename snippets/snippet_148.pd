@@ -1,0 +1,1 @@
+inline auto bind((auto) -> auto f, auto x) { return [f, x]() { return f(x); }; }

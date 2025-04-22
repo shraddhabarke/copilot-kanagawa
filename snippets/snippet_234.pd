@@ -1,0 +1,6 @@
+inline uint64 neg(uint64 x)
+{
+    float64PackedFormat binary = cast<float64PackedFormat>(x);
+    binary.sign = ~binary.sign;
+    return cast<uint64>(binary);
+}

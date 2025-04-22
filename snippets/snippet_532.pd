@@ -1,0 +1,28 @@
+template<typename OutputType,
+         typename InputType,
+         typename HalfInputType>
+inline OutputType karatsuba_mult(
+    (HalfInputType, HalfInputType) -> InputType Mult,
+    (OutputType, OutputType) -> OutputType Add,
+    (HalfInputType, HalfInputType) -> HalfInputType Sub,
+    InputType X,
+    InputType Y)
+{
+    const auto input_bits = bitsizeof(InputType);
+    const auto half_input_bits = bitsizeof(HalfInputType);
+    static assert(input_bits % 2 == 0 && input_bits / 2 == half_input_bits);
+
+    // Break inputs into two halves
+    HalfInputType x0 = cast<HalfInputType>(X);
+    HalfInputType x1 = cast<HalfInputType>(X >> half_input_bits);
+    HalfInputType y0 = cast<HalfInputType>(Y);
+    HalfInputType y1 = cast<HalfInputType>(Y >> half_input_bits);
+
+    // Multiplies
+    InputType z2 = Mult(x1, y1);
+    InputType z0 = Mult(x0, y0);
+    InputType z1 = Add(Add(Mult(Sub(x1, x0), Sub(y1, y0)), z0), z2);
+
+    OutputType result = Add(concat(z2, z0), z1 << half_input_bits);
+    return result;
+}

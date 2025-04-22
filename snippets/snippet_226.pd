@@ -1,0 +1,2 @@
+template <typename T, auto N>
+using memory_ecc_relaxed = [[memory, ecc(make_optional_from_ecc_valid<T>)]] T[N];

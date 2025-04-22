@@ -1,0 +1,5 @@
+template <typename T1, typename T2>
+inline pair<T2, T1> swap(tuple2<T1, T2> p)
+{
+    return {p.second, p.first};
+}

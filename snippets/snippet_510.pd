@@ -1,0 +1,9 @@
+template<auto WindowSize>
+struct compressed_byte
+{{
+    //| Indicate if the element is raw data or a reference to
+    // previously-produced data.
+    input_kind kind;
+    //| The raw data or reference.
+    compressed_byte_payload<WindowSize> payload;
+}

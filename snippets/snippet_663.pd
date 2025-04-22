@@ -1,0 +1,9 @@
+template
+< fifo_index_t FifoIndex //< The index of the FIFO to store into.
+>T dequeue_one()
+    {
+        // Validate the index (in case of a non-power of two ArraySize)
+        static assert(FifoIndex < ArraySize);
+
+        return _fifos[FifoIndex].dequeue();
+    }

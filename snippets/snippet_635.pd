@@ -1,0 +1,7 @@
+inline void dmem_write_aligned
+( hart_index_t hid  //< Hart index.
+ , uint_t addr       //< DMEM byte address to write to. 
+                     // Must be 32-bit aligned.
+ , int_t value       //< 32-bit value to write.
+ ) {
+   core.dmem_write_aligned(hid, checked_cast<dmem_addr_t>(addr), value);}

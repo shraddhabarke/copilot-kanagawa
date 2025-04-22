@@ -1,0 +1,1 @@
+inline auto just(auto value) { return make_optional(true, value); }

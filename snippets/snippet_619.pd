@@ -1,0 +1,4 @@
+bool check()
+    {
+        return first(atomically(constant(true)));
+    }

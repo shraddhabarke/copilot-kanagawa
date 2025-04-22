@@ -1,0 +1,5 @@
+template <typename T, auto N>
+inline optional<T> first_valid(vector<optional<T>, N> v)
+{
+    return reduce(selecting(on1st(Opt::is_valid<T>)), v);
+}

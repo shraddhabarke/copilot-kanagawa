@@ -1,0 +1,26 @@
+template<typename InputType, typename OutputType>
+inline optional<OutputType> roundup_to_pow2(InputType input)
+{
+    sim_assert(bitsizeof(OutputType) > bitsizeof(InputType));
+    optional<OutputType> result;
+    if (pop_count(input) == 1)
+    {
+        // Exactly 1 bit is set -> input is already a power of 2.
+        result = make_optional<OutputType>(true, input);
+    }
+    else
+    {
+        auto highest = highest_one<OutputType>(input);
+        if (highest.is_valid)
+        {
+            result = make_optional<OutputType>(true, 1 << (highest.value + 1));
+        }
+        else
+        {
+            // No bits set, input must have been 0.  Rounding up 0
+            // is nonsensical and is treated as an error.
+            result = make_optional<OutputType>(false, 0);
+        }
+    }
+    return result;
+}

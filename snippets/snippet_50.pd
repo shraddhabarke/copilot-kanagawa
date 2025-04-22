@@ -1,0 +1,4 @@
+inline auto min(auto a, auto b)
+{
+    return (a < b) ? a : b;
+}

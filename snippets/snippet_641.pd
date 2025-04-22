@@ -1,0 +1,140 @@
+    inline Current fetch(){
+static imem_addr_t fetch_pc;
+Current current = {};
+tid_t current_tid;
+atomic {
+ static tid_t tid = 0;
+ bool try_predict = true;
+ btb_index_t btb_index_nxt;
+ current_tid = tid;
+  tid = modular::increment(tid);
+  static if (HARTS != 1)
+  {
+      current.hid = hid;
+      static assert((HARTS & (HARTS - 1)) == 0);
+
+      hid = modular::increment(hid);
+      btb_index_nxt = cast<decltype(btb_index_nxt)>(hart[hid].pc);
+   }
+   else
+   { 
+       current.hid = 0; 
+   }
+  fetch_pc = hart[current.hid].pc;
+  if (static(USE_MICRO_OPS) && hart[current.hid].micro_op.next_pc.is_valid) 
+ {
+      fetch_pc = hart[current.hid].micro_op.next_pc.value;
+      hart[current.hid].micro_op.next_pc.is_valid = current_tid != hart[current.hid].micro_op.end_tid; 
+      try_predict = false;
+  }
+  if (static(EXTERNAL_FETCH) && hart[current.hid].external_fetch_pc.is_valid)
+  {
+      fetch_pc = hart[current.hid].external_fetch_pc.value; 
+      hart[current.hid].external_fetch_pc.is_valid = !hart[current.hid].external_fetch_result.is_valid;
+     try_predict = false;
+     current.received_pending_fetch = hart[current.hid].external_fetch_result.is_valid;
+ }
+ sim_assert(!hart[current.hid].mmio_pending || hart[current.hid].pipeline_flush_pc.is_valid);
+ sim_assert(!hart[current.hid].trap || hart[current.hid].pipeline_flush_pc.is_valid);
+ if (hart[current.hid].pipeline_flush_pc.is_valid)
+ {
+     // Recover after pipeline flush (e.g. after branch misprediction, mmio or trap)
+     if (!(hart[current.hid].mmio_pending && !hart[current.hid].mmio_completed) &&
+         !hart[current.hid].trap) 
+     { 
+
+         current.recovered_from_pipeline_flush = true; 
+     } 
+     fetch_pc = hart[current.hid].pipeline_flush_pc.value;
+    hart[current.hid].pipeline_flush_pc.is_valid = !current.recovered_from_pipeline_flush;
+    if (static(USE_MICRO_OPS) && hart[current.hid].micro_op.next_pc.is_valid)
+    {
+        hart[current.hid].micro_op.next_pc.is_valid = false;
+    }
+    if (static(EXTERNAL_FETCH) && hart[current.hid].external_fetch_pc.is_valid)
+     {
+         hart[current.hid].external_fetch_pc.is_valid = false;
+     }
+     try_predict = false;
+     if (hart[current.hid].mmio_pending)
+     { 
+         hart[current.hid].mmio_pending = !current.recovered_from_pipeline_flush;
+     }
+ }
+ static if (OPTIMIZE_FMAX) {
+     current.pc = fetch_pc;
+   }
+   current.next_pc = modular::increment(fetch_pc);
+   current.predicted_pc = try_predict ? predict(current) : current.next_pc;
+   hart[current.hid].pc = current.predicted_pc;
+    static if (HARTS == 1)
+    {
+        btb_index_nxt = cast<decltype(btb_index_nxt)>(current.predicted_pc);
+    }
+     btb_index = btb_index_nxt; } 
+ atomic
+ { 
+ if (current.recovered_from_pipeline_flush) 
+ { 
+     sim_assert(!hart[current.hid].commit); 
+     sim_assert(!hart[current.hid].external_fetch_pc.is_valid); 
+     sim_assert(!hart[current.hid].micro_op.next_pc.is_valid); 
+    hart[current.hid].fetch_enable = true;
+     hart[current.hid].external_fetch_pending = false; 
+     hart[current.hid].micro_op.pending = false;
+ }
+ current.instr.is_valid = true;
+ static if (OPTIMIZE_FMAX) {
+     if (hart[current.hid].fetch_enable)
+     {
+         current.instr.value = imem[current.pc];    }}
+ else if (static(USE_MICRO_OPS) && hart[current.hid].micro_op.pending) {
+     sim_assert(!hart[current.hid].external_fetch_pending);
+    current.instr.value = hart[current.hid].micro_op.instr;
+     current.pc = hart[current.hid].micro_op.pc; 
+     current.next_pc = hart[current.hid].micro_op.next_pc.value;
+     current.predicted_pc = current.next_pc; }
+else if (static(EXTERNAL_FETCH) && hart[current.hid].external_fetch_pending) {
+  sim_assert(hart[current.hid].external_fetch_result.is_valid || !current.received_pending_fetch);
+   hart[current.hid].external_fetch_pending = !current.received_pending_fetch;
+    current.instr = make_optional(
+            current.received_pending_fetch && hart[current.hid].fetch_enable,
+           hart[current.hid].external_fetch_result.value);
+    current.pc = fetch_pc; }
+else if (static(EXTERNAL_FETCH) && (static(IMEM_TCM_SIZE == 0) || (fetch_pc & (~(IMEM_TCM_SIZE - 1))) != 0)) {
+    bool external_fetch_pending = false;
+    if (hart[current.hid].fetch_enable) { 
+        current.instr = reinterpret_cast<optional<Instr>>(external_fetch(current.hid, fetch_pc));
+external_fetch_pending = !current.instr.is_valid; 
+    } 
+    sim_assert(!hart[current.hid].external_fetch_pc.is_valid);
+    hart[current.hid].external_fetch_pc = make_optional(external_fetch_pending, fetch_pc);
+    hart[current.hid].external_fetch_pending = external_fetch_pending; 
+    hart[current.hid].external_fetch_result.is_valid = false; 
+    current.pc = fetch_pc; 
+ }
+else static if (IMEM_TCM_SIZE > 0) {
+    if (hart[current.hid].fetch_enable) {
+        current.instr.value = imem[fetch_pc]; }
+    current.pc = fetch_pc; }
+static if (USE_MICRO_OPS) {
+if (!hart[current.hid].micro_op.pending) {
+   const bool mul = static(MICRO_OP_MUL) && current.instr.value.r.opcode.opcode == RVG::OP && current.instr.value.r.funct7 == 0b_0000001;
+    const bool load = static(MICRO_OP_LOAD) &&
+        current.instr.value.r.opcode.opcode == RVG::LOAD;
+    if ((load || mul) && hart[current.hid].fetch_enable) {
+        hart[current.hid].micro_op.pending = current.instr.is_valid;
+    }
+    sim_assert(!hart[current.hid].micro_op.next_pc.is_valid);
+    hart[current.hid].micro_op.next_pc = make_optional(hart[current.hid].micro_op.pending, current.next_pc);
+    hart[current.hid].micro_op.pc = current.pc;
+    hart[current.hid].micro_op.instr = current.instr.value;
+    hart[current.hid].micro_op.end_tid = cast<tid_t>(mul
+        ? current_tid + MUL_MICRO_OPS * HARTS
+        : current_tid + LOAD_MICRO_OPS * HARTS);}
+else{
+   const auto next_tid = cast<tid_t>(current_tid + HARTS);   
+ hart[current.hid].micro_op.pending = next_tid != hart[current.hid].micro_op.end_tid;    } } 
+    current.last_micro_op = !hart[current.hid].micro_op.pending; }
+    return current;
+}

@@ -1,0 +1,1 @@
+inline optional<T> join(optional<optional<T>> x) { return make_optional(x.is_valid && x.value.is_valid, x.value.value); }

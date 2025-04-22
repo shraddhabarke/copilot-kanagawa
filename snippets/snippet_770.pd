@@ -1,0 +1,26 @@
+template
+< typename Request                              //< Request type.
+, typename Response                             //< Response type.
+, auto N                                        //< Maximum number of requests processed in parallel.
+, auto FifoDepth = 32                           //< Depth of internal FIFOs.
+                                                //  Larger values are needed to achieve full throughput if `Process` is a high latency.
+>
+class rendezvous {
+private:
+init_once _once;
+counter<FifoDepth>[N] _request_count;
+
+    // DequeueBlocking is false because _request_count is checked before calling dequeue
+    template<typename T, auto Depth>
+    using request_fifo_t = FIFO<T, Depth, true, false>;
+
+    fifo_array<Request, FifoDepth, N, request_fifo_t> _requests;
+
+    counter<FifoDepth>[N] _response_count;
+
+    // EnqueueBlocking is false because _response_count is checked before calling enqueue
+    template<typename T, auto Depth>
+    using response_fifo_t = FIFO<T, Depth, false, true>;
+
+    fifo_array<Response, FifoDepth, N, response_fifo_t> _responses;
+}

@@ -1,0 +1,5 @@
+template <typename T, auto N>
+inline T maximum(vector<T, N> v)
+{
+    return reduce(selecting(Ord::greater_than), v);
+}

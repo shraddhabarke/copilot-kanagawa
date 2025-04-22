@@ -1,0 +1,102 @@
+template
+< typename From      //< Type of the integer to convert.
+, typename To        //< Type to be converted to. This must be either `float32` or `float64`.
+, auto MantissaWidth
+, auto ExponentWidth
+, auto Bias
+>inline To int_to_float(From input)
+{
+    const auto result_width = bitsizeof(To);
+    const auto infinity_exponent = (1 << ExponentWidth) - 1;
+
+    using result_width_t = uint<result_width>;
+    using integer_width_t = uint<bitsizeof(From)>;
+
+    uint1 sign = 0;
+    uint<MantissaWidth> mantissa;
+    uint<ExponentWidth> exponent;
+
+    integer_width_t integer_value = input;
+
+    result_width_t result = 0;
+
+    if (input < 0)
+    {
+        integer_value = -input;
+        sign = 1;
+    }
+
+    auto ndx_high_bit_opt = highest_one<integer_width_t>(integer_value);
+    if (!ndx_high_bit_opt.is_valid)
+    {
+        result = 0;
+    }
+    else
+    {
+        if (ndx_high_bit_opt.value > MantissaWidth)
+        {
+            using extended_mantissa_width_t = uint<MantissaWidth + 2>;
+            // Max shift value is width of integer
+            using shift_width_t = bitindex_t<integer_width_t>;
+
+            shift_width_t shift = ndx_high_bit_opt.value - MantissaWidth;
+
+            extended_mantissa_width_t computed_mantissa = integer_value >> shift;
+            auto discarded_bits_mask = (1 << shift) - 1;
+            auto exactly_one_half = 1 << (shift - 1);
+            auto bits_to_remove = integer_value & discarded_bits_mask;
+            extended_mantissa_width_t mantissa_overflowed = 1 << (MantissaWidth + 1);
+
+            if (bits_to_remove > exactly_one_half)
+            {
+                ++computed_mantissa;
+            }
+            else if (bits_to_remove == exactly_one_half)
+            {
+                // round to nearest even
+                if ((computed_mantissa & 1) == 1)
+                {
+                    ++computed_mantissa;
+                }
+            }
+
+            exponent = Bias + MantissaWidth + shift;
+            if (computed_mantissa >= mantissa_overflowed)
+            {
+                ++exponent;
+            }
+
+            // check for infinity case; adjust mantissa accordingly
+            if (exponent == infinity_exponent)
+            {
+                computed_mantissa = 0;
+            }
+
+            mantissa = cast<uint<MantissaWidth>>(computed_mantissa);
+        }
+        else
+        {
+            // Max shift value is MantissaWidth
+            using shift_width_t = uint<bitsizeof(MantissaWidth)>;
+            shift_width_t shift = MantissaWidth - ndx_high_bit_opt.value;
+            mantissa = cast<uint<MantissaWidth>>(integer_value << shift);
+            exponent = Bias + MantissaWidth - shift;
+        }
+
+        result = cast<result_width_t>(sign) << (MantissaWidth + ExponentWidth);
+        result |= cast<result_width_t>(exponent) << MantissaWidth;
+        result |= mantissa;
+    }
+
+    // This structure acts as a work-around for the fact that we can't cast a uint
+    // directly into a float. We can, however cast a struct. This struct is used to
+    // build up the int_to_float function's return value.
+    struct ReturnStruct
+    {
+        result_width_t ret;
+    }
+
+    ReturnStruct rs = {result};
+
+    return cast<To>(rs);
+}

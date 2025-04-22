@@ -1,0 +1,8 @@
+void unlock()
+    {
+        sim_assert(_locked);
+        atomic
+        {
+            _locked = false;
+        }
+    }

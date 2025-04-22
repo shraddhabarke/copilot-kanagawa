@@ -1,0 +1,5 @@
+template <typename T>
+inline T static_cast(auto x)
+{
+    return cast<T>(x);
+}

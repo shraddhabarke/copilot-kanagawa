@@ -1,0 +1,12 @@
+void authenticate
+( text_t data    
+, index_t<16> num_bytes //< Indicate the number of valid bytes. A value    
+                        // of 0 indicates that all 16 bytes are valid.    
+)
+{
+    _update_hash(mask_bytes(data, num_bytes));
+    atomic
+    {
+        _aad_length += (num_bytes == 0 ? 16 : num_bytes);
+    }
+}

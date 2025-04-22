@@ -1,0 +1,7 @@
+inline buffer_count_t count()
+{
+buffer_count_t result;
+atomic
+{
+result = _producer_index - _consumer_index;
+}

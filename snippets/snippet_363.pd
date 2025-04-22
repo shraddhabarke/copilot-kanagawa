@@ -1,0 +1,23 @@
+inline float32StickyFormat addNormalizeOutput1(float32StickyFormat in)
+{
+    float32StickyFormat out;
+
+    //The priority encoder will always find a shift amount between 0 and 26
+    //Thus, we can get into a few situations:
+    //  1) The exponent is already too small to shift at all (exp < -126).
+    //      Solution is to shift by 0.
+    //  2) The priority encoder finds a shift about that would make the exponent too small (exp - PE shift amount < -126).
+    //      Solution is to cap the shift amount to (exp + 126).
+    //  3) Otherwise, use the priority encoder shift amount.
+    uint5 priorityEncoderShiftAmount = priorityOneEncoderCountDown26(in.mantissaGuardRound);
+    uint5 leftShiftAmount = cast<uint5>(in.exponent - priorityEncoderShiftAmount < -126 ? in.exponent + 126 : priorityEncoderShiftAmount);
+    out.sticky = in.sticky;
+    out.mantissaGuardRound = in.mantissaGuardRound << leftShiftAmount;
+
+    //The priority encoder might have found a shift amount that was actually too small (maxes out at 26).
+    //If so, make the exponent -126.  The mantissa is already zeroed out, so there is nothing to fix.
+    out.exponent = priorityEncoderShiftAmount == 26 ? -126 : in.exponent - leftShiftAmount;
+    out.sign = in.sign;
+
+    return(out);
+}

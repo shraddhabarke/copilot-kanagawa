@@ -1,0 +1,34 @@
+inline float32 exp2(float32 x)
+{
+    const auto structValue = cast<float32PackedFormat>(x);
+    const uint32 binaryValue = cast<uint32>(x);
+
+    const uint32 binaryPositive128 = 0x43000000;
+    const uint32 binaryNegative126 = 0xC2FC0000;
+
+    const specialCaseFlags flags = getSpecialCases<Denorm::Off>(structValue);
+
+    const bool isNegative = signbit(x);
+    const bool isNegInf = flags.inf && isNegative;
+    const bool isPosInf = flags.inf && !isNegative;
+    const bool isOverflow = structValue.sign == 0 && structValue.exponent != 0xFF && binaryValue >= binaryPositive128;
+    const bool isUnderflow = structValue.sign == 1 && structValue.exponent != 0xFF && binaryValue > binaryNegative126;
+
+    const int8 exponent = structValue.exponent - 127;
+    const auto valueFbit = 23 + 7;
+    const auto valueMantissa = ((1 << 23) | structValue.mantissa) << 7;
+
+    const auto structResult =
+        exp2_internal<float32PackedFormat, 1, valueFbit, 23>( {valueMantissa, exponent, structValue.sign} );
+
+    // output
+    float32PackedFormat result;
+    result.sign = 0;
+    result.exponent = (isNegInf || isUnderflow) ? 0 :
+                        (isPosInf || isOverflow || flags.nan) ? 0xFF :
+                        flags.zero ? 127 : structResult.exponent;
+    result.mantissa = (isNegInf || isUnderflow || isPosInf || isOverflow || flags.zero) ? 0 :
+                        flags.nan ? 1 : structResult.mantissa;
+
+    return cast<float32>(result);
+}

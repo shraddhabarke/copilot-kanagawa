@@ -1,0 +1,11 @@
+inline void test((tag_t) -> void fn /*< Test case function */)
+{
+    static assert(Test == cast<id_t>(Test));
+    static assert(Group == cast<group_t>(Group));
+    static assert(Flags == cast<flags_t>(Flags));
+
+    test_case<Test, Group, Flags>([fn](tag_t tag)
+    {
+        return fn(tag);
+    });
+}

@@ -1,0 +1,28 @@
+template <Denorm denorm_mode>
+inline bool gt(bfloat16 in1, bfloat16 in2)
+{
+    // Unpack input
+    bfloat16PackedFormat a;
+    bfloat16PackedFormat b;
+    a = cast<bfloat16PackedFormat>(in1);
+    b = cast<bfloat16PackedFormat>(in2);
+
+    // Get zero, nan, or inf
+    specialCaseFlags a_flags = getSpecialCases<denorm_mode>(a);
+    specialCaseFlags b_flags = getSpecialCases<denorm_mode>(b);
+
+    bool result;
+    if (a_flags.nan || b_flags.nan)
+    {
+        result = false;
+    }
+    else
+    {
+        int16 a_tc = a.sign != 0 ? -cast<int16>(in1 & 0x7FFF) : cast<int16>(in1);
+        int16 b_tc = b.sign != 0 ? -cast<int16>(in2 & 0x7FFF) : cast<int16>(in2);
+
+        result = a_tc > b_tc;
+    }
+
+    return result;
+}

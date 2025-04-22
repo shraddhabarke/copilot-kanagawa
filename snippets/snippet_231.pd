@@ -1,0 +1,27 @@
+template <Denorm denorm_mode>
+inline bool eq(uint64 in1, uint64 in2)
+{
+    // Unpack input
+    float64PackedFormat a = cast<float64PackedFormat>(in1);
+    float64PackedFormat b = cast<float64PackedFormat>(in2);
+    // Get zero, nan, or inf
+    specialCaseFlags a_flags = getSpecialCases<denorm_mode>(a);
+    specialCaseFlags b_flags = getSpecialCases<denorm_mode>(b);
+
+    bool result;
+    // Negative and positive zero are equal
+    if (a_flags.zero && b_flags.zero)
+    {
+        result = true;
+    }
+    // NaNs are never equal
+    else if (a_flags.nan || b_flags.nan)
+    {
+        result = false;
+    }
+    else
+    {
+        result = in1 == in2;
+    }
+    return result;
+}

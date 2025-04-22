@@ -1,0 +1,11 @@
+inline void stop()
+    {
+        atomic
+        {
+            if (running)
+            {
+                sim_assert(!exit);
+                exit = true;
+            }
+        }
+    }

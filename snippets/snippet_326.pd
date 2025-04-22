@@ -1,0 +1,18 @@
+inline pair<T, uint1> sub_with_borrow
+    ( T a //< The first operand for subtraction
+    , T b //< The second operand for subtraction
+    , uint1 borrow //< The input borrow
+    )
+{ 
+    // The sub with borrow can be computed by expression: a - b - borrow
+    // but that will generate two T bit subtractors. The expression below 
+    // uses only one T+1 bit subtractor. The LSB of left operand of '-' 
+    // below is 0 and LSB of the second operand is borrow. Due to their
+    // subtraction, the incoming borrow for LSB of a and b is same as the 
+    // borrow passed as paramter. The final right shift removes the 
+    // subtraction of 0 and borrow from the result.
+    auto sub_w_borrow = ((a << 1) - ((b << 1) | borrow)) >> 1;
+    auto borrow_out = cast<uint1>(sub_w_borrow >> bitsizeof(T));
+    auto sub = cast<T>(sub_w_borrow);
+    return make_pair(sub, borrow_out);
+}

@@ -1,0 +1,14 @@
+template <typename T, typename U>
+inline void assert_equal
+    ( tag_t tag     //< Test tag
+    , T expected    //< Expected value
+    , U actual      //< Actual value
+    )
+{
+    if (reinterpret_cast<uint<bitsizeof T>>(expected) != reinterpret_cast<uint<bitsizeof U>>(actual))
+    {
+        println("Expected:", expected, "actual:", actual);
+        print_failure(tag);
+        sim_assert(false);
+    }
+}

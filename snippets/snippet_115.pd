@@ -1,0 +1,1 @@
+template <auto N> inline bool or(bool[N] x) { return reduce( [](bool x, bool y) { return x || y; }, x); }

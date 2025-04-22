@@ -1,0 +1,24 @@
+template
+< auto BatchSize      //< Number of values to decompress at a time.
+// `BatchSize` must be less than or equal to
+// `DataLoadSize` divided by the largest column's
+// `input_bit_size`.
+, auto DataLoadSize   //< Number of bits to laod at a time when requesting
+// more data, e.g. 512.
+, auto NumColumns     //< Number of columns in source data, e.g. 5.
+, typename OutputSize //< The kind of value you want the bits unpacked into
+// e.g. uint16.
+>
+class bit_reader{
+private:
+const auto _cacheSize = DataLoadSize;
+
+//need to be able to store values 0 to DataLoadSize, and signed, so add 2.
+//e.g. if we are loading 512 bits at a time, we need to store values
+//0 to 512 (513 total values), but signed, so -512 to 512
+const auto _tailBitSize = clog2(DataLoadSize+1)+1;
+
+[[pipelined]] void _reset(uint<clog2(NumColumns)> tid)
+{
+_numTailBits[tid] = 0;
+}

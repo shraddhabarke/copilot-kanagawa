@@ -1,0 +1,4 @@
+inline float32 floor(float32 x)
+{
+    return floor_internal<float32, _mantissa_width, _exponent_width, _exponent_bias, denorm_mode>(x);
+}

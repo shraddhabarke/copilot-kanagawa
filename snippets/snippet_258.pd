@@ -1,0 +1,35 @@
+template <typename I, typename T>
+inline T pipelined_last(auto count, (I) -> T body)
+{
+    using body_t = decltype(body);
+
+    class Helper
+    {
+    public:
+        [[pipelined]] void loop(I tid, I last, body_t body)
+        {
+            const auto x = body(tid);
+
+            if (tid == last)
+            {
+                _result.enqueue(x);
+            }
+        }
+
+        inline T result()
+        {
+            return _result.dequeue();
+        }
+
+    private:
+        FIFO<T, 32, true, false> _result;
+    }
+
+    static Helper helper;
+
+    sim_assert(count > 0);
+    sim_assert(count <= (1 << bitsizeof I));
+
+    helper.loop(count, cast<I>(count - 1), body);
+    return helper.result();
+}

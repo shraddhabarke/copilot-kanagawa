@@ -1,0 +1,8 @@
+inline void assert(tag_t tag, bool cond)
+{
+    if (!cond)
+    {
+        print_failure(tag);
+        sim_assert(false);
+    }
+}

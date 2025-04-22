@@ -1,0 +1,7 @@
+inline void external_fetch_result
+( hart_index_t hid  //< Index of the hart that performed the fetch.
+, uint_t addr       //< Address of 32-bit instruction word that was fetched.
+, uint_t value      //< 32-bit instruction word.
+){
+    core.external_fetch_result(hid, checked_cast<imem_addr_t>(addr), value);
+}

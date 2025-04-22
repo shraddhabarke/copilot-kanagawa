@@ -1,0 +1,14 @@
+inline pair<T, T> atomically((T) -> T modify)
+{
+    pair<T, T> result;
+
+    atomic
+    {
+        static T state = InitialValue;
+
+        result = {state, modify(state)};
+        state = result.second;
+    }
+
+    return result;
+}

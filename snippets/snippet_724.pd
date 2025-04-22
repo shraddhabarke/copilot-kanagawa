@@ -1,0 +1,8 @@
+void put
+( Key key               //< The key to write.
+, set_index_t set_index //< The hashed value of the key.
+, Value value           //< The new value to put.
+)
+{
+get_or_put(false, key, set_index, value);
+}

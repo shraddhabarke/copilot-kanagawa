@@ -1,0 +1,5 @@
+inline bool signbit(float32 x)
+{
+    const auto s = cast<float32PackedFormat>(x);
+    return s.sign == 1;
+}

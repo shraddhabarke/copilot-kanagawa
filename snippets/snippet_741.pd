@@ -1,0 +1,4 @@
+uint32 next()
+    {
+        return _mt.next();
+    }

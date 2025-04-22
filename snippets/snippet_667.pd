@@ -1,0 +1,19 @@
+optional<T>[ArraySize] dequeue_many
+        ( bool[ArraySize] mask //< An array of boolean values, one per FIFO.
+                               // If `mask[i] == true`, then an element will be dequeued from FIFO `i`
+                               // and stored in the result array at index `i`.
+                               // If `mask[i] == false`, then element `i` in the result is undefined.
+        )
+    {
+        optional<T>[ArraySize] result = {};
+
+        static for (const auto i : ArraySize)
+        {
+            if (mask[i])
+            {
+                result[i] = make_optional(true, _fifos[i].dequeue());
+            }
+        }
+
+        return result;
+    }

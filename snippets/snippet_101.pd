@@ -1,0 +1,14 @@
+template <auto N, typename T>
+inline T[N] bitonic_comparator(T[N] x, (T, T)->bool cmp)
+{
+    sim_assert(N % 2 == 0);
+    const auto half_N = N / 2;
+    T[N] y;
+  static for (const auto i : half_N)
+    {
+        bool cmp_flag = cmp(x[i], x[i + half_N]);
+        y[i] = cmp_flag ? x[i] : x[i + half_N];
+        y[i + half_N] = cmp_flag ? x[i + half_N] : x[i];
+    }
+    return y;
+}

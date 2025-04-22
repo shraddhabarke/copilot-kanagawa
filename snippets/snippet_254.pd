@@ -1,0 +1,9 @@
+template <typename I>
+inline void pipelined_for(auto count, (I) -> void body)
+{
+    sim_assert(count <= (1 << bitsizeof I));
+
+    static pipelined<I, decltype(body)> loop;
+
+    loop.go(count, body);
+}

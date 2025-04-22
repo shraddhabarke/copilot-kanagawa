@@ -1,0 +1,6 @@
+inline void mmio_store_completed
+ ( hart_index_t hid  //< Index of the hart that performed the asynchronous store
+                    // to memory mapped IO.
+) {
+    core.mmio_store_completed(hid);
+}

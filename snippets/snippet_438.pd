@@ -1,0 +1,180 @@
+inline bfloat16 tanh(bfloat16 val)
+{
+    const bfloat16PackedFormat in = cast<bfloat16PackedFormat>(val);
+
+    const uint12[1] C0_120 = {4095};
+    const uint11[1] C1_120 = {1024};
+    const uint1 [1] C2_120 = {0}; // Actual values negative or zero - handled in quadratic calculation below
+    const uint13[2] C0_121 = {4095, 6143};
+    const uint11[2] C1_121 = {1024, 1023};
+    const uint1 [2] C2_121 = {0, 0}; // Actual values negative or zero - handled in quadratic calculation below
+    const uint13[2] C0_122 = {4094, 6138};
+    const uint10[2] C1_122 = {1023, 1022};
+    const uint1 [2] C2_122 = {0, 0}; // Actual values negative or zero - handled in quadratic calculation below
+    const uint13[2] C0_123 = {4090, 6125};
+    const uint10[2] C1_123 = {1020, 1015};
+    const uint1 [2] C2_123 = {1, 1}; // Actual values negative or zero - handled in quadratic calculation below
+    const uint13[2] C0_124 = {4073, 6072};
+    const uint10[2] C1_124 = {1009, 989};
+    const uint3 [2] C2_124 = {4, 6}; // Actual values negative or zero - handled in quadratic calculation below
+    const uint13[2] C0_125 = {4012, 5869};
+    const uint10[2] C1_125 = {964, 894};
+    const uint5 [2] C2_125 = {17, 21}; // Actual values negative or zero - handled in quadratic calculation below
+    const uint13[4] C0_126 = {3785, 4543, 5203, 5766};
+    const uint10[4] C1_126 = {806, 709, 610, 516};
+    const uint6 [4] C2_126 = {48, 49, 46, 43}; // Actual values negative or zero - handled in quadratic calculation below
+    const uint12[8] C0_127 = {3119, 3315, 3474, 3604, 3707, 3790, 3856, 3908};
+    const uint9 [8] C1_127 = {429, 352, 286, 230, 184, 146, 116, 91};
+    const uint7 [8] C2_127 = {76, 65, 55, 45, 37, 29, 24, 18}; // Actual values negative or zero - handled in quadratic calculation below
+    const uint12[4] C0_128 = {3949, 4041, 4076, 4088};
+    const uint8 [4] C1_128 = {136, 51, 18, 6};
+    const uint6 [4] C2_128 = {44, 16, 5, 1}; // Actual values negative or zero - handled in quadratic calculation below
+    const uint13[2] C0_129 = {4092, 4096};
+    const uint2 [2] C1_129 = {3, 0};
+    const uint1 [2] C2_129 = {0, 0}; // Actual values negative or zero - handled in quadratic calculation below
+
+    uint13 c0;
+    uint11 c1;
+    uint7 c2;
+    uint8 x;
+
+    uint7 mantissa_bypass = 0;
+    uint8 exponent_bypass = 0;
+    bool bypass = false;
+
+    // Preprocessing, bypass if the number is too small or too large
+    auto flags = getSpecialCases<Denorm::Off>(in);
+
+    if (flags.nan)
+    {
+        bypass = true;
+        exponent_bypass = in.exponent;
+        mantissa_bypass = in.mantissa;
+    }
+    else if (in.exponent < 120)
+    {
+        bypass = true;
+        exponent_bypass = in.exponent;
+        mantissa_bypass = in.mantissa;
+    }
+    else if (in.exponent > 129)
+    {
+        bypass = true;
+        exponent_bypass = 127;
+        mantissa_bypass = 0;
+    }
+    else
+    {
+        uint1 idx1 = cast<uint1>(in.mantissa >> 6);
+        uint2 idx2 = cast<uint2>(in.mantissa >> 5);
+        uint3 idx3 = cast<uint3>(in.mantissa >> 4);
+
+        switch(in.exponent)
+        {
+        case 120:
+            c0 = C0_120[0];
+            c1 = C1_120[0];
+            c2 = C2_120[0];
+            x = in.mantissa << 1;
+            exponent_bypass = in.exponent;
+            break;
+        case 121:
+            c0 = C0_121[idx1];
+            c1 = C1_121[idx1];
+            c2 = C2_121[idx1];
+            x = (in.mantissa & 0x3f) << 1;
+            exponent_bypass = in.exponent;
+            break;
+        case 122:
+            c0 = C0_122[idx1];
+            c1 = C1_122[idx1];
+            c2 = C2_122[idx1];
+            x = (in.mantissa & 0x3f) << 1;
+            exponent_bypass = in.exponent;
+            break;
+        case 123:
+            c0 = C0_123[idx1];
+            c1 = C1_123[idx1];
+            c2 = C2_123[idx1];
+            x = (in.mantissa & 0x3f) << 1;
+            exponent_bypass = in.exponent;
+            break;
+        case 124:
+            c0 = C0_124[idx1];
+            c1 = C1_124[idx1];
+            c2 = C2_124[idx1];
+            x = (in.mantissa & 0x3f) << 1;
+            exponent_bypass = in.exponent;
+            break;
+        case 125:
+            c0 = C0_125[idx1];
+            c1 = C1_125[idx1];
+            c2 = C2_125[idx1];
+            x = (in.mantissa & 0x3f) << 1;
+            exponent_bypass = in.exponent;
+            break;
+        case 126:
+            c0 = C0_126[idx2];
+            c1 = C1_126[idx2];
+            c2 = C2_126[idx2];
+            x = (in.mantissa & 0x1f) << 1;
+            exponent_bypass = in.exponent;
+            break;
+        case 127:
+            c0 = C0_127[idx3];
+            c1 = C1_127[idx3];
+            c2 = C2_127[idx3];
+            x = (in.mantissa & 0x0f) << 1;
+            exponent_bypass = in.exponent;
+            break;
+        case 128:
+            c0 = C0_128[idx2];
+            c1 = C1_128[idx2];
+            c2 = C2_128[idx2];
+            x = (in.mantissa & 0x1f) << 1;
+            exponent_bypass = 127;
+            break;
+        case 129:
+            c0 = C0_129[idx1];
+            c1 = C1_129[idx1];
+            c2 = C2_129[idx1];
+            x = (in.mantissa & 0x3f) << 1;
+            exponent_bypass = 127;
+            break;
+        default:
+            sim_assert(false);    // Control should never reach here
+            break;
+        }
+    }
+
+    // Quadratic approximation
+    uint15 constant_term = c0 << 2;
+    uint15 linear_term = (c1 * x) >> 4;
+    uint10 x_squared = ((x * x) >> 6);
+    uint13 quadratic_term = (c2 * x_squared) >> 4;
+    uint8 accum = (constant_term + linear_term - quadratic_term) >> 7;
+
+    bfloat16PackedFormat r_val;
+    r_val.sign = in.sign;
+
+    if (bypass)
+    {
+        r_val.exponent = exponent_bypass;
+        r_val.mantissa = mantissa_bypass;
+    }
+    else
+    {
+        if (cast<uint1>(accum >> 7) != 0)
+        {
+            r_val.exponent = exponent_bypass;
+            r_val.mantissa = cast<uint7>(accum);
+        }
+        else
+        {
+            r_val.exponent = exponent_bypass - 1;
+            r_val.mantissa = cast<uint7>(accum << 1);
+        }
+    }
+
+    return cast<bfloat16>(r_val);
+}

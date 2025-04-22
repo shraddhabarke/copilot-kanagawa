@@ -1,0 +1,4 @@
+inline void write_aligned(addr_t addr, word_t word)
+    {
+        mem.write_aligned(addr, cast<uint8[BytesPerWord]>(word));
+    }

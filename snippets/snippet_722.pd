@@ -1,0 +1,48 @@
+cache_tags_get_result<entry_index_t, Key> get
+( Key key                //< The key to lookup.
+, set_index_t set_index  //< The hashed value of the key.
+, bool mark_as_unwritten //< Mark the cache entry as unwritten, meaning it hasn't
+// been written to the backing store yet.
+)
+{
+bool hit = false;
+optional<entry_index_t> idx;
+cache_entry<Key, LUtime> entry;
+cache_tags_get_result<entry_index_t, Key> result;
+auto cycleCount = cycles();
+Key key_to_write;
+bool valid_key_to_write = false;
+atomic
+{
+cache_tag<Key, LUtime, Associativity> tag = m_tags[set_index];
+idx = FindKey(tag, key);
+if (idx.is_valid)
+{
+hit = true;
+entry = tag._entries[idx.value];
+else {
+hit = false;
+idx = GetIndexForNewEntry(tag);
+sim_assert(idx.is_valid);
+if (tag._entries[idx.value]._unwritten) {
+    sim_assert(tag._entries[idx.value]._valid);
+    // Before we overwrite an unwritten value in the cache, capture the key
+    // that's about to be evicted.
+    key_to_write = tag._entries[idx.value]._key;
+    valid_key_to_write = true;
+}
+// In the cache miss case, we overwrite every field of the cache_tag, so
+// there is no need to copy the existing value from the tag._entries array.
+entry._valid = true;
+entry._key = key; }
+// Update the last used time for this cache entry
+sim_assert(idx.is_valid);
+entry._lastUsed = cast<LUtime>(cycleCount); // dropping high bits is expected
+entry._unwritten = mark_as_unwritten;
+tag._entries[idx.value] = entry;
+m_tags[set_index] = tag;
+}
+result.idx = idx.value;
+result.hit = hit;
+result.key_to_write = make_optional<Key>(valid_key_to_write, key_to_write);
+return result;}

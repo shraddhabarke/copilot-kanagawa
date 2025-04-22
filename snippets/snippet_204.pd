@@ -1,0 +1,37 @@
+inline optional<epoch_seconds_t> utc_time_to_epoch(time_t time)
+{
+    optional<epoch_seconds_t> result;
+
+    const auto secondsPerMinute = 60;
+    const auto secondsPerHour = secondsPerMinute * 60;
+    const auto secondsPerDay = secondsPerHour * 24;
+
+    // Convert year, month, and day into number of days since Jan 1 1970
+    time_day_t d;
+    d.day = time.day;
+    d.month = time.month;
+    d.year = time.year;
+    auto resultDays = utc_days_to_epoch(d);
+
+    // Validation
+    bool[4] validComponents;
+
+    validComponents[0] = resultDays.is_valid;
+    validComponents[1] = time.hours < 24;
+    validComponents[2] = time.minutes < 60;
+    validComponents[3] = time.seconds < 60;
+
+    const bool valid = and(validComponents);
+
+    // Each element of this array is in seconds
+    epoch_seconds_t[4] secondComponents = {};
+
+    secondComponents[0] = resultDays.value * secondsPerDay;
+    secondComponents[1] = time.hours * secondsPerHour;
+    secondComponents[2] = time.minutes * secondsPerMinute;
+    secondComponents[3] = time.seconds;
+
+    const auto totalSeconds = sum<epoch_seconds_t, epoch_seconds_t, 4>(secondComponents);
+
+    return make_optional<epoch_seconds_t>(valid, valid ? totalSeconds : 0);
+}

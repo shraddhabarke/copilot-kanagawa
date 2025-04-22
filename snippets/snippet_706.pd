@@ -1,0 +1,27 @@
+Hash_t calc_hash(Data_t data)
+    {
+        // Call a "pipelined" function to calculate the hash of an portion of the input data.
+        // This lowers the issue rate (to 1:PipelineCycles), but should help with the size
+        // of the implementation.
+        Hash_t[PipelineCycles] hashChunks;
+        hashChunks = calc_hash_chunk(PipelineCycles, data);
+
+        const auto PartialHashesLength = 1 << clog2(PipelineCycles);
+        Hash_t[PartialHashesLength] partialHashes;
+
+        static for(const auto i : PipelineCycles)
+        {
+            partialHashes[i] = hashChunks[i];
+        }
+
+        const auto ReductionTreeDepth = clog2(PipelineCycles);
+        static for(const auto i : ReductionTreeDepth)
+        {
+            static for(const auto j : PartialHashesLength / 2)
+            {
+                partialHashes[j] = partialHashes[2*j] ^ partialHashes[2*j+1];
+            }
+        }
+
+        return partialHashes[0];
+    }

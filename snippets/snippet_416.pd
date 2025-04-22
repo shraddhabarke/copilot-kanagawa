@@ -1,0 +1,5 @@
+template <auto N /*< Signed integer width*/>
+inline bfloat16 from_int(int<N> value)
+{
+    return int_to_float<int<N>, bfloat16, _mantissa_width, _exponent_width, _exponent_bias>(value);
+}

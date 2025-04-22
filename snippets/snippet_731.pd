@@ -1,0 +1,13 @@
+template
+< typename T            //< Type of values stored in the accumulating buffer.
+, auto Size             //< Maximum number of elements that can be stored in a flit.
+, auto InputSize = Size //< Maximum number of elements that can be appended to the buffer in one call.
+, auto FlitCount = 1    //< Maximum number of flits that can be stored.  The output callback is called once for each `Size` elements.
+>
+class accumulating_buffer
+{
+private:
+using buffer_t = multi_accumulating_buffer<T, Size, 1, InputSize, array, true, FlitCount>;
+
+buffer_t _buffer;
+

@@ -1,0 +1,4 @@
+inline count_t get()
+    {
+        return _count;
+    }

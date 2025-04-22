@@ -1,0 +1,7 @@
+template<Denorm denorm_mode>
+inline bfloat16 abs(bfloat16 x)
+{
+    auto structValue = cast<bfloat16PackedFormat>(x);
+    structValue.sign = 0;
+    return cast<bfloat16>(structValue);
+}

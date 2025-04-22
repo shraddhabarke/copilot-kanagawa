@@ -1,0 +1,10 @@
+[[reset, max_threads(1)]] void main(){
+ auto result = test_main();
+if (result != 0) {
+    println("test_main() failed with error ", result);
+}
+else if (Params::verbose) {
+    println("test_main() succeeded");
+}
+barrier;
+sim_assert(result == 0);}

@@ -1,0 +1,1 @@
+inline void increment() {    add(1); }

@@ -1,0 +1,28 @@
+inline int32 ilogb(float32 x)
+{
+    const auto s = cast<float32PackedFormat>(x);
+    const specialCaseFlags flags = getSpecialCases<Denorm::On>(s);
+    const bool isDenorm = (s.exponent == 0) && !flags.zero;
+    const auto leadingOne = highest_one<uint23>(s.mantissa);
+
+    const auto intMax = 0x7FFFFFFF;
+    const auto intMin = 0x80000000;
+    int32 result;
+    if (flags.inf)
+    {
+        result = intMax;
+    }
+    else if (flags.zero || flags.nan)
+    {
+        result = intMin;
+    }
+    else if (isDenorm)
+    {
+        result = leadingOne.value - 149;
+    }
+    else
+    {
+        result = s.exponent - 127;
+    }
+    return result;
+}

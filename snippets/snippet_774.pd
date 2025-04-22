@@ -1,0 +1,22 @@
+class largest_uint6_out_of_256 {
+private:
+    memory<uint6, 256> _input_data;
+public:
+    void write_input(uint8 index, uint6 data) {
+        _input_data[index] = data;
+    }
+    uint6 find() {
+        return pipelined_last(256, [](uint8 index) {
+            bool is_first = (index == 0);
+            uint6 val = _input_data[index];
+            uint6 new_max;
+            atomic {
+                static uint6 _curr_max;
+                new_max = is_first ? 0 : _curr_max;
+                new_max = val > new_max ? val : new_max;
+                _curr_max = new_max;
+            }
+            return new_max;
+        });
+    }
+}

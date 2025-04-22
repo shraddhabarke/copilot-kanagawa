@@ -1,0 +1,8 @@
+void unlock(index_t<NumMutexes> index)
+    {
+        sim_assert(is_initialized);
+
+        uint1 r = _r[index];
+        r = modular::increment(r);
+        _r[index] = r;
+    }

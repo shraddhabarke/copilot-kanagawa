@@ -1,0 +1,10 @@
+inline void enqueue_with_callback
+( input_vec_t values                            //< Values to enqueue.
+, bool flush                                    //< If true, then call the callback for all buffer values associated with the buffer identified by `buffer_index`.
+, (index_t<FlitCount>,
+count_t<FlitCount>,
+vec::vector<T, Size>)->void output_callback //< Function which is called once per output flit.
+)
+{
+return _buffer.enqueue_with_callback(0, values, flush, output_callback);
+}

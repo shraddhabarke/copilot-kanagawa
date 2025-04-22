@@ -1,0 +1,5 @@
+template <auto N>
+using count_t = uint<clog2(N + 1)>;
+
+template <typename T>
+using bitcount_t = count_t<bitsizeof(T)>;

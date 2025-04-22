@@ -1,0 +1,20 @@
+template
+    < ( token_t[Width], count_t<Width>
+      , bool //< Indicate whether this will be the last call. Allows the
+             // consumer to flush if desired.
+      )->void WriteCallback
+      //< Callback function for supplying the next `Width` tokens.
+    , (PrioritizeDictCallbackInput_t)->PrioritizeDictCallbackOutput_t PrioritizeDictCallback
+      //< Callback function to determine the order in which dictionary hits
+      // should be assigned to available window ports. Input dictionary
+      // entries will be in FIFO (ascending distance) order. See
+      // `default_prioritize_dict_callback` for more information.
+    , (ChooseMatchCallbackInput_t)->ChooseMatchCallbackOutput_t ChooseMatchCallback
+      //< Callback function for collapsing the set of valid back-references
+      // (and literals) into a sequence of non-overlapping tokens that
+      // covers the remainder (or more) of the word. See
+      // `default_choose_match_callback_*` for more information.
+    >void push(uint8[Width] word, count_t<Width> size, [[last]] bool last)
+    {
+        push_pipeline<WriteCallback, PrioritizeDictCallback, ChooseMatchCallback>(1 + (last ? MaxWordsSpanned : 0), word, size);
+    }

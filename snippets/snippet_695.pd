@@ -1,0 +1,8 @@
+template<port_index_t port_index>
+    inline void write(element_index_t index, T data)
+    {
+        //Writes on port N go into memory bank N.  The _which_port array tracks which
+        // bank has the most recent value for each address.
+        _memories[port_index][index] = data;
+        _which_port[index] = port_index;
+    }

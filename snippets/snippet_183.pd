@@ -1,0 +1,4 @@
+inline float32 log10(float32 x)
+{
+    return log2_internal<0x1344135, 26>(x);
+}

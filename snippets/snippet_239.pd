@@ -1,0 +1,13 @@
+template <auto N /*< Width of the unsigned integer.*/>
+inline optional<uint<N>> to_uint(uint64 value)
+{
+    auto result = float_to_int<uint64, uint<N+1>, _mantissa_width, _exponent_width, _exponent_bias>(value);
+    if (result.is_valid)
+    {
+        auto limits = get_limits<uint<N>>();
+        if ((result.value < limits.first) || (result.value > limits.second))
+            result.is_valid = false;
+    }
+
+    return make_optional<uint<N>>(result.is_valid, cast<uint<N>>(result.value));
+}

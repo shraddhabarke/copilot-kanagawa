@@ -1,0 +1,23 @@
+inline void run_vector_test(()->void test_fn, (index_t<result_count>)->T actual_fn, (index_t<result_count>)->T expected_fn, const string name)
+{
+const uint64 start_cycle = cycles();
+
+// Execute the test
+test_fn();
+
+const uint64 total_cycles = cycles() - start_cycle;
+
+println("Test:", name, "Cycles:", total_cycles);
+
+// Check return values
+pipelined_for(result_count, [actual_fn, expected_fn](index_t<result_count> i)
+{
+T actual = actual_fn(i);
+T expected = expected_fn(i);
+
+if (actual != expected)
+{
+println("Incorrect result returned for element:", i, "actual:", actual, "expected:", expected);
+}
+});
+}

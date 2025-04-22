@@ -1,0 +1,16 @@
+template
+    < auto Width //< Width in bits of the decimal. This must be 32 for decimal32 or 64 for decimal64.
+    >inline specialCaseFlags getSpecialCases_internal(uint<Width> a)
+{
+    static assert(Width == 32 || Width == 64);
+    specialCaseFlags flags;
+    const auto input = parseDecimalValue<Width>(a);
+    const uint4 first4CombinationBits = (a >> (Width - 5));
+    const auto nonfiniteCheck = (first4CombinationBits == ((1 << 4) - 1));
+    const uint1 fifthCombinationBit = (a >> (Width - 6));
+    flags.nan = nonfiniteCheck && (fifthCombinationBit == 1);
+    flags.inf = nonfiniteCheck && (fifthCombinationBit == 0);
+    flags.finite = !nonfiniteCheck;
+    flags.zero = input.integer == 0 && !nonfiniteCheck;
+    return flags;
+}

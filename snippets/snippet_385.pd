@@ -1,0 +1,4 @@
+inline bool lt(bid64_t in1, bid64_t in2)
+{
+    return lt_internal<_width>(in1, in2);
+}

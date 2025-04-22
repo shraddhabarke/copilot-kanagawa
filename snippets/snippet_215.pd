@@ -1,0 +1,4 @@
+inline T front()
+    {
+        return _dataMem[_consumerIndex];
+    }

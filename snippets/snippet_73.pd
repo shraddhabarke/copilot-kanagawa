@@ -1,0 +1,1 @@
+template <typename T> inline T rotr(T value, bitindex_t<T> amount) { const auto Width = bitsizeof(T); sim_assert(amount <= Width);  return cast<T>(value >> amount) | cast<T>(value << (Width - amount)); }

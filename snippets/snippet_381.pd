@@ -1,0 +1,5 @@
+inline bool isnan(bid64_t x)
+{
+    const auto flags = getSpecialCases(x);
+    return flags.nan;
+}

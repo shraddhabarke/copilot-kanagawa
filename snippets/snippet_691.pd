@@ -1,0 +1,35 @@
+T dequeue_and_discard(index_t<ArraySize> discard_count)
+    {
+        count_t<ArraySize> total_count = discard_count + 1;
+
+        // Block the calling thread until an entry is available
+        _read_semaphore.wait_multiple(total_count);
+
+        // Get the value of the read pointer, and increment the read pointer
+        scalar_pointer_t snapped_consumer_index;
+
+        atomic
+        {
+            static scalar_pointer_t _consumer_index = 0;
+            snapped_consumer_index = _consumer_index;
+            _consumer_index = modular::add(_consumer_index, total_count);
+        }
+
+        // Decompose snapped_consumer_index into
+        // 1) index into _data_mem
+        // 2) index into resulting array
+        index_t<ArrayDepth> index_into_mem = snapped_consumer_index / ArraySize;
+
+        index_t<ArraySize> index_within_array = snapped_consumer_index;
+
+        // Read an array from the memory
+        array_t results = _data_mem[index_into_mem];
+
+        // Select 1 element from the array
+        T result = results[index_within_array];
+
+        // Now that the read has occured, allow another thread to overwrite the data
+        _write_semaphore.post_multiple(total_count);
+
+        return result;
+    }

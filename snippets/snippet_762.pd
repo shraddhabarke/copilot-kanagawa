@@ -1,0 +1,23 @@
+[[async, max_threads(1)]] void start_new_block_async()[[async, max_threads(1)]] void start_new_block_async()
+//       ^^^^^^^^^^^^^^ No functional reason for this, but causes the ContextSaver for compute_huffman()
+//                      and writer_dot_prepare() to go into LUTRAM not BRAM {
+    sim_assert(_updateState == updateState_t::IDLE);
+   _updateState = updateState_t::UNDERWAY;
+    auto train = (countFreq.get_update_interval() == 0);
+    compute_huffman(3, train);
+    bool gzipHeader = (_state == state_t::RESET);
+    index_t<writer_t::MaxPrepareThreads> deflateTid = (gzipHeader ? writer.GzipHeaderThreads : 0);
+    index_t<writer_t::MaxPrepareThreads> flushTid = deflateTid + 1 /* EOB/NOP */ + 1 /* BFINAL+BTYPE(+HLIT+HDIST)*/;
+    if (!writer.get_fixed_huffman())
+        flushTid +=
+            (gz::MaxHCLEN + 1 + gz::MaxHCLEN) /* HCLEN */ + codeLengthCount.journal_count() /* Code Lengths */;
+    count_t<writer_t::MaxPrepareThreads> numThreads = flushTid + 1;
+    writer_dot_prepare(numThreads, deflateTid, flushTid, !train /* EOB */);
+    // The user-defined updateInterval determines how much input data must be seen before switching over to
+    // the new Huffman code (and then starting a new update) to ensure deterministic file sizes.
+    // Use this async thread to wait until updateInterval has been reached (which also restarts sampling) or
+    // until the compressor is flushed.
+    wait_for(countFreq.update_interval_reached() || _state == state_t::NEED_RESET);
+    writer.set_update_pending();
+    _updateState = updateState_t::IDLE;
+}

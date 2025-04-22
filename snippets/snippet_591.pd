@@ -1,0 +1,17 @@
+ [[async]] void _transfer_loop() {
+    do
+     {
+         // Handle reset
+         if (_reset_flag)
+         {
+             static for (const auto i : NUM_INPUTS)
+             {
+                 _flits_read[i] = 0;
+             }
+             _curr_packet = 0;
+             _reset_flag = false;
+         }
+         schedule_t schedule = _create_schedule();
+         _execute_schedule(SCHEDULE_WIDTH, schedule);
+     } while (true);
+ }

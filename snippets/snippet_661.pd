@@ -1,0 +1,4 @@
+inline uint128 carryless_mult_dsp_64x64(uint64 a, uint64 b)
+{
+    return karatsuba_mult<uint128>(carryless_mult_dsp_32x32, xor, xor, a, b);
+}

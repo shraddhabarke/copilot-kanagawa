@@ -1,0 +1,4 @@
+void set_seed(uint32 seed)
+    {
+        _mt.set_seed(seed);
+    }

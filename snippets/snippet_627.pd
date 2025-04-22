@@ -1,0 +1,4 @@
+inline bool is_running()
+    {
+        return running;
+    }

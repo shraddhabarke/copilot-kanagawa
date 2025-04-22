@@ -1,0 +1,5 @@
+template <typename T, auto N, auto M>
+inline bool equal(vector<T, N> x, vector<T, M> y)
+{
+    return equal_by(Ord::equal, x, y);
+}

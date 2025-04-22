@@ -1,0 +1,10 @@
+template<auto Width, auto MaxLength, auto WindowSize, auto DictAssociativity>
+struct ChooseMatchCallbackInput
+{
+    //| 2D `Width` by `DictAssociativity` array of back-reference candidates.
+    optional<reference<WindowSize, MaxLength>>[Width][DictAssociativity] candidates;
+    //| Array of literal value at each byte position.
+    uint8[Width] literals;
+    //| Indicates that this is the last call for the current data block,
+    // allowing static state to be reset.
+    count_t<Width> size;};

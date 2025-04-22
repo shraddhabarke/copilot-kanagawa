@@ -1,0 +1,6 @@
+template<auto WindowSize, auto MaxLength>
+union data_or_reference
+{
+    uint8 data;
+    reference<WindowSize, MaxLength> reference;
+}

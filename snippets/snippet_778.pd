@@ -1,0 +1,25 @@
+metadata get_metadata
+metadata get_metadata
+    ( token_t[InputWidth] tokens     //< Array of input tokens to process.
+    , count_t<InputWidth> num_tokens //< Number of valid elements in the
+                                     // token array.
+    , bool is_last                   //< Indicate if this is the last set of
+                                     // tokens for 1 input stream.
+    ) {
+    // Compute cumulative length of each token (in bytes)
+    length_t[InputWidth] partial_sums = get_cumulative_token_size(tokens, num_tokens);
+    length_t total_bytes = partial_sums[InputWidth - 1];
+    length_t num_threads = (total_bytes + OutputWidth - 1) / OutputWidth;
+    metadata result;
+    result.thread_count = num_threads;
+    if (is_last) {
+        // One final thread to flush out any remaining data
+        result.thread_count++;
+    }
+    // Update running total byte count
+    atomic {
+        static uint64 _running_byte_count = 0;
+        result.byte_count = _running_byte_count + total_bytes;
+        _running_byte_count = is_last ? 0 : result.byte_count;
+     }
+     return result;

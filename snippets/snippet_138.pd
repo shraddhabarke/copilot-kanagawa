@@ -1,0 +1,1 @@
+template <typename T, auto N> inline T back(T[N] x) { return x[N - 1]; }

@@ -1,0 +1,40 @@
+inline void print_reg(Reg reg)
+{
+    static assert (bitsizeof reg == bitsizeof ABI);
+
+    switch (cast<ABI>(reg))
+    {
+        case ABI::zero: print("zero"); break;
+        case ABI::ra:   print("ra"); break;
+        case ABI::sp:   print("sp"); break;
+        case ABI::gp:   print("gp"); break;
+        case ABI::tp:   print("tp"); break;
+        case ABI::t0:   print("t0"); break;
+        case ABI::t1:   print("t1"); break;
+        case ABI::t2:   print("t2"); break;
+        case ABI::s0:   print("s0"); break;
+        case ABI::s1:   print("s1"); break;
+        case ABI::a0:   print("a0"); break;
+        case ABI::a1:   print("a1"); break;
+        case ABI::a2:   print("a2"); break;
+        case ABI::a3:   print("a3"); break;
+        case ABI::a4:   print("a4"); break;
+        case ABI::a5:   print("a5"); break;
+        case ABI::a6:   print("a6"); break;
+        case ABI::a7:   print("a7"); break;
+        case ABI::s2:   print("s2"); break;
+        case ABI::s3:   print("s3"); break;
+        case ABI::s4:   print("s4"); break;
+        case ABI::s5:   print("s5"); break;
+        case ABI::s6:   print("s6"); break;
+        case ABI::s7:   print("s7"); break;
+        case ABI::s8:   print("s8"); break;
+        case ABI::s9:   print("s9"); break;
+        case ABI::s10:  print("s10"); break;
+        case ABI::s11:  print("s11"); break;
+        case ABI::t3:   print("t3"); break;
+        case ABI::t4:   print("t4"); break;
+        case ABI::t5:   print("t5"); break;
+        case ABI::t6:   print("t6"); break;
+    }
+}

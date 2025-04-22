@@ -1,0 +1,7 @@
+template
+    < typename A                    // Type of a.  Must be unsigned.
+    , auto M = (1 << bitsizeof(A))  // Modulus value.
+    >inline auto decrement_if(A a, bool b)
+{
+    return sub<A, uint1, M>(a, cast<uint1>(b));
+}

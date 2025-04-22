@@ -1,0 +1,18 @@
+inline treeNode_t merge_leaf_interior() {
+    sim_assert(_leaf[0].is_valid && _leaf[0].value.freq != InvalidLeafFreq);
+    sim_assert(_interior[0].freq != InvalidInteriorFreq);
+    sim_assert(_leaf[0].value.freq + _interior[0].freq <= MaxTreeNodeFreq);
+    treeNode_t t;
+    t.left = _leaf[0].value.ptr;
+    t.leftIsLeaf = true;
+    t.right = _interior[0].ptr;
+    t.rightIsLeaf = false;
+    t.freq = _leaf[0].value.freq + _interior[0].freq;
+    // Back node is now front; invalidate back so that it gets updated
+    sim_assert(_leaf[1].is_valid);
+    _leaf[0] = _leaf[1];
+    _leaf[1].is_valid = false;
+    // Back node is now front; invalidate back so that it gets updated
+    _interior[0] = _interior[1];
+    _interior[1].freq = InvalidInteriorFreq;
+    return t;}

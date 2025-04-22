@@ -1,0 +1,4 @@
+inline sem_ctr_t count()
+    {
+        return _counter.count();
+    }

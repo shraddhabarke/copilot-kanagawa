@@ -1,0 +1,12 @@
+template<auto ORIGIN, auto LENGTH>
+inline bool addr_in_range(auto addr)
+{
+    static if (LENGTH == 0)
+    {
+        return false;
+    }
+    else
+    {
+        return addr >= ORIGIN && addr < ORIGIN + LENGTH;
+    }
+}

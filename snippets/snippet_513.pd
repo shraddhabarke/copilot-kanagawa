@@ -1,0 +1,6 @@
+template<auto WindowSize, auto MaxLength>
+struct token
+{
+    input_kind kind;
+    data_or_reference<WindowSize, MaxLength> payload;
+}

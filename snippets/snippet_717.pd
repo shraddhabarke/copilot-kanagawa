@@ -1,0 +1,17 @@
+inline optional<entry_index_t> FindKey(cache_tag<Key, LUtime, Associativity> tag, Key key)
+{
+bool[Associativity] matchBitmap;
+
+// Conceptually this is a map operation, but map doesn't pass another parameter,
+// the key in this case, to the map function.
+static for(const auto i : Associativity)
+{
+matchBitmap[i] = IsValidMatch(tag._entries[i], key);
+// There should never be more than 1 valid matching key, but this code affects
+// HW performance.  Uncomment this line if necessary when debugging the Cache.
+// sim_assert(pop_count<entry_index_t>(cast<uint<Associativity>>(matchBitmap)) < 2);
+// highest_one does not support being called for a single bit array, which causes the
+// following line to not compile in the direct map case (Associativity == 1) without
+// the + 1 term seen below.
+auto highestOne = highest_one<uint<Associativity + 1>>(cast<uint<Associativity>>(matchBitmap));
+return make_optional<entry_index_t>(highestOne.is_valid, highestOne.value);}

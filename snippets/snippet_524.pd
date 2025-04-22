@@ -1,0 +1,7 @@
+read_word_t read(addr_t addr /*< Element address.*/)
+    {
+        // Block if entry has not been written
+        wait(addr);
+
+        return nonblocking_read(addr);
+    }

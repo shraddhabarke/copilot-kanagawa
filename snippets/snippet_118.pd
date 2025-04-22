@@ -1,0 +1,1 @@
+template <typename T, auto N> inline bool all((T) -> bool predicate, T[N] x) { return and(map(predicate, x)); }

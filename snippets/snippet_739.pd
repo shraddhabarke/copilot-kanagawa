@@ -1,0 +1,32 @@
+uint<w> next()
+{
+_retwist_semaphore.wait();
+
+MT_t snapped_index;
+bool call_switch = false;
+atomic
+{
+if (index >= n)
+{
+call_switch = true;
+index = 0;
+}
+}
+        snapped_index = index;
+        index++;
+    }
+    if (call_switch)
+    {
+        switch_MT_sets();
+    }
+    uint<w> y = get_MT(3, current_mt, snapped_index);
+    // We just consumed MT[snapped_index], so the retwist thread is now free to calculate
+    // the next value at MT[snapped_index].
+    compute_one_mt_entry(snapped_index);
+    _retwist_semaphore.post();
+    y = y ^ ((y >> u) & d);
+    y = y ^ ((y << s) & b);
+    y = y ^ ((y << t) & c);
+    y = y ^ (y >> l);
+    return cast<uint<w>>(y);
+}

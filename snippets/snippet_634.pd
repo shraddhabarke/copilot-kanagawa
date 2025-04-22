@@ -1,0 +1,6 @@
+inline int_t dmem_read_aligned
+( hart_index_t hid  //< Hart index.
+, uint_t addr       //< DMEM byte address to read from.
+                    // Must be 32-bit aligned.
+) {
+    return core.dmem_read_aligned(hid, checked_cast<dmem_addr_t>(addr));}

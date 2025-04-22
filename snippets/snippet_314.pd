@@ -1,0 +1,4 @@
+inline float32 add(float32 x, float32 y)
+{
+    return fadd32(x, y);
+}

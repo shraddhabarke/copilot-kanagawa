@@ -1,0 +1,5 @@
+template <auto N>
+using index_t = uint<(N > 1) ? clog2(N) : 1>;
+
+template <typename T>
+using bitindex_t = index_t<bitsizeof(T)>;

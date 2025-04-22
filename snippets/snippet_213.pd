@@ -1,0 +1,8 @@
+void enqueue_blocking(T value)
+    {
+        // Wait for an output slot to be available
+        wait_for(check_and_reserve());
+
+        // Write the data
+        enqueue(value);
+    }

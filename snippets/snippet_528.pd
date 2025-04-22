@@ -1,0 +1,4 @@
+void free(addr_t addr /*< Element address.*/)
+    {
+        _cyclicBuffer.free(addr);
+    }

@@ -1,0 +1,11 @@
+void wait(addr_t addr /*< Element address.*/)
+    {
+        auto wordAddr = addr / WordSize;
+        if (WordSize > 1)
+        {
+            // Wait for the next word too if it spills over
+            wordAddr += cast<uint1>(cast<index_t<WordSize>>(addr) > WordSize - ReadWordSize);
+        }
+
+        wait_for(_writeAddr > wordAddr);
+    }

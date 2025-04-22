@@ -1,0 +1,16 @@
+template<auto F1, auto F2>
+inline uint<1 + F2> rcp_lookup(uint<F1> fraction)
+{
+    const uint<RCP_TABLE_LG_SIZE> index = fraction >> (F1 - RCP_TABLE_LG_SIZE);
+    const uint<F1 - RCP_TABLE_LG_SIZE> delta = fraction;
+
+    static assert(F1 >= RCP_C0_FBIT);
+    static assert(F1 >= RCP_C1_FBIT);
+    const auto coefficients = rcp_coefficient_table[index];
+    const auto c0 = coefficients.c0 << (F1 - RCP_C0_FBIT);
+    const auto c1 = coefficients.c1 << (F1 - RCP_C1_FBIT);
+    const auto sumValue = ((c1 * delta) >> F1) + c0;
+
+    static assert(F1 >= F2);
+    return sumValue >> (F1 - F2);
+}

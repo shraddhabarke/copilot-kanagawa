@@ -1,0 +1,39 @@
+template
+    < auto Width
+     , auto Max
+     , auto Bias
+     , auto UnrollingFactor //< Chunks of numerator bits of this size are processed in parallel,
+                            // meaning the outer loop only has to execute
+                            // `bitsizeof(uint<normalizedIntegerWidth>)/UnrollingFactor` iterations.
+     >inline optional<uint<Width>[2]> div_exactly_internal(decimalParsedValue<Width> a, decimalParsedValue<Width> b)
+{
+    // normalize exponent
+    const auto MaxValidExpDiff = (decimal<Width>::max_valid_exp_diff) * 2 - 1;
+    const auto normalizedIntegerWidth = MaxValidExpDiff * 5 + 3;
+    const auto params = get_normalized_params<Width, normalizedIntegerWidth, MaxValidExpDiff>(a, b);
+    const auto exponent = params.isMinusOrder ? a.exponent : b.exponent;
+
+    // unsigned divider
+    // integerB is used to pass the assert of non-zero denominator
+    const uint<normalizedIntegerWidth> integerB = (params.integerB != 0) ? params.integerB : 1;
+    const auto div =
+        DU::divide<uint<normalizedIntegerWidth>, uint<normalizedIntegerWidth>, UnrollingFactor>(params.integerA, integerB);
+
+    // check exponent gap
+    const bool isExtraLargerB = params.isMinusOrder && !params.isLessMaxValidExpDiff;
+    const bool isExtraLargerA = !params.isMinusOrder && !params.isLessMaxValidExpDiff;
+
+    const auto signQuotient = a.sign ^ b.sign;
+    const auto signRemainder = a.sign;
+    const uint<Width> quotient = isExtraLargerB ? 0 : toDecimal<Width>({div[0], Bias, signQuotient});
+    const uint<Width> remainder =
+        isExtraLargerB ? toDecimal<Width>({a.integer, a.exponent, signRemainder}) : toDecimal<Width>({div[1], exponent, signRemainder});
+    const bool isValid = isExtraLargerA ? false :
+                         isExtraLargerB ? true : ((div[0] <= Max) && params.isLessMaxValidExpDiff);
+
+    uint<Width>[2] result;
+    result[0] = quotient;
+    result[1] = remainder;
+
+    return make_optional<uint<Width>[2]>(isValid, result);
+}

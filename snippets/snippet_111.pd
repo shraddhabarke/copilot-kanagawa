@@ -1,0 +1,1 @@
+template <typename T, auto N> inline auto map((T) -> auto f, T[N] x) { using result_t = decltype(f(x[0]));  result_t[N] r;  static for(const auto i : N) { r[i] = f(x[i]); }     return r; }

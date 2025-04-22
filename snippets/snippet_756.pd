@@ -1,0 +1,31 @@
+read_word_t read(input_bit_index_t offset){
+    auto addr = offset / (MemoryWidthBytes * BitsPerByte);
+    index_t<MemoryWidthBits> shift = offset % MemoryWidthBits;
+    optional<index_t<MaxInputFileSizeWords>> snapped_last_read_addr;
+    atomic {
+       snapped_last_read_addr = _last_read_addr;
+        _last_read_addr = {true, addr};
+    }
+    bool read = (!snapped_last_read_addr.is_valid || addr != snapped_last_read_addr.value);
+    auto max_addr = (_input_size + MemoryWidthBytes - 1) / MemoryWidthBytes - 1;
+    memory_word_t data;
+    if (read) {
+        data = _input_buffer.read(template min<index_t<MaxInputFileSizeWords>>(addr + (CacheWords - 1), max_addr));
+    }
+    memory_word_t[CacheWords] snapped_cache;
+    atomic {
+        static memory_word_t[CacheWords] _cache;
+        if (read) {
+            static for(const auto i : CacheWords) {
+                memory_word_t rhs;
+                if (i + 1 < CacheWords)
+                    rhs = _cache[i + 1];
+                else
+                    rhs = data;
+                _cache[i] = rhs;
+            }
+        }
+        snapped_cache = _cache;
+    }
+    return cast<uint<CacheWords * MemoryWidthBits>>(snapped_cache) >> shift;
+}

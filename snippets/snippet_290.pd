@@ -1,0 +1,5 @@
+template <typename T>
+inline T unwrap_newtype(newtype<T> x)
+{
+    return x.unwrap;
+}

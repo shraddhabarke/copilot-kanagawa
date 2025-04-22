@@ -1,0 +1,4 @@
+inline T decrement_if(T t, bool b)
+{
+    return sub(t, cast<uint1>(b));
+}

@@ -1,0 +1,21 @@
+void enqueue(array_t values)
+    {
+        // Block until there is room for an entire array
+        _write_semaphore.wait_multiple(ArraySize);
+
+        // Get the value of the write pointer, and increment the write pointer
+        array_pointer_t snapped_producer_index;
+
+        atomic
+        {
+            static array_pointer_t _producer_index = 0;
+            snapped_producer_index = _producer_index;
+            _producer_index = modular::increment(_producer_index);
+        }
+
+        // Store the values into the memory
+        _data_mem[snapped_producer_index] = values;
+
+        // Allow ArraySize more calls to dequeue
+        _read_semaphore.post_multiple(ArraySize);
+    }

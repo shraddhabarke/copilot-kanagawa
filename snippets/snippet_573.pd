@@ -1,0 +1,32 @@
+state_t advance( vector<T, InputWidth> input           //< Inputs.
+, optional<state_t> initial_state       //< If valid, then the state to start from.  If invalid, then the state from the previous call is used.
+, index_t<TableDepth> table_base_addr   //< Base address in the table which describes the NFA.
+                                        // This is useful for the case when multiple NFAs are stored in the table concurrently.
+                                        // For example, the table could have storage for two NFAs, one of which is currently read during input processing,
+                                        // concurrent with the other NFA is being written.){sim_assert(input.size > 0);
+
+        // Read from the table to determine how input
+        // affects NFA state (current state is unknown at this point)
+        table_element_t[InputWidth] table_elements = map_indices([table_base_addr, input](index_t<InputWidth> i)
+        {
+            auto table_index = checked_cast<index_t<TableDepth>>(table_base_addr + input.data[i]);
+
+            table_element_t table_element = _table[table_index];
+
+            // Assert that parameters are respected
+            static for (const auto state_index : StateCount)
+            {
+                out_edges_t edges = table_element[state_index];
+
+                sim_assert(edges.size <= MaxOutDegree);
+
+                sim_assert(V::all([state_index](vertex_t dest_state)
+                {
+                    return dest_state < state_index ? (state_index - dest_state) <= MaxBackwardJump
+                                                    : (dest_state - state_index) <= MaxForwardJump;
+                },
+                edges));
+            }
+
+            return table_element;
+        });

@@ -1,0 +1,5 @@
+template <typename L, typename R, auto N>
+inline pair<vector<L, N>, vector<R, N>> unzip(vector<pair<L, R>, N> v)
+{
+    return unzip_with<L, R>(id, v);
+}

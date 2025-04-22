@@ -1,0 +1,79 @@
+[[max_threads(1)]] void reset( uint32 updateInterval //< The number of bytes that must pass through
+// the compressor before switching over onto
+// the newly computed dynamic Huffman code as
+// well as starting computation for the next
+// Huffman code.
+//
+// * `0` value indicates no dynamic updates (thus
+//   using either the initial Huffman code, or
+//   a to-be-computed code from a future call
+//   to `push` in `TRAIN` mode).
+//
+// * `>0` value indicates that a new Huffman
+//   table should be computed immediately, and
+//   once complete, wait until this number of
+//   bytes to have passed through the compressor
+//   before switching to the new code. The
+//   significance of this parameter is that,
+//   since new Huffman codes are computed in
+//   parallel with the main encoding thread, it
+//   will continue to progress even if the main
+//   thread becomes stalled. A small value
+//   would mean that the new Huffman code will
+//   be used as soon as possible, possibly
+//   leading to a non-deterministic (but still
+//   correct) number of output bytes depending
+//   on when the switch-over occurs with respect
+//   to the incoming data. A large value could
+    //   mean that holding back the switch-over for
+    //   so long that the new code may become stale
+    //   with respect to any new data. This value is
+    //   counted from the beginning of sampling,
+    //   and with `start_new_block_async`
+                        //   experimentally observed to require < 21,000 cycles
+                        //   (longer if stalled due to Huffman encoding
+                        //   failures) a rule of thumb would be that
+                        //   `updateInterval` be set to
+                        //   `SampleSize + 21,000 * Width` bytes for
+                        //   broadly deterministic behaviour.
+, bool reuseLastCode    //< Reuse the dynamic Huffman code table from
+                        // the last GZIP member instead of preloading
+                        // the fixed code. Undefined behaviour will
+                        // occur if an input symbol is not present in
+                        // the previous code table.
+) sim_assert(_state == state_t::NEED_RESET || _state == state_t::RESET);
+        // Wait for any outstanding start_new_block_async() to complete before advancing
+        wait_for(_updateState == updateState_t::IDLE);
+
+        writer.reset(reuseLastCode);
+
+        // updateInterval cannot be smaller than SampleSize since countFreq._wordsSinceStartedCounting -- used for
+        // determining how many samples to count as well as how long to wait until the next is triggered -- will
+        // saturate at updateInterval. If it were to be smaller than SampleSize, then counting would never
+        // terminate.
+        if (updateInterval != 0 && updateInterval < SampleSize)
+            updateInterval = SampleSize;
+        countFreq.set_update_interval(updateInterval);
+        countFreq.set_reset_pending(true);
+
+        if (updateInterval != 0)
+        {
+            index_t<writer_t::MaxPrepareThreads> deflateTid = writer.GzipHeaderThreads;
+            index_t<writer_t::MaxPrepareThreads> flushTid =
+                deflateTid + 1 /* EOB/NOP */ + 1 /* BFINAL+BTYPE(+HLIT+HDIST)*/;
+
+            if (reuseLastCode)
+            {
+                if (!writer.get_fixed_huffman())
+                    flushTid += (gz::MaxHCLEN + 1 + gz::MaxHCLEN) /* HCLEN */ +
+                                codeLengthCount.journal_count() /* code Lengths */;
+            }
+            else
+                writer.preload_codebook(HLIT + HDIST, preloadType_t::LITERAL_AND_DISTANCE, true /* fixed */);
+
+            count_t<writer_t::MaxPrepareThreads> numThreads = flushTid + 1;
+            writer_dot_prepare(numThreads, deflateTid, flushTid, false /* EOB */);
+            writer.set_update_pending();
+        }
+_state = state_t::RESET;
+}

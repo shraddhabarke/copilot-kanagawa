@@ -1,0 +1,5 @@
+template <typename T, auto N>
+inline T minimum(vector<T, N> v)
+{
+    return reduce(selecting(Ord::less_than), v);
+}

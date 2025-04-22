@@ -1,0 +1,10 @@
+template <typename T, auto N>
+inline auto map((T) -> auto f, vector<T, N> x)
+{
+    using result_t = decltype(f(x.data[0]));
+    result_t[N] r;
+    static for(const auto i : N)
+        if (i < x.size)
+            r[i] = f(x.data[i]);
+    return resize(from_array(r), x.size);
+}

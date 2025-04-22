@@ -1,0 +1,13 @@
+inline done_t done_reduce_fn(done_t x, done_t y){
+    done_t output;
+    if (x.full)
+    {
+        // Add the number of done entries from y to x
+        output.count = x.count + y.count;
+    }
+    else {
+        // x is not full so cannot take entries from y
+        output.count = x.count; }
+    // Output is only full if both x and y are full
+    output.full = x.full && y.full;
+    return output;}

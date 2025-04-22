@@ -1,0 +1,27 @@
+const auto MemorySizeBytes = DecodeBytesPerCycle * 2048;
+const auto LzBankCount = DecodeBytesPerCycle * 2;
+const auto LzNumPorts = 2;
+const auto LzLookbackSize = 2;
+const auto DecodeLengthsPerCycle = DecodeBytesPerCycle;
+const auto DecodeSymbolsPerCycle = DecodeBytesPerCycle * 2;
+const auto LitLenExtraBitsTableBits = 6;
+const auto DistExtraBitsTableBits = 6;
+const auto MaxDecompThreads = 512;
+
+
+private:
+using decompressor_t = decompressor<DecodeBytesPerCycle, MaxInputFileSizeBytes, MemoryWidthBytes, MemorySizeBytes,
+LzBankCount, LzNumPorts, LzLookbackSize,
+DecodeLengthsPerCycle, DecodeSymbolsPerCycle,
+LitLenExtraBitsTableBits, DistExtraBitsTableBits,
+MaxDecompThreads,
+WriteCallbackWidth, WriteCallback>;
+decompressor_t _decomp;
+
+public:
+using memory_word_t = decompressor_t::memory_word_t;
+
+inline void push(memory_word_t data)
+{
+_decomp.push(data);
+}

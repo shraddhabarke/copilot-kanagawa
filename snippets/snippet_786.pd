@@ -1,0 +1,8 @@
+uint32 numIter;
+pipelined_for(numIter, [](uint32 tid) {
+    uint32 x = tid & 5;
+    for (const auto i : 4) {
+        x += tid;
+    }
+    println(x);
+});

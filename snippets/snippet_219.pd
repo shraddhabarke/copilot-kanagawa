@@ -1,0 +1,11 @@
+template<auto OutputWidth, typename T>
+inline bool[OutputWidth] binary_to_one_hot(T index)
+{
+    // Make sure x isn't too large for the output array.
+    // For example, it's not possible to set the 5th boolean in a 3 element array.
+    sim_assert(index < OutputWidth);
+
+    bool[OutputWidth] result = {};
+    result[index] = true;
+    return result;
+}

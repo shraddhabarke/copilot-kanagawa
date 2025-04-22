@@ -1,0 +1,5 @@
+template <auto N = 1>
+    inline word_t read(addr_t addr)
+    {
+        return cast<word_t>(mem.read<N>(addr));
+    }

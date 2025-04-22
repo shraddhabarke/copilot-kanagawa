@@ -1,0 +1,4 @@
+inline auto xor(auto a, auto b)
+{
+    return a ^ b;
+}

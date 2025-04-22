@@ -1,0 +1,20 @@
+void enqueue(fifo_idx_t which, T value)
+    {
+        // Block until the FIFO is no longer full
+        _writeSemaphore.wait(which, true);
+
+        // Get the value of the write pointer, and increment the write pointer
+        pointer_t snappedProducerIndex;
+
+        atomic
+        {
+            snappedProducerIndex = _producerIndex[which];
+            _producerIndex[which] = modular::increment(snappedProducerIndex);
+        }
+
+        // Store the value into the memory
+        _dataMem[Size * which + snappedProducerIndex] = value;
+
+        // Allow 1 more thread to get a value out
+        _readSemaphore.post(which);
+    }

@@ -1,0 +1,22 @@
+template
+    < auto METADATA_MEM_DEPTH //< Size of the internal table for tracking
+                              // packet metadata.>
+class packet_reorderer_front {
+private:
+    using addr_t = index_t<METADATA_MEM_DEPTH>;
+    memory<packet_reorderer_metadata_entry_t, METADATA_MEM_DEPTH> _metadata_mem;
+    addr_t _write_addr;
+    addr_t _read_addr;
+    uint32 _current_flits_written;
+    semaphore<METADATA_MEM_DEPTH, METADATA_MEM_DEPTH, true> _write_semaphore;
+public:
+    //| Reset object to initial state. This should only be called when
+    // no packets are in flight.
+    void reset() {
+        sim_assert(_write_semaphore.count() == METADATA_MEM_DEPTH);
+        _write_addr = 0;
+        _read_addr = 0;
+        _current_flits_written = 0;
+        // Invalidate metadata entries
+        reset_memory(METADATA_MEM_DEPTH);
+    }

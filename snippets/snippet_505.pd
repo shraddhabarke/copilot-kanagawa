@@ -1,0 +1,34 @@
+template <typename Type, auto MantissaWidth, auto ExponentWidth, auto Bias, Denorm DenormMode>
+inline Type ceil_internal(Type x)
+{
+    auto binary = cast<floatPackedFormat<MantissaWidth, ExponentWidth>>(x);
+    auto flags = getSpecialCases_internal<MantissaWidth, ExponentWidth, DenormMode>(binary);
+
+    const auto exponent = binary.exponent - Bias;
+    const auto fractionBit = MantissaWidth - exponent;
+
+    if (flags.finite && !flags.zero && fractionBit >= 0)
+    {
+        const auto mantissa = binary.mantissa | 1 << MantissaWidth;
+        const auto fraction = mantissa & ((1 << fractionBit) - 1);
+        const auto integral = (mantissa >> fractionBit) + ((binary.sign == 0 && fraction != 0) ? 1 : 0);
+
+        if (integral == 0)
+        {
+            binary.exponent = 0;
+            binary.mantissa = 0;
+        }
+        else if (integral == 1)
+        {
+            binary.exponent = Bias;
+            binary.mantissa = 0;
+        }
+        else
+        {
+            binary.exponent = binary.exponent + (((integral << fractionBit) >> (MantissaWidth + 1)) & 1);
+            binary.mantissa = cast<decltype(binary.mantissa)>(integral << fractionBit);
+        }
+    }
+
+    return cast<Type>(binary);
+}

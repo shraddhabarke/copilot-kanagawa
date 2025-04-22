@@ -1,0 +1,5 @@
+inline void imem_write
+( uint_t addr //< Address of 32-bit word in instruction TCM to write.
+, int_t value //< 32-bit instruction word.
+) {
+    core.imem_write(checked_cast<imem_addr_t>(addr), value);}

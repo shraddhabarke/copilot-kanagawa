@@ -1,0 +1,45 @@
+template
+    < auto N //< The maximum number of elements to write.
+    >
+inline void write_vec
+    ( optional<pair<addr_t, T>>[N] writes //< Addresses and corresponding values.
+    )
+{
+    // unzip to address and data arrays
+    pair<optional<addr_t>[N], T[N]> unzipped = unzip_with(
+        [](optional<pair<addr_t, T>> write) -> pair<optional<addr_t>, T>
+        {
+            return { make_optional(write.is_valid, write.value.first), write.value.second };
+        },
+        writes
+    );
+    // Determine the number of request for each bank.
+    // Banks parameter explicitly specified to support the case where Banks = 1.
+    // In this case, the number of banks cannoted be deduced from the return type of address_to_bank_index.
+    auto per_bank_request_count = write_requests_per_bank<Banks>(unzipped.first, address_to_bank_index);
+    // Determine the maximum number of reads for any single bank
+    count_t<N> thread_count = maximum(per_bank_request_count);
+    pipelined_for (thread_count, [unzipped](index_t<N> tid)
+    {
+        // Determine which data to write to which bank on this iteration.
+        auto schedule = schedule_write_requests(
+            unzipped.first,
+            address_to_bank_index,
+            tid);
+        static for (const auto i : Banks)
+        {
+            optional<index_t<N>> schedule_entry = schedule[i];
+            if (schedule_entry.is_valid)
+            {
+                sim_assert(unzipped.first[schedule_entry.value].is_valid);
+                addr_t addr = unzipped.first[schedule_entry.value].value;
+                T data = unzipped.second[schedule_entry.value];
+                auto decomposed_addr = decompose_address(addr);
+                sim_assert(decomposed_addr.first == i);
+                _memories[i][decomposed_addr.second] = data;
+            }
+            // Ensure banks are accessed in unique pipeline stages
+            barrier;
+        }
+    });
+}

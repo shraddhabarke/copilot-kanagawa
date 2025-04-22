@@ -1,0 +1,29 @@
+void enqueue
+      ( uint32 packet_number //< An ID for the packet used for reordering.
+                              // These must be sequential starting at 0.
+       , bool end_of_packet   //< Last flit of the packet.
+       ) {
+       // Track number of flits written for this packet
+        uint32 flits_written;
+        atomic {
+           _current_flits_written++;
+           flits_written = _current_flits_written;
+            // Reset for next packet
+            if (end_of_packet) {
+                _current_flits_written = 0; } }
+        // Create metadata entry
+        packet_reorderer_metadata_entry_t entry;
+        entry.packet_number = packet_number;
+        entry.flits_written = flits_written;
+        entry.write_done = end_of_packet;
+        entry.valid = true;
+        // Write to metadata memory
+        _metadata_mem[_write_addr] = entry;
+        // If end of packet, advance write pointer
+        if (end_of_packet)
+        {
+            _write_addr = modular::increment(_write_addr);
+            // Block overwriting metadata that has not been read
+            _write_semaphore.wait();
+        }
+    }

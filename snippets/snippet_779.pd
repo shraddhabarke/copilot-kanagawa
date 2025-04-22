@@ -1,0 +1,11 @@
+inline bool test(reference_t minimum_word_index, bool do_test) {
+    bool result = !do_test;
+    if (do_test) {
+        if (_num_in_flight_words.count() <= minimum_word_index) {
+            // Record that a new thread is in-flight (has memory writes pending)
+            _num_in_flight_words.add(1);
+            result = true;
+        }
+    }
+    return result;
+}

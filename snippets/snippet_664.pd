@@ -1,0 +1,10 @@
+template
+< fifo_index_t FifoIndex //< The index of the FIFO to store into.
+>
+void enqueue_one
+( T value //< Value to store into the selected FIFO.
+) {
+// Validate the index (in case of a non-power of two ArraySize)
+static assert(FifoIndex < ArraySize);
+_fifos[FifoIndex].enqueue(value);
+}

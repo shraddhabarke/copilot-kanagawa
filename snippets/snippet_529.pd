@@ -1,0 +1,4 @@
+void wait(addr_t addr /*< Element address.*/)
+    {
+        _cyclicBuffer.wait(addr);
+    }

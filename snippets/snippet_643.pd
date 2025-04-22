@@ -1,0 +1,16 @@
+inline int_t load(Current current, Decoded decoded, uint_t addr){
+const auto value = dmem_read(current.hid, cast<dmem_addr_t>(addr));
+int_t b;
+ int_t hw;
+int_t w = value;
+ if (decoded.instr.mem.sign_extend) {
+    b = sign_extend(cast<uint8>(value));
+    hw = sign_extend(cast<uint16>(value));
+}
+else
+{
+    b = cast<uint8>(value);
+    hw = cast<uint16>(value);
+}
+ const auto dont_care = w;
+return mux(decoded.instr.mem.size, b, hw, w, dont_care);}

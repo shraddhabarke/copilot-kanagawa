@@ -1,0 +1,6 @@
+inline bfloat16 neg(bfloat16 x)
+{
+    bfloat16PackedFormat binary = cast<bfloat16PackedFormat>(x);
+    binary.sign = ~binary.sign;
+    return cast<bfloat16>(binary);
+}

@@ -1,0 +1,1 @@
+template <auto N, typename T> inline T[N] iterate((T) -> T f, T x) { static assert(N > 0); T[N] result; result[0] = x; static for(const auto i : N - 1) result[i+1] = f(result[i]); return result; }

@@ -1,0 +1,59 @@
+inline optional<bid64_t[2]> div_exactly(bid64_t in1, bid64_t in2)
+{
+    const auto a = parseDecimalValue<_width>(in1);
+    const auto b = parseDecimalValue<_width>(in2);
+    const auto a_flags = getSpecialCases_internal<_width>(in1);
+    const auto b_flags = getSpecialCases_internal<_width>(in2);
+
+    bool isValid;
+    uint<_width> quotient;
+    uint<_width> remainder;
+    if (a_flags.nan || b_flags.nan)
+    {
+        isValid = true;
+        quotient = decimal64_constants::DEFAULT_NAN;
+        remainder = decimal64_constants::DEFAULT_NAN;
+    }
+    else if(a_flags.zero)
+    {
+        isValid = true;
+        quotient = 0;
+        remainder = 0;
+    }
+    else if (a_flags.inf || b_flags.inf || b_flags.zero)
+    {
+        isValid = true;
+        if(a_flags.inf && b_flags.inf)
+        {
+            quotient = decimal64_constants::DEFAULT_NAN;
+            remainder = decimal64_constants::DEFAULT_NAN;
+        }
+        else
+        {
+            const auto sign = a.sign ^ b.sign;
+            if(a_flags.inf || b_flags.zero)
+            {
+                quotient = (sign == 1) ? decimal64_constants::NEG_INFINITY : decimal64_constants::POS_INFINITY;
+                remainder = decimal64_constants::DEFAULT_NAN;
+            }
+            else
+            {
+                quotient = 0;
+                remainder = in1;
+            }
+        }
+    }
+    else
+    {
+        const auto div = div_exactly_internal<_width, _max_integer, _bias, UnrollingFactor>(a, b);
+        isValid = div.is_valid;
+        quotient = div.value[0];
+        remainder = div.value[1];
+    }
+
+    bid64_t[2] result;
+    result[0] = quotient;
+    result[1] = remainder;
+
+    return make_optional<bid64_t[2]>(isValid, result);
+}

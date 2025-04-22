@@ -1,0 +1,4 @@
+inline void push(memory_word_t data)
+    {
+        _input_buffer.write(data);
+    }

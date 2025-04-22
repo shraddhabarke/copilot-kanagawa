@@ -1,0 +1,1 @@
+template <typename R, typename T, auto N> inline R[N] prefix_sum(T[N] input) { return inclusive_scan(input, add<R, R>); }

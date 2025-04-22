@@ -1,0 +1,1 @@
+inline void write_bit( bit_addr_t address //< Address of bit to write., bool value         //< Value to write.) { write_bits<1>({{{address, value}}, 1});}

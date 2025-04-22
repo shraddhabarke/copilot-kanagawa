@@ -1,0 +1,16 @@
+template
+    < typename T                                        //< Type of each input array element.
+    , auto N                                            //< Number of replicas to `body` to instantiate.
+    , auto MaxCallerThreads = opt::max_threads_limit    //< Maximum number of threads concurrently executing inside of `parallel_for_each`.
+                                                        // Caller must ensure this limit is not exceeded.
+    >
+inline void parallel_for_each
+    ( T[N] arr                      //< Input array to be processed (each element is processed by a separate call to `body`).
+    , (index_t<N>, T) -> void body  //< Function which processes one input array element on each call.
+    )
+{
+    parallel_for<N, MaxCallerThreads>(N, [arr, body](index_t<N> i)
+    {
+        body(i, arr[i]);
+    });
+}

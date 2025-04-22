@@ -1,0 +1,10 @@
+inline void WriteBytes( uint64 addr               //< Transaction base address (must be 64-byte aligned).
+, transaction_size_t size   //< Transaction size in bytes (must be 64-byte aligned).
+, uint512 data              //< Data to write.
+, bool[64] byte_enable      //< byte_enable[i] is set to true if byte "i" should be written to DRAM.
+, bool is_last              //< True if this is the last write in a transaction.
+) {AssertAlignment(addr, size);
+        AssertIsLast(size, is_last);
+
+        _dram.write(addr, size, data, cast<uint64>(byte_enable), is_last);
+    }

@@ -1,0 +1,8 @@
+void enqueue_many
+ ( optional<T>[ArraySize] values //< Array of values to store.  `is_valid` indicates if value should be stored.
+ ) {
+  static for (const auto i : ArraySize)  {
+    if (values[i].is_valid) {
+       _fifos[i].enqueue(values[i].value);
+   }
+}}

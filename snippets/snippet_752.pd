@@ -1,0 +1,5 @@
+result_t wait_for_done()
+{
+wait_for(_unzip_done);
+return {_error_code, _crc32, _output_count};
+}

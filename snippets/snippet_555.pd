@@ -1,0 +1,4 @@
+inline uint64 cycles()
+{
+    return __cycles();
+}

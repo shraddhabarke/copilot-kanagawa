@@ -1,0 +1,25 @@
+template
+< typename From                                        //< Type of the value to be
+// converted.
+, typename To                                          //< Type of the result of the
+// conversion.
+, (To, bool, count_t<bytesizeof(To)>) -> void Callback //< The callback function to be
+// invoked when the conversion is
+// complete.
+>
+class gearbox
+{
+private:
+const auto output_array_length = bitsizeof(To) > bitsizeof(From) ? 1 : bitsizeof(From) / bitsizeof(To);
+gearbox_context<From, To> context;
+
+[[pipelined]] void flush_output(count_t<output_array_length> tid, gearbox_context<From, To> ctx)
+{
+bool last = false;
+auto bytes = bytesizeof(To);
+
+if (tid == ctx.num_output_elements - 1)
+{
+bytes -= (bytesizeof(To)) - ctx.num_bytes;
+last = true;
+} Callback(ctx.u.output_buff[tid], last, bytes);}

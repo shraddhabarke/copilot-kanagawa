@@ -1,0 +1,11 @@
+import debug.trace_buffer
+void F(uint32 x, uint32 y) {
+    struct Event {
+        uint32 x;
+        uint32 y;
+        uint64 timestamp;
+    }
+    Event evt = { x, y, cycles() };
+    static trace_buffer<Event, 512, 'Recent calls to F'> _tb;
+    _tb.write(evt);
+}

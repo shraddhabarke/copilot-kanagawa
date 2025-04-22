@@ -1,0 +1,1 @@
+template <auto N> inline auto map_indices((index_t<N>) -> auto f) { return map(f, template indices<N>()); }

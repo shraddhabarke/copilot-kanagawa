@@ -1,0 +1,5 @@
+template <typename T, auto N>
+inline bool any((T) -> bool predicate, vector<T, N> v)
+{
+    return or(map(predicate, v));
+}

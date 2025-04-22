@@ -1,0 +1,15 @@
+ inline T read
+    ( addr_t addr //< Address of the element to read.
+    )
+{
+    T result;
+    auto decomposed_addr = decompose_address(addr);
+    static for (const auto i : Banks)
+    {
+        if (i == decomposed_addr.first)
+        {
+            result = _memories[i][decomposed_addr.second];
+        }
+    }
+    return result;
+}

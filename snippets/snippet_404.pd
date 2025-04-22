@@ -1,0 +1,64 @@
+template < auto UnrollingFactor //< Chunks of numerator bits of this size are processed in parallel,
+                                // meaning the outer loop only has to execute
+                                // `bitsizeof(uint<normalizedIntegerWidth>)/UnrollingFactor` iterations.
+                                // The `UnrollingFactor` value can be 1, 2, 4, 17, 34, or 68.
+         >
+inline optional<bid32_t[2]> div_exactly(bid32_t in1, bid32_t in2)
+{
+    const auto a = parseDecimalValue<_width>(in1);
+    const auto b = parseDecimalValue<_width>(in2);
+    const auto a_flags = getSpecialCases_internal<_width>(in1);
+    const auto b_flags = getSpecialCases_internal<_width>(in2);
+
+    bool isValid;
+    uint<_width> quotient;
+    uint<_width> remainder;
+    if (a_flags.nan || b_flags.nan)
+    {
+        isValid = true;
+        quotient = decimal32_constants::DEFAULT_NAN;
+        remainder = decimal32_constants::DEFAULT_NAN;
+    }
+    else if(a_flags.zero)
+    {
+        isValid = true;
+        quotient = 0;
+        remainder = 0;
+    }
+    else if (a_flags.inf || b_flags.inf || b_flags.zero)
+    {
+        isValid = true;
+        if(a_flags.inf && b_flags.inf)
+        {
+            quotient = decimal32_constants::DEFAULT_NAN;
+            remainder = decimal32_constants::DEFAULT_NAN;
+        }
+        else
+        {
+            const auto sign = a.sign ^ b.sign;
+            if(a_flags.inf || b_flags.zero)
+            {
+                quotient = (sign == 1) ? decimal32_constants::NEG_INFINITY : decimal32_constants::POS_INFINITY;
+                remainder = decimal32_constants::DEFAULT_NAN;
+            }
+            else
+            {
+                quotient = 0;
+                remainder = in1;
+            }
+        }
+    }
+    else
+    {
+        const auto div = div_exactly_internal<_width, _max_integer, _bias, UnrollingFactor>(a, b);
+        isValid = div.is_valid;
+        quotient = div.value[0];
+        remainder = div.value[1];
+    }
+
+    bid32_t[2] result;
+    result[0] = quotient;
+    result[1] = remainder;
+
+    return make_optional<bid32_t[2]>(isValid, result);
+}

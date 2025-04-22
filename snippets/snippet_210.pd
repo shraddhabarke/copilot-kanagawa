@@ -1,0 +1,5 @@
+inline void reserve_enqueue()
+    {
+        sim_assert(!full());
+        _earlyCounter.add(1);
+    }

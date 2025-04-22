@@ -1,0 +1,11 @@
+inline void post(sem_idx_t which)
+    {
+        // static for needed due to compiler limitation (Task #6239)
+        static for(const auto i : N)
+        {
+            if (i == which)
+            {
+                _counter[i].increment();
+            }
+        }
+    }

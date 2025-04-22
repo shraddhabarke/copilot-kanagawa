@@ -1,0 +1,9 @@
+output enqueue
+( T[InputSize] values            //< An array of values to enqueue.
+, count_t<InputSize> value_count //< The number of entries in the values array that are valid.
+// Must be between 0 and `InputSize`, inclusive.
+, bool flush                     //< If true, return up to Size elements, even if the buffer is not yet full.
+)
+{
+return _buffer.enqueue(0, values, value_count, flush);
+}

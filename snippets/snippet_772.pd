@@ -1,0 +1,20 @@
+template
+< auto Index //< Index of the request in the request array passed to `Process`.
+>Response join(Request req)
+    {
+        static assert(Index < N);
+
+        // Save request into request FIFO
+        _requests.enqueue_one<Index>(req);
+
+        // Notify processing thread that another request is ready
+        _request_count[Index].increment();
+
+        // Wait for response
+        Response result = _responses.dequeue_one<Index>();
+
+        // Notify processing thread that response has been dequeued
+        _response_count[Index].decrement();
+
+        return result;
+    }

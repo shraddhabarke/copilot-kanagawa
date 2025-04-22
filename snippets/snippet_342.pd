@@ -1,0 +1,9 @@
+template<auto I, auto F>
+inline optional<fixed<I, F>> checked_cast_opt_fixed(auto src, bool is_valid)
+{
+    const auto fn = lift_optional(checked_cast<int<I + F>>);
+
+    auto opt_result = fn(make_optional(is_valid, src));
+
+    return make_optional(opt_result.is_valid, cast<fixed<I, F>>(opt_result.value));
+}

@@ -1,0 +1,48 @@
+inline void flush(lenHuffman_t::symbol_t lastSym, lenHuffman_t::symFreq_t repeats,
+optional<lenHuffman_t::symbol_t> nextSym)
+{
+codeRepeat_t[3] journalEntries;
+count_t<3> numJournalEntries;
+
+            if (repeats != 0) {
+        sim_assert(lastSym <= 15);
+        if (repeats <= 2) {
+            // Run-length symbols only supports repeats >= 3,
+            // so output this code literally
+            if (nextSym.is_valid)
+               sim_assert(lastSym != nextSym.value);
+           static for(const auto i : 2) if (i < repeats) journalEntries[i] = {lastSym, 0};
+            numJournalEntries = repeats;}
+        else {
+            // Maximum run-length depends on if the code length is zero
+            if (lastSym != 0) {
+                if (nextSym.is_valid && nextSym.value == lastSym)
+                    sim_assert(repeats == 6);
+                // Nonzero lengths require that the length is output literally,
+                // (already done below by the last flush() call) after which a
+                // "repeat last length X times" code can be used
+                sim_assert(repeats >= 3 && repeats <= 6);
+                journalEntries[0] = {16, repeats - 3};
+            }
+            else {
+                if (nextSym.is_valid && nextSym.value == lastSym)
+                    sim_assert(repeats == 138);
+                // Zero lengths do not require that the length is output
+                // literally, and a "repeat zero X times" code can be used
+                sim_assert(repeats >= 3 && repeats <= 138);
+                if (repeats <= 10)
+                    journalEntries[0] = {17, repeats - 3};
+                else
+                    journalEntries[0] = {18, repeats - 11};
+            }
+            numJournalEntries = 1; }}
+    // If the next length is nonzero, output that length literally here
+    if (nextSym.is_valid && nextSym.value != 0 && nextSym.value != lastSym) {
+        sim_assert(nextSym.value <= 15);
+        journalEntries[numJournalEntries] = {nextSym.value, 0};
+        numJournalEntries++;
+    }
+    // Use a pipelined function to prevent out-of-order entries when >1 thread enqueues into the memory
+    journal_enqueue(numJournalEntries,
+                    journalEntries); // ContextSaver: 11x512 saving a 2-bit tid and a 9-bit tid (bug 19392)
+}

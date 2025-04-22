@@ -1,0 +1,5 @@
+template <typename T, auto N>
+inline vector<T, N> cat_optionals(vector<optional<T>, N> v)
+{
+    return map_optional<T>(id, v);
+}

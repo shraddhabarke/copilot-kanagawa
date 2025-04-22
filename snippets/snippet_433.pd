@@ -1,0 +1,130 @@
+inline bfloat16 exp2(bfloat16 val)
+{
+    const bfloat16PackedFormat in = cast<bfloat16PackedFormat>(val);
+
+    const uint13[2] C0 = {4098, 5794};   // Unsigned, fixed-point, f1.12
+    const uint10[2] C1 = {700, 990};     // Unsigned, fixed-point, f0.10
+    const uint7[2]  C2 = {73, 104};      // Unsigned, fixed-point, f0.8
+
+    uint16 denorm;
+    uint8 working_mantissa;
+
+    uint13 c0;
+    uint10 c1;
+    uint7 c2;
+
+    bool sign = in.sign != 0;
+
+    // Calculate constants and variable input to quadratic expression below
+    if ((in.exponent >= (127 + 7) && !sign) || (in.exponent > (127 + 7) && sign) || in.exponent < (127 - 8))
+    {
+        c0 = 0;
+        c1 = 0;
+        c2 = 0;
+        working_mantissa = 0;
+    }
+    else
+    {
+        // In here, in.exponent is guaranteed to be in [127-8, 127+7]
+        if (in.exponent >= (127 - 1))
+        {
+            // In here, in.exponent is guaranteed to be in [127-1, 127+7], so next line is left shift of [0, 8]
+            // uint8 << 8 => uint16
+            denorm = (cast<uint8>(in.mantissa) | 0x80) << (in.exponent - 127 + 1);
+        }
+        else
+        {
+            // In here, in.exponent is guaranteed to be in [127-8, 127-2], so next line is right shift of [1,7]
+            denorm = (cast<uint8>(in.mantissa) | 0x80) >> (127 - 1 - in.exponent);
+        }
+
+        if (sign)
+        {
+            working_mantissa = cast<uint8>(0 - cast<uint8>(denorm));
+        }
+        else
+        {
+            working_mantissa = cast<uint8>(denorm);
+        }
+
+        // Calculate index into look-up tables
+        uint1 index = working_mantissa >> 7;
+        c0 = C0[index];
+        c1 = C1[index];
+        c2 = C2[index];
+    }
+
+    bool bypass = false;
+    uint7 mantissa_bypass;
+
+    bfloat16PackedFormat r_val;
+    r_val.sign = 0;
+
+    // Check special cases
+    // (Might be able to save a few LUTs by skipping this call and checking for NaN directly)
+    auto flags = getSpecialCases<Denorm::Off>(in);
+
+    if (flags.nan)
+    {
+        // NaN -> NaN
+        bypass = true;
+        r_val.exponent = in.exponent;
+        mantissa_bypass = in.mantissa;
+        r_val.sign = in.sign;
+    }
+    else if ((in.exponent >= (127 + 7) && !sign) || ((in.exponent > (127 + 7) || (denorm >> 8) > 134) && sign))
+    {
+        // 2^(large_positive_number) -> infinity.
+        // 2^(large_negative_number) -> zero.
+        bypass = true;
+        mantissa_bypass = 0x00;
+        r_val.exponent = sign ? 0x00 : 0xFF;
+    }
+    else if (in.exponent < (127 - 8))
+    {
+        // 2^(small_number) -> 1.
+        bypass = true;
+        r_val.exponent = 127;
+        mantissa_bypass = 0x00;
+    }
+    else
+    {
+        uint8 integer_part = cast<uint8>(denorm >> 8);
+
+        if (sign)
+        {
+            bool denorm_lower8_nonzero = (cast<uint8>(denorm) != 0);
+
+            r_val.exponent = (denorm_lower8_nonzero ? 126 : 127) - integer_part;
+            if ( ((integer_part >= 126) && denorm_lower8_nonzero) || ((integer_part > 126) && !denorm_lower8_nonzero) )
+            {
+                bypass = true;
+                r_val.exponent = 0;
+                mantissa_bypass = 0;
+            }
+        }
+        else
+        {
+            r_val.exponent = 127 + integer_part;
+        }
+    }
+
+    // Calculate resultant mantissa using quadratic expression: c0 + c1*x + c2*x^2
+
+    uint7 x = cast<uint7>(working_mantissa);
+
+    uint15 constant_term = c0 << 2;
+
+    uint13 linear_term = (c1 * x) >> 4;
+
+    // Calculate quadratic term
+    uint8 x_squared = (x * x) >> 6;
+
+    uint11 quadratic_term = (c2 * x_squared) >> 4;
+
+    uint7 mantissa = (constant_term + linear_term + quadratic_term) >> 7;
+
+    r_val.mantissa = bypass ? mantissa_bypass : mantissa;
+
+    return cast<bfloat16>(r_val);
+}

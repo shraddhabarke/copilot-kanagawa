@@ -1,0 +1,17 @@
+template<auto I, auto F1, auto F2>
+inline int<I + F2> to_pirad(int<I + F1> value)
+{
+    // invPi = 1/Pi
+    const auto oriInvPiFbit = 41;
+    const auto oriInvPi = 0xa2f9836e4e;
+
+    const auto invPiFbit = I + F2;
+    const auto invPiShiftRight = oriInvPiFbit - I - F2;
+    static assert(invPiShiftRight > 0);
+    const uint<I + F2> invPi =  (oriInvPi >> invPiShiftRight) + ((oriInvPi >> (invPiShiftRight - 1)) & 1);
+
+    const auto resultTmpFbit = F1 + invPiFbit;
+    auto resultTmp = value * invPi;
+    int<I + F2> result = (resultTmp >> (resultTmpFbit - F2)) + ((resultTmp >> (resultTmpFbit - F2 - 1)) & 1);
+    return result;
+}

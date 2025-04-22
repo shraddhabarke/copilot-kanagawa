@@ -1,0 +1,1 @@
+template <typename T> inline optional<bitindex_t<T>> lowest_one(T value) { const auto Width = bitsizeof(T); uint1[Width] value_as_bits = cast<uint1[Width]>(value);  optional<bitindex_t<T>>[Width] in; static for (const auto i : Width) { in[i].is_valid = value_as_bits[i] == 1; in[i].value = i; } return first_valid<bitindex_t<T>, Width>(in);}

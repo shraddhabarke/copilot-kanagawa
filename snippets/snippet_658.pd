@@ -1,0 +1,4 @@
+inline void post()
+    {
+        _counter.increment();
+    }

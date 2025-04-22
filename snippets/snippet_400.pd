@@ -1,0 +1,6 @@
+inline bid32_t neg(bid32_t x)
+{
+    auto binary = cast<decimal32PackedFormat_t>(x);
+    binary.sign = ~binary.sign;
+    return cast<bid32_t>(binary);
+}

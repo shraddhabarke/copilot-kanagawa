@@ -1,0 +1,23 @@
+void push
+( From input //< The value to be converted. May be a partial value if
+// the `From` type is smaller than the `To` type.
+, bool start //< When `true`, indicates that this call is the start of
+// the translation.
+, bool last  //< When `true`, indicates that this call marks the end of
+// the translation. Make sure to set this to true when
+// passing the last of partial input.
+)
+{
+gearbox_context<From, To> local_context;
+atomic
+{
+local_context = context;
+
+local_context = gearbox_with_context<From, To>(local_context, input, start, last);
+
+context = local_context;
+}if (local_context.valid)
+{
+    flush_output(output_array_length, local_context);
+}
+}

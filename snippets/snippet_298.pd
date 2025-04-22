@@ -1,0 +1,24 @@
+template<typename T>
+inline uint<bitsizeof T> abs(T a)
+{
+    // To avoid 2:1 muxes for each output bit
+    // the result is computed as `(a ^ mask) + addend`
+    // When `a` is positive, `mask = 0` and `addend = 0`
+    // and so the logic simply returns `a`.
+    // When `a` is negative, `mask = -1` and `addend = 1`
+    // which has the effect of flipping all bits and then adding one
+    // which is what the unary negate (`-`) operator does.
+    bool is_neg = a < 0;
+
+    bool[bitsizeof T] mask_bits;
+    static for (const auto i : bitsizeof T)
+    {
+        mask_bits[i] = is_neg;
+    }
+
+    T mask = cast<T>(mask_bits);
+
+    uint1 addend = cast<uint1>(is_neg);
+
+    return cast<uint<bitsizeof T>>((a ^ mask) + addend);
+}

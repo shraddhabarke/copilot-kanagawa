@@ -1,0 +1,60 @@
+inline bfloat16 from_float32(float32 value)
+{
+    const auto float32_mantissa_width = 23;
+    const auto exponent_all_bits = cast<uint<_exponent_width>>(-1);
+    // bfloat16 and float32 have the same exponent width and bias
+
+    using float32PackedFormat = floatPackedFormat<float32_mantissa_width, _exponent_width>;
+
+    const auto float_packed = cast<float32PackedFormat>(value);
+
+    bfloat16PackedFormat bfloat16_packed;
+
+    bfloat16_packed.sign = float_packed.sign;
+
+    if (float_packed.exponent == 0 && float_packed.mantissa == 0)
+    {
+        // Zero is a bit special
+        bfloat16_packed.exponent = 0;
+        bfloat16_packed.mantissa = 0;
+    }
+    else if (float_packed.exponent == exponent_all_bits)
+    {
+        // Special values infinity and Nan
+        bfloat16_packed.exponent = exponent_all_bits;
+        bfloat16_packed.mantissa = float_packed.mantissa >> (float32_mantissa_width - _mantissa_width);
+    }
+    else
+    {
+        // Normal and sub-normal cases work out the same here because our exponent widths are the same.
+        // Truncate mantissa, but check truncated bits to see if we should round up the resultant mantissa
+
+        bfloat16_packed.exponent = float_packed.exponent;
+
+        uint<_mantissa_width+1> rounded_mantissa = float_packed.mantissa >> (float32_mantissa_width - _mantissa_width);
+        uint<float32_mantissa_width - _mantissa_width> truncated = cast<uint<float32_mantissa_width - _mantissa_width>>(float_packed.mantissa);
+
+        if
+        (
+            // The more than halfway case -> round up
+            (truncated > concat(1_u1, cast<uint<bitsizeof(truncated)-1>>(0)))
+
+            // The halfway case where rounding up would make lowest bit zero
+            ||  ((truncated == concat(1_u1, cast<uint<bitsizeof(truncated)-1>>(0))) && (cast<uint1>(rounded_mantissa) == 1))
+        )
+        {
+            rounded_mantissa += 1;
+        }
+
+        uint1 overflow = cast<uint1>(rounded_mantissa >> _mantissa_width);
+
+        // If round up overflowed into the high bit of expanded mantissa, then increase exponent by one.
+        bfloat16_packed.exponent =  (overflow == 0)  ? float_packed.exponent : (float_packed.exponent + 1);
+
+        // Take lower 7 bits of expanded 8-bit mantissa, discarding overflow bit, unless exponent overflowed to max value,
+        //   in which case we clear the mantissa so that it correctly reflects positive or negative infinity and not NaN
+        bfloat16_packed.mantissa = (bfloat16_packed.exponent == 0xFF) ? 0 : cast<uint<_mantissa_width>>(rounded_mantissa);
+    }
+
+    return cast<bfloat16>(bfloat16_packed);
+}

@@ -1,0 +1,24 @@
+template<typename T, auto Count>
+inline T onehot_mux(uint<Count> onehot, T[Count] data)
+{
+    uint<bitsizeof(T)>[Count] map;
+    bool[Count] bool_onehot = cast<bool[Count]>(onehot);
+
+    uint<bitsizeof(T)> bitwise_or(uint<bitsizeof(T)> x, uint<bitsizeof(T)> y)
+    {
+        return x | y;
+    }
+
+    // Can't use map here because that doesn't pass the index to the map function.
+    static for(const auto i : Count)
+    {
+        if (bool_onehot[i])
+        {
+            map[i] = cast<uint<bitsizeof(T)>>(data[i]);
+        }
+    }
+
+    uint<bitsizeof(T)> result = reduce(bitwise_or, map);
+
+    return cast<T>(result);
+}

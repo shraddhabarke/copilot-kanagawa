@@ -1,0 +1,4 @@
+T dequeue()
+    {
+        return _fifo.dequeue();
+    }

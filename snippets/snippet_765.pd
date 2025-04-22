@@ -1,0 +1,75 @@
+void push( compressor_mode mode          //< Compression mode.
+                                //
+                                // `DEFLATE`
+                                // : `DEFLATE` the given number of
+                                //   tokens using the current Huffman
+                                //   code. If `updateInterval > 0`,
+                                //   also accumulate `SampleSize`
+                                //   tokens for computing a new
+                                //   Huffman code.
+                                //
+                                // `TRAIN`
+                                // : Accumulate the given data and
+                                //   use it to compute the optimal
+                                //   Huffman code. Typically, a
+                                //   sequence of `TRAIN` (supplying no
+                                //   more than `SampleSize` tokens)
+                                //   will be called prior to another
+                                //   sequence of `DEFLATE` on the same
+                                //   block of data for optimal compression.
+, token_t[Width] word           //< Input data. When `size` is zero and
+                                // `last` is set, the first four tokens
+                                // must contain the CRC32 value.
+, count_t<Width> size           //< Number of valid tokens. In `DEFLATE`
+                                // mode, a zero value indicates that the
+                                // current `DEFLATE` block should be
+                                // closed (by emitting the End-Of-Block
+                                // symbol). Optionally, when the `last`
+                                // argument is also set the first four
+                                // tokens of `word` will be used to
+                                // store the CRC32 value. In `TRAIN`
+                                // mode, a zero value triggers a new
+                                // Huffman code to be computed based on
+                                // the data sampled so far, blocking
+                                // until this code is ready. Immediately
+                                // prior to flushing, `push` must be
+                                // called with the last argument set.
+, [[last]] bool last            //< Indicates that the current GZIP
+                                // member should be terminated, using the
+                                // CRC32 value specified in word (in
+                                // conjunction with `size == 0`) and all
+                                // buffered data should be flushed
+                               // through `WriteCallback`. Only
+                                // applicable for `DEFLATE` mode.) {
+assert(_state != state_t::NEED_RESET, \"compressor_t::push() requires compressor_t::reset() be called first\");
+bool endBlock = (size == 0);
+bool deflate = (mode == compressor_mode::DEFLATE);
+assert(!last || deflate,
+       \"compressor_t::push() with last set is only applicable with compressor_mode::DEFLATE\");
+// Only count if DEFLATE mode with non-zero updateInterval, or if in TRAIN mode
+bool train = (mode == compressor_mode::TRAIN);
+if ((deflate && countFreq.get_update_interval() != 0 && !last) || train) {
+    bool snappedResetPending;
+    atomic
+    {
+        snappedResetPending = countFreq.get_reset_pending();
+        countFreq.set_reset_pending(train && endBlock);
+    }
+    countFreq_dot_count((snappedResetPending ? HLIT : 0) + (train || !endBlock ? 1 : 0), snappedResetPending,
+                        word, size); // ContextSaver: 80x512 including saving 9-bit tid (bug 19392)
+}
+// Only write if in DEFLATE mode
+if (deflate) {
+    if (last) {
+        assert(size == 0, \"compressor_t::push() with last argument set must also have size == 0\");
+        static for(const auto i : 4) {
+            sim_assert(word[i].kind == input_kind::data);
+            _crc32[i] = word[i].payload.data;
+        }
+    }
+    writer.encode(word, size, last);
+    // Since writer is asynchronous, block until all writing is complete
+    if (last)
+        wait_for(_state == state_t::NEED_RESET);
+}
+}

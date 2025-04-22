@@ -1,0 +1,4 @@
+inline bid32_t min(bid32_t x, bid32_t y)
+{
+    return min_internal<_width, decimal32_constants::DEFAULT_NAN>(x, y);
+}

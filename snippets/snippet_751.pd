@@ -1,0 +1,24 @@
+template<auto N>
+void reset(uint<N> input_size)
+{
+// Compile-time check that input_size cannot contain more than MaxInputFileSizeBytes
+static assert((1 << N) - 1 <= MaxInputFileSizeBytes);
+
+sim_assert(_unzip_done);
+
+// Start at a "negative" offset accounting for the data produced by NumSeekThreads
+_read_bit_offset = 0 - (NumSeekThreads * MemoryWidthBits);
+_free_bit_offset = -1;
+_input_size = input_size;
+_output_count = 0;
+_last_read_addr = {};
+
+// Reset flags
+_unzip_done = false;
+_error_code = 0;
+
+_input_buffer.reset();
+
+// Start unzipping
+unzip();
+}

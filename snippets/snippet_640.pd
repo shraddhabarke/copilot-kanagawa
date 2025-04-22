@@ -1,0 +1,1 @@
+inline Decoded decode(Current current) { return decode_instr<EXTENSIONS, CONFIG>(current.instr.value, custom_decode); }

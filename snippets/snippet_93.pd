@@ -1,0 +1,1 @@
+inline T bitwise_or(T x, T y) { return binary_op([](auto a, auto b){return a | b; }, x, y); }

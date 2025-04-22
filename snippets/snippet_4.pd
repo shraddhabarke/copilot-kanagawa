@@ -1,0 +1,13 @@
+template <typename T, auto N /*< Maximum size.*/>
+struct vector
+{
+    T[N] data;
+    count_t<N> size;
+}
+
+template <typename T, auto N>
+inline T front(vector<T, N> v)
+{
+    sim_assert(v.size > 0);
+    return at(v, 0);
+}

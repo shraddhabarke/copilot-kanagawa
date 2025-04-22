@@ -1,0 +1,23 @@
+template<typename T /*< Variable type.*/, auto N /*< Number of threads.*/>
+class pipelined_variable_array
+{
+public:    //| Feed in a new value and push the old values down. This should typically be called exactly once per thread.
+    inline T[N] next(T input) {
+        T[N] previous_values;
+        atomic {
+            static T [N] _previous_val;
+            static for (const auto i: N)
+            {
+                previous_values[i] = _previous_val[i];
+                if(i == 0) {
+                    _previous_val[i] = input;
+                }
+                else
+                {
+                    _previous_val[i] = previous_values[i - 1];
+                }
+            }
+        }
+        return(previous_values);
+    }
+}

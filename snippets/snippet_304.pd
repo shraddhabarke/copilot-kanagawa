@@ -1,0 +1,5 @@
+template<auto Offset = 0>
+inline auto ceil_div_mod(auto numerator, auto denominator)
+{
+    return make_pair(ceil_div(numerator, denominator), mod<Offset>(numerator, denominator));
+}

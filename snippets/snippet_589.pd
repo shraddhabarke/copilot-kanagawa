@@ -1,0 +1,6 @@
+[[pipelined]] void _execute_schedule(uint32 thread_index, schedule_t schedule){
+    schedule_entry_t schedule_entry = schedule[thread_index];
+    if (schedule_entry.valid) {
+        _transfer_flits(schedule_entry.num_flits, schedule_entry.input_index);
+    }
+}

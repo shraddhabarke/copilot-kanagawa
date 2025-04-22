@@ -1,0 +1,5 @@
+template <typename S, auto N, typename T, auto M>
+inline auto zip(vector<S, N> s, vector<T, M> t)
+{
+    return zip_with(P::make_pair<S, T>, s, t);
+}

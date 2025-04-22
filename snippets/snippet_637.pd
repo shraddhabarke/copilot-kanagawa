@@ -1,0 +1,24 @@
+inline void start
+  ( uint_t[HARTS] pc //< Array of initial program counters for each hart.
+ ) {
+ bool start = false;
+ atomic{
+     if (!running) {
+         start = true;
+        running = true; } }
+if (start) {
+core.initialize(pc);
+async_pipelined_do<threads>(
+[]() {
+    core.pipeline();
+    return !exit;
+},
+[]() {
+    atomic {
+        sim_assert(exit);
+        sim_assert(running);
+        exit = false;
+        running = false;
+    } }
+        );
+    }}

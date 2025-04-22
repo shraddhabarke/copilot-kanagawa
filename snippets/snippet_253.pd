@@ -1,0 +1,12 @@
+inline void while_do (() -> bool condition, () -> void body)
+{
+    bool proceed;
+
+    do
+    {
+        proceed = condition();
+
+        if (proceed) body();
+    }
+    while (proceed);
+}

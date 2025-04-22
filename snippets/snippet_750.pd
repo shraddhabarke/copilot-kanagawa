@@ -1,0 +1,44 @@
+template
+< auto DecodeBytesPerCycle      //< Number of bytes to decode at a time in
+// the `decode` function.
+, auto MaxInputFileSizeBytes    //< Maximum supported input file size. Used
+// for sizing indices.
+, auto MemoryWidthBytes         //< Number of bytes for the store or load
+// of input data. Should match target BRAM.
+, auto MemorySizeBytes          //< The size of the input buffer memory.
+, auto LzBankCount              //< Number of banks to divide the
+// back-reference memory into. Higher
+// values increase throughput by avoiding
+// bank conflicts but increase area.
+, auto LzNumPorts               //< Number of read ports on the window
+// memory. Higher values increase throughput
+// by tolerating more bank conflicts but
+// increase memory consumption.
+, auto LzLookbackSize           //< Size of an internal buffer used to
+// resolve references to nearby words.
+// Increasing this size increases area, but
+// reduces stall cycles.
+, auto DecodeLengthsPerCycle    //< Max number of code lengths that can be
+// decoded in one cycle.
+, auto DecodeSymbolsPerCycle    //< Max number of symbols that can be
+// decoded in one cycle.
+, auto LitLenExtraBitsTableBits //< Max bit width of codes that are stored
+// in the Literal/Length extra bits table.
+// 7 is a reasonable value.
+, auto DistExtraBitsTableBits   //< Max bit width of codes that are stored
+// in the distance extra bits table.
+// 5 is a reasonable value.
+, auto MaxDecompThreads         //< Max number of decompression threads.
+, auto WriteCallbackWidth
+, ( uint8[WriteCallbackWidth]
+, count_t<WriteCallbackWidth>
+, bool                        //< Indicate whether this will be the last call.
+// Allows the consumer to flush if desired.
+) -> void WriteCallback       //< Callback function for supplying the
+// next `count_t<WriteCallbackWidth>`
+// compressed bytes.
+>
+class decompressor
+{
+static assert(MemorySizeBytes % MemoryWidthBytes == 0);
+

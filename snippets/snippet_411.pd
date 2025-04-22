@@ -1,0 +1,27 @@
+template <Denorm denorm_mode>
+inline bool eq(bfloat16 in1, bfloat16 in2)
+{
+    // Unpack input
+    bfloat16PackedFormat a = cast<bfloat16PackedFormat>(in1);
+    bfloat16PackedFormat b = cast<bfloat16PackedFormat>(in2);
+    // Get zero, nan, or inf
+    specialCaseFlags a_flags = getSpecialCases<denorm_mode>(a);
+    specialCaseFlags b_flags = getSpecialCases<denorm_mode>(b);
+
+    bool result;
+    // Negative and positive zero are equal
+    if (a_flags.zero && b_flags.zero)
+    {
+        result = true;
+    }
+    // NaNs are never equal
+    else if (a_flags.nan || b_flags.nan)
+    {
+        result = false;
+    }
+    else
+    {
+        result = in1 == in2;
+    }
+    return result;
+}

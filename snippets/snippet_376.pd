@@ -1,0 +1,36 @@
+void set_parameters(fft_size_t fft_size_in, fft_size_log2_addr_t fft_size_log2_in, num_iterations_per_processor_log2_addr_t num_iterations_per_processor_log2_minus1_in)
+    {
+        _fft_size = fft_size_in;
+        _fft_size_log2 = fft_size_log2_in;
+        _num_iterations_per_processor = fft_size_in >> 1 >> _num_proc_log2;
+        _num_iterations_per_processor_log2_minus1 = num_iterations_per_processor_log2_minus1_in;
+        _num_threads_launched = _fft_size_log2 * _num_iterations_per_processor;
+        _expected_input_transfers = (_fft_size / InputWordWidth) - 1;
+        _expected_output_transfers = (_fft_size / OutputWordWidth) - 1;
+
+        num_iterations_per_processor_log2_addr_t twiddle_factor_reuse_log2 = _fft_size_log2 - 1 - _num_proc_log2;
+        twiddle_addr_t twiddle_base_address = 0;
+
+        //The twiddle base address must accumulate over the stages, so it is computed via a loop here
+        for(const auto i : _fft_size_log2)
+        {
+            auto stage_num = _fft_size_log2 - i - 1;
+            
+            _twiddle_base_address_array[stage_num] = twiddle_base_address;
+
+            if(static(IoType == FftInputOutputType::NaturalInputReverseOutput))
+            {
+                twiddle_base_address += _num_iterations_per_processor >> ((stage_num <= _crossover_stage) ? 0 : stage_num - _crossover_stage);
+            }
+            else
+            {
+                fft_size_log2_addr_t level = _fft_size_log2 - 1 - stage_num;
+                twiddle_base_address += (level <= _crossover_stage) ? 1 : 1 << (level - _crossover_stage);
+            }
+        }
+        //Initialize the _completed_thread variable
+        for(const auto i : NumThreads)
+        {
+            _completed_thread[i] = -2;
+        }
+    }

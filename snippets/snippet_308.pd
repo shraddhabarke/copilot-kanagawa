@@ -1,0 +1,4 @@
+inline auto increment(A a)
+{
+    return add<A, uint1, M>(a, 1);
+}

@@ -1,0 +1,73 @@
+optional<output_t> get_lz_input
+        ( length_t thread_id             //< Identify which set of output bytes
+                                         // this call refers to. A given set of
+                                         // tokens may produce many outputs
+                                         // bytes, and thus require many calls
+                                         // to this function.
+        , token_t[InputWidth] tokens     //< Array of input tokens to process.
+        , count_t<InputWidth> num_tokens //< Number of valid elements in the token array.
+        , bool is_last                   //< Indicate if this is the last set of
+                                         // tokens for 1 input stream.
+        )
+    {
+        // Compute cumulative length of each token (in bytes)
+        length_t[InputWidth] token_end_byte = get_cumulative_token_size(tokens, num_tokens);
+        length_t sum_token_lengths = token_end_byte[InputWidth - 1];
+
+        length_t[InputWidth] token_start_byte;
+        token_start_byte[0] = 0;
+        static for (const auto i : (InputWidth - 1))
+        {
+            token_start_byte[i+1] = token_end_byte[i];
+        }
+
+        length_t start_byte = OutputWidth * thread_id;
+        length_t end_byte = start_byte + OutputWidth;
+
+        if (end_byte > sum_token_lengths)
+        {
+            end_byte = sum_token_lengths;
+        }
+
+        // The last thread through is just to flush any remaining bytes out
+        length_t byte_count = is_last ? 0 : end_byte - start_byte;
+
+        output_t this_thread_data;
+
+        static for (const auto i : OutputWidth)
+        {
+            // Find the token that corresponds to this output byte
+            index_t<InputWidth> matching_token_index;
+
+            length_t byte_index = (i + start_byte);
+
+            static for (const auto token_index : InputWidth)
+            {
+                if ((byte_index >= token_start_byte[token_index]) && (byte_index < token_end_byte[token_index]))
+                {
+                    matching_token_index = token_index;
+                }
+            }
+
+            token_t matching_token = tokens[matching_token_index];
+
+            output_element_t input_record;
+            input_record.kind = matching_token.kind;
+
+            if (matching_token.kind == input_kind::data)
+            {
+                input_record.payload.data = matching_token.payload.data;
+            }
+            else
+            {
+                input_record.payload.offset = matching_token.payload.reference.offset;
+            }
+
+            this_thread_data[i] = input_record;
+        }
+
+        // Buffer results into outputs of size = OutputWidth
+        auto result = _accumulating_buffer.enqueue(this_thread_data, byte_count, is_last);
+
+        return make_optional<output_t>(result.value_count != 0, result.values);
+    }

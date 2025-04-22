@@ -1,0 +1,1 @@
+inline auto on2nd((auto) -> auto f) { return [f](auto x, auto y) { return f(y); }; }

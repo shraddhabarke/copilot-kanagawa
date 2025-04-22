@@ -1,0 +1,27 @@
+uint32 accumulate(uint32 value, bool is_last) {
+    uint32 result;
+    atomic {
+        static uint32 _sum = 0;
+        result = _sum + value;
+        _sum = is_last ? 0 : result;
+    }
+    return result;
+}
+// assume function1 and function2 run in parallel
+void function1() {
+    pipelined_for(1000, [](uint32 i) {
+        bool is_last = (i == 999);
+        uint32 result = accumulate(i, is_last);
+        if (is_last) {
+            println('result from function1: ', result);
+        }
+    });}
+void function2() {
+    pipelined_for(500, [](uint32 i) {
+        bool is_last = (i == 499);
+        uint32 result = accumulate(i, is_last);
+        if (is_last) {
+            println('result from function2: ', result);
+        }
+    });
+}

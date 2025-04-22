@@ -1,0 +1,8 @@
+inline void assert
+( bool shouldBeTrue        //< A boolean expression which should always evaluate
+                           // to true otherwise the assertion fires.
+ , const string description //< String associated with the inspectable.
+)
+hw_assert(shouldBeTrue, description);
+    sim_assert(shouldBeTrue);
+}

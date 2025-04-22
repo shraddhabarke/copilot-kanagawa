@@ -1,0 +1,16 @@
+struct B_type
+{
+    Opcode  opcode;
+    uint1   imm_11;
+    uint4   imm_4_1;
+    Funct3  funct3;
+    Reg     rs1;
+    Reg     rs2;
+    uint6   imm_10_5;
+    uint1   imm_12;
+}
+inline int32 B_immediate(B_type b)
+{
+    const uint1 zero_0 = 0;
+    return sign_extend(concat(b.imm_12, b.imm_11, b.imm_10_5, b.imm_4_1, zero_0));
+}

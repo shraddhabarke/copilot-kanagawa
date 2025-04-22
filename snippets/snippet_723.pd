@@ -1,0 +1,22 @@
+optional<Key> get_and_clear_unwritten_key
+( set_index_t set_index     //< Set index of the key to lookup.
+, entry_index_t entry_index //< Way index of the key to lookup.
+)
+{
+optional<Key> result = {};
+
+atomic
+{
+auto set = m_tags[set_index];
+
+auto entry = set._entries[entry_index];
+
+result = make_optional<Key>(entry._unwritten, entry._key);
+
+entry._unwritten = false;
+
+set._entries[entry_index] = entry;
+
+m_tags[set_index] = set;
+}
+return result;}

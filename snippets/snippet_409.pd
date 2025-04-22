@@ -1,0 +1,14 @@
+template <Denorm denorm_mode>
+inline bfloat16 add(bfloat16 in1, bfloat16 in2)
+{
+    bfloat16 result;
+    if (denorm_mode == Denorm::On)
+    {
+        result = bfloat16_add(in1, in2);
+    }
+    else
+    {
+        result = bfloat16_add_denormoff(in1, in2);
+    }
+    return result;
+}

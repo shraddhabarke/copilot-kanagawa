@@ -1,0 +1,24 @@
+template<auto I, auto F>
+inline optional<fixed<I, F>> invsqrt(fixed<I, F> x)
+{
+    const auto value = x.value;
+    optional<fixed<I, F>> result;
+    result.is_valid = value > 0;
+
+    const auto leadingOneIndex = highest_one<uint<I + F>>(value);
+    int6 exponent = leadingOneIndex.value - F;
+    const auto significandFbit = I + F - 1;
+    const uint<I + F> significand = value << (I + F - 1 - leadingOneIndex.value);
+
+    // calculate 1/sqrt(x)
+    const auto invsqrtValueFbit = I / 2 + F + 1;
+    const uint<1 + invsqrtValueFbit> invsqrtValue = invsqrt_internal<significandFbit, invsqrtValueFbit>(exponent, significand);
+
+    const auto shiftedValueFbit = F + 1;
+    exponent = (exponent >> 1) + (exponent & 1);
+    sim_assert(invsqrtValueFbit - shiftedValueFbit + exponent >= 0);
+    const auto shiftedValue = invsqrtValue >> (invsqrtValueFbit - shiftedValueFbit + exponent);
+
+    result.value.value = (shiftedValue >> 1) + (shiftedValue & 1);
+    return result;
+}

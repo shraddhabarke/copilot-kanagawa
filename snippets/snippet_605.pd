@@ -1,0 +1,17 @@
+uint32 nested_sum(){
+_sum = 0;
+pipelined_for(16, [](index_t<16> i){
+_i = i;
+    pipelined_for (16, [i](index_t<16> j)
+    { atomic
+                {
+                    auto amount_to_add = _i + j;
+
+                    // begin_strip
+                    // There is no synchronization that pevents _i from being overwritten
+                    // Use the local "i" variable insead
+                    amount_to_add = i + j;
+                    // end_strip
+
+                    _sum += amount_to_add;
+                } });}); return _sum;}

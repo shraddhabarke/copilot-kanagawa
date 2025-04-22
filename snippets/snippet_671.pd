@@ -1,0 +1,21 @@
+inline bool compute
+( count_t<NumSymbols> numSymbols
+, codeLength_t maxCodeLength
+, bool universal                 //< Flag indicating whether a code
+                                 // should be assigned to all symbols,
+                                 // even if they had zero frequency.
+                                 // Its utility is to allow a codebook
+                                 // to be computed that is able to
+                                 // handle all possible symbols, even
+                                 // those that were not originally
+                                 // observed, and is implemented by
+                                 // forcing all symbols to have a
+                                 // minimum frequency of one.
+) {
+_validTag = 0;
+// Build the Huffman tree
+treeBuilder.build(max(numSymbols, maxCodeLength), numSymbols, maxCodeLength, universal);
+bool failed = treeBuilder.get_failed();
+// Assign each symbol its code according to RFC1951
+compute_next_code_and_assign(!failed ? maxCodeLength + numSymbols : 0, maxCodeLength);
+return failed;}

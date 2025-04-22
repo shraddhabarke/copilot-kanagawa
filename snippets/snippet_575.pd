@@ -1,0 +1,26 @@
+template< typename NumeratorType, typename DenominatorType    
+, auto UnrollingFactor     //< Chunks of numerator bits of this size are processed in parallel,    
+                           // meaning the outer loop only has to execute    
+                           // `bitsizeof(NumeratorType)/UnrollingFactor` iterations.    
+>
+inline NumeratorType[2] divide(NumeratorType numerator, DenominatorType denominator)
+{sim_assert(denominator != 0);
+
+    const auto NumeratorWidth = bitsizeof(NumeratorType);
+    const auto DenominatorWidth = bitsizeof(NumeratorType);
+
+    bool num_is_neg = numerator < 0;
+    bool denom_is_neg = denominator < 0;
+
+    uint<NumeratorWidth> num_abs = num_is_neg ? -numerator : numerator;
+    uint<DenominatorWidth> denom_abs = denom_is_neg ? -denominator : denominator;
+
+    auto result = cast<NumeratorType[2]>(U::divide<uint<NumeratorWidth>, uint<DenominatorWidth>, UnrollingFactor>(num_abs, denom_abs));
+
+    if (num_is_neg != denom_is_neg)
+    {
+        result[0] = cast<NumeratorType>(-result[0]);
+    }
+if (num_is_neg) {
+    result[1] = cast<NumeratorType>(-result[1]); }
+return result;}

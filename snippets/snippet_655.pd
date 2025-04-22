@@ -1,0 +1,10 @@
+inline bool test_and_decrement(sem_ctr_t val)
+    {
+        bool result = (_counter.count() >= val);
+        if (result)
+        {
+            _counter.subtract(val);
+        }
+
+        return result;
+    }

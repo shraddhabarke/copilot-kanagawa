@@ -1,0 +1,36 @@
+array_t dequeue_and_discard(index_t<ArraySize> discard_column_count)
+    {
+        count_t<ArraySize> total_column_count = discard_column_count + 1;
+
+        // Block the calling thread until the containing square is available
+        _read_semaphore.wait_multiple(total_column_count);
+
+        // Get the value of the read pointer, and increment the read pointer
+        decomposed_addr consumer_index = increment_address(total_column_count);
+
+        // Read one element from each memory
+        array_t result;
+
+        static for (const auto i : ArraySize)
+        {
+           result[i] = _data_memories[i][consumer_index.array_index];
+        }
+
+        // The memory addressing and muxing that occurs during a write gets the data
+        // in almost the desired form.  Each element of the output array is in 1 memory
+        // but output element 'i' might be in memory 'j'.  A rotation addresses this.
+        result = rotate_array_right<ArraySize>(result, consumer_index.index_within_square);
+
+        auto array_end = consumer_index.index_within_square + total_column_count;
+
+        // discard_count can only be used to discard values within the same square
+        sim_assert(array_end <= ArraySize);
+
+        if (array_end == ArraySize)
+        {
+            // An entire square has been dequeued
+            _write_semaphore.post_multiple(ArraySize);
+        }
+
+        return result;
+    }

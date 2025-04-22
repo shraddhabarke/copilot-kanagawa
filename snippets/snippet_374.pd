@@ -1,0 +1,44 @@
+template <Base ISA>
+inline auto decode_format
+    ( Instr instr   //< Instruction word
+    , Format format //< Instruction format
+    )
+{
+    Types<ISA>::Decoded decoded;
+
+    static assert(bitoffsetof(R_type, rd) == bitoffsetof(I_type, rd));
+    static assert(bitoffsetof(R_type, rd) == bitoffsetof(U_type, rd));
+    static assert(bitoffsetof(R_type, rd) == bitoffsetof(J_type, rd));
+
+    const bool rd_valid = format != Format::B && format != Format::S;
+    decoded.rd = make_optional(rd_valid && instr.r.rd != ABI::zero, cast<Types<ISA>::register_index_t>(instr.r.rd));
+
+    static assert(bitoffsetof(R_type, rs1) == bitoffsetof(I_type, rs1));
+    static assert(bitoffsetof(R_type, rs1) == bitoffsetof(S_type, rs1));
+    static assert(bitoffsetof(R_type, rs1) == bitoffsetof(B_type, rs1));
+
+    const bool rs1_valid = format == Format::R || format == Format::S || format == Format::B || format == Format::I;
+    decoded.rs1 = make_optional(rs1_valid, cast<Types<ISA>::register_index_t>(instr.r.rs1));
+
+    static assert(bitoffsetof(R_type, rs2) == bitoffsetof(S_type, rs2));
+    static assert(bitoffsetof(R_type, rs2) == bitoffsetof(B_type, rs2));
+
+    const bool rs2_valid = format == Format::R || format == Format::S || format == Format::B;
+    decoded.rs2 = make_optional(rs2_valid, cast<Types<ISA>::register_index_t>(instr.r.rs2));
+
+    const auto dont_care = I_immediate(instr.i);
+
+    decoded.imm = mux(format,
+            dont_care,
+            I_immediate(instr.i),
+            S_immediate(instr.s),
+            B_immediate(instr.b),
+            U_immediate(instr.u),
+            J_immediate(instr.j),
+            dont_care,
+            dont_care);
+
+    decoded.funct7 = instr.r.funct7;
+
+    return decoded;
+}

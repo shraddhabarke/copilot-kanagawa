@@ -1,0 +1,16 @@
+template <auto Width, auto WindowSize, auto DictAssociativity>
+inline PrioritizeDictCallbackOutput<Width, WindowSize, DictAssociativity>
+    default_prioritize_dict_callback(PrioritizeDictCallbackInput<Width, WindowSize, DictAssociativity> input)
+{
+    using T = dictPrioritizedOutput_t<WindowSize>;
+    optional<T>[Width * DictAssociativity] unpacked;
+    static for(const auto assoc : DictAssociativity)
+    {
+        static for(const auto pos : Width)
+        {
+            unpacked[static(assoc * Width + pos)] = input.entries[pos][assoc];
+        }
+    }
+
+    return gather_optionals<T>(unpacked);
+}

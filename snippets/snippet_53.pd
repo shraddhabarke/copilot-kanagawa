@@ -1,0 +1,4 @@
+inline bool greater_than(auto x, auto y)
+{
+    return x > y;
+}

@@ -1,0 +1,20 @@
+template <typename T, auto N>
+inline T reduce((T, T) -> T f, vector<T, N> v)
+{
+    optional<T>[N] values;
+    static for(const auto i : N)
+        values[i] = make_optional(i < v.size, v.data[i]);
+
+    optional<T> result = A::reduce
+                     ( [f](optional<T> l, optional<T> r)
+                       {
+                           sim_assert(!r.is_valid || l.is_valid);
+                           if (l.is_valid && r.is_valid)
+                               l = make_optional(true, f(l.value, r.value));
+                           return l;
+                       }
+                     , values
+                     );
+    T uninit;
+    return Opt::from_optional(uninit, result);
+}

@@ -1,0 +1,4 @@
+inline bool wait_multiple(sem_idx_t which, sem_ctr_t val, bool decrement_count)
+    {
+        return wait_helper(which, val, decrement_count);
+    }

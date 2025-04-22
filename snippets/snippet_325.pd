@@ -1,0 +1,20 @@
+template
+    < typename T //< Type of values to be added
+    >inline pair<T, uint1> add_with_carry
+    ( T a //< The first operand for addition
+    , T b //< The second operand for addition
+    , uint1 carry //< The input carry
+    )
+{ 
+    // The sum with carry can be computed by expression: a + b + carry
+    // but that will generate two T bit adders. The expression below 
+    // uses only one T+1 bit adder. The LSB of left operand of '+' 
+    // below is 1 and LSB of the second operand is carry. Due to their
+    // addition, the incoming carry for LSB of a and b is same as the 
+    // carry passed as paramter. The final right shift removes the 
+    // sum of 1 and carry from the result.
+    auto sum_w_carry = (((a << 1) | 1) + ((b << 1) | carry)) >> 1;
+    auto carry_out = cast<uint1>(sum_w_carry >> bitsizeof(T));
+    auto sum = cast<T>(sum_w_carry);
+    return make_pair(sum, carry_out);
+}

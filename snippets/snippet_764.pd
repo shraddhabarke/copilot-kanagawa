@@ -1,0 +1,133 @@
+[[pipelined]] void encode_pipeline(index_t<MaxEncodePipelineThreads> tid, token_t[Width] word,
+count_t<Width> wordSize, index_t<MaxEncodePipelineThreads> dataTid,
+bool flush)
+{
+uint<MaxWriteBits * MaxWriteThreads> data;
+count_t<MaxWriteBits * MaxWriteThreads> size;
+optional<token_t>[Width] optionalWord;
+auto mask = mask_less_than<Width>(wordSize);
+static for(const auto i : Width)
+optionalWord[i] = make_optional(mask[i], word[i]);
+//Find the original/dereferenced size by accounting for reference lengths
+auto origSize = map_reduce(token_length<token_t, count_t<MaxReferenceDistance*Width>>
+, add<count_t<MaxReferenceDistance*Width>, count_t<MaxReferenceDistance*Width>>
+, optionalWord);
+bool endBlock = (wordSize == 0);
+bool padToNextByte = false;
+uint64 snappedBytesEncoded;
+bool snappedPrevEndBlock;
+atomic
+{
+if (tid == dataTid)
+_bytesUncompressed += origSize;
+snappedBytesEncoded = _bytesUncompressed;
+static bool prevEndBlock = false;
+snappedPrevEndBlock = prevEndBlock;
+prevEndBlock = endBlock;
+}
+if (tid < dataTid)
+{
+// Write contents of _preparedBuffer, containing end-of-last-block (if appropriate) and
+// header-of-next-block
+atomic
+{
+sim_assert(tid < _preparedBufferCount);
+data = _preparedBuffer[tid];
+static assert(MaxPreparedBufferSize <= bitsizeof(data));
+}
+size = (tid == dataTid - 1) ? _lastPreparedBufferEntrySize : MaxPreparedBufferSize;
+}
+else if (tid == dataTid){
+uint1 snappedCodesFront;
+atomic {
+// If this is not the first thread, then it must mean a new header was written so switch over
+// to those new data codes
+if (tid != 0)
+_codebookFront = ~_codebookFront;
+snappedCodesFront = _codebookFront; }
+// Lack of any data implies an end-of-block operation
+if (endBlock) {
+// Write DEFLATE end-of-block (if one was not written previously and no header was just emitted)
+auto c = code_EOB(snappedCodesFront);
+data = c.code;
+size = (!snappedPrevEndBlock && tid == 0) ? c.length : 0;
+}
+else {
+// Write data
+tokenCode_t<MaxEncodedBits>[Width] compressed;
+static for(const auto i : Width)
+{
+if (optionalWord[i].is_valid) {
+lengthSymbolWithExtraBits_t sb;
+if (word[i].kind == input_kind::reference)
+sb = length_to_symbol_and_extra_bits<lengthSymbolWithExtraBits_t,MaxReferenceLength>(
+word[i].payload.reference.length);
+auto s = (word[i].kind == input_kind::data ? word[i].payload.data : sb.sym);
+auto c = _litLenCodebook[snappedCodesFront * HLITPow2 | s];
+sim_assert(c.length != 0);
+compressed[i] = {c.code, c.length};
+if (word[i].kind == input_kind::reference) {
+compressed[i].code |= sb.bits << compressed[i].length;
+compressed[i].length += sb.extraBits;
+auto db = distance_to_symbol_and_extra_bits<distanceSymbolWithExtraBits_t,MaxReferenceDistance>(
+word[i].payload.reference.offset);
+auto c = _distCodebook[snappedCodesFront * HDISTPow2 | db.sym];
+sim_assert(c.length != 0);
+compressed[i].code |= ((db.bits << c.length) | c.code) << compressed[i].length;
+compressed[i].length += db.extraBits + c.length;}}
+else
+sim_assert(compressed[i].length == 0);
+}// Reduce
+auto result = reduce(reduce_token_code<MaxEncodedBits>, compressed);
+data = result.code;
+size = result.length;
+sim_assert(size != 0);
+}
+}
+else if (tid == dataTid + 1) {
+// Write BFINAL block (using fixed Huffman)
+sim_assert(dataTid == 0);
+sim_assert(endBlock);
+data = (1 << 0) |                   // BFINAL
+(gz::btype::fixed << 1) |    // BTYPE == 0b01
+(0 << 3);                    // EndOfBlockSymbol
+size = 1 + 2 + 7;
+// Pad to next byte boundary
+padToNextByte = true; } else if (tid == dataTid + 2) {
+// Write GZIP footer: CRC32
+static assert(MaxEncodedBits >= 32);
+data = cast<uint32>(_crc32);
+size = 32;
+}
+else {
+sim_assert(flush);
+// Write GZIP footer: ISIZE
+sim_assert(tid == dataTid + 3);
+static assert(MaxEncodedBits >= 32);
+data = snappedBytesEncoded;
+size = 32;
+static assert(32 / MaxWriteBits + 1 /* flush */ <= MaxWriteThreads);
+}
+flush &&= (tid == dataTid + 3);
+atomic {
+static index_t<8> accumulatedBits = 0;
+accumulatedBits += size;
+if (padToNextByte && accumulatedBits != 0) {
+size += 8 - accumulatedBits;
+accumulatedBits = 0;
+}
+if (flush) {
+// By flush time should already be byte aligned
+sim_assert(accumulatedBits == 0);
+} }
+// Note that the input FIFO to write_async could fill up and apply back-pressure upstream and limit
+// compressor throughput.
+// On one hand, this can occur when a sequence of input words (e.g. containing long literal/length &
+// distance codes, accompanied by extra bits) each consistently generates more than MaxWriteBits of data,
+// thus queueing up more than one thread into write_async() per cycle.
+// On the other hand, outside of synthetic testing, the use of lzcomp alongside this compressor would not
+// be expected to generate the full Width tokens per cycle (for example, since any back-references must
+// cover a minimum of three literals) for back-pressure to be a problem.
+auto numThreads = (size + MaxWriteBits - 1) / MaxWriteBits + (flush ? 1 : 0);
+write_async(numThreads, cast<uint<MaxWriteBits>[MaxWriteThreads]>(data), size, flush);
+}

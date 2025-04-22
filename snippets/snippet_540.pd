@@ -1,0 +1,13 @@
+text_t read_hash()
+    {
+        text_t hash = _stored_hash;
+
+        // Include lengths in hash
+        text_t lengths = concat(cast<uint64>(_aad_length * 8), cast<uint64>(_crypto_length * 8));
+        hash = _gf_add_mult(hash, lengths);
+
+        // XOR with E_k(iv_0)
+        hash ^= _encrypted_iv0;
+
+        return hash;
+    }

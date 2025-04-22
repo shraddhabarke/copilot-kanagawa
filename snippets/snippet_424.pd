@@ -1,0 +1,5 @@
+inline bool signbit(bfloat16 x)
+{
+    const auto s = cast<bfloat16PackedFormat>(x);
+    return s.sign == 1;
+}

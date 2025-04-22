@@ -1,0 +1,1 @@
+template <typename T, auto N> inline bool equal_by((T, T) -> bool equality_fn, T[N] xs, T[N] ys) { return and(zip_with(equality_fn, xs, ys)); }

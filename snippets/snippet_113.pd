@@ -1,0 +1,24 @@
+template <typename T, auto N>
+inline T reduce((T, T) -> T f, T[N] x)
+{
+    static if (N == 1)
+    {
+        return x[0];
+    }
+    else
+    {
+        // Combine adjacent elements in x
+        const auto NewN = (N + 1) / 2;
+        T[NewN] new_array;
+        static for(const auto i : N/2)
+        {
+            new_array[i] = f(x[2*i], x[2*i + 1]);
+        }
+        // carry odd case
+        static if ((N % 2) == 1)
+        {
+            new_array[NewN - 1] = x[N - 1];
+        }
+        return reduce(f, new_array);
+    }
+}

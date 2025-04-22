@@ -1,0 +1,9 @@
+Value get
+( Key key               //< The key to lookup.
+, set_index_t set_index //< The hashed value of the key.
+)
+{
+Value null_value;
+
+return get_or_put(true, key, set_index, null_value);
+}

@@ -1,0 +1,19 @@
+template <typename T, auto N>
+inline P::pair<T[N],count_t<N>> scatter(bool[N] valids, T[N] data)
+{
+    // Prefix sum to number valid entries in result
+    auto valids_prefix_sum = prefix_sum<count_t<N>>(cast<uint1[N]>(valids));
+    // Scatter into results array
+    T[N] result;
+    static for (const auto i : N)
+    {
+        if (valids[i])
+        {
+            if (i == 0)
+                result[i] = data[0];
+            else
+                result[i] = data[valids_prefix_sum[i-1]];
+        }
+    }
+    return P::make_pair(result, valids_prefix_sum[N-1]);
+}

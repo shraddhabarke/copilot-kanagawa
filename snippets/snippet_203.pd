@@ -1,0 +1,30 @@
+inline optional<epoch_days_t> utc_days_to_epoch(time_day_t time)
+{
+    // Compute indices into lookup tables
+    const auto yearTableIndex = time.year - year_tables_start_year;
+    const uint1 isLeapYear = is_leap_year_table[yearTableIndex];
+    const auto monthTableIndex = time.month + (isLeapYear * 16);
+
+    optional<epoch_days_t> result;
+
+    // Validation
+    bool[3] validComponents;
+
+    validComponents[0] = ((time.year >= year_tables_start_year) && (time.year < year_tables_end_year));
+    validComponents[1] = time.month < 12;
+    validComponents[2] = time.day < days_per_month_table[monthTableIndex];
+
+    const bool valid = and(validComponents);
+
+    // Compute the number of days since Jan 1 1970
+    // Each element of this array is in days
+    epoch_days_t[3] dayComponents;
+
+    dayComponents[0] = cummulative_year_days_table[yearTableIndex];
+    dayComponents[1] = cummulative_month_days_table[monthTableIndex];
+    dayComponents[2] = time.day;
+
+    epoch_days_t totalDays = sum<epoch_days_t, epoch_days_t, 3>(dayComponents);
+
+    return make_optional<epoch_days_t>(valid, valid ? totalDays : 0);
+}

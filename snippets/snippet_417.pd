@@ -1,0 +1,5 @@
+template <auto N /*< Unsigned integer width*/>
+inline bfloat16 from_uint(uint<N> value)
+{
+    return int_to_float<uint<N>, bfloat16, _mantissa_width, _exponent_width, _exponent_bias>(value);
+}

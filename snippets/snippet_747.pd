@@ -1,0 +1,10 @@
+inline void invoke_callback(burst_count_t thread_index, pointer_t data_offset, burst_count_t callback_count, (T, burst_count_t, bool) -> void write_callback)
+{
+pipelined_for(callback_count, [data_offset, callback_count, write_callback](index_t<BurstSize> thread_index)
+{
+pointer_t data_index = data_offset + thread_index;
+
+write_callback(_data[data_index], thread_index, thread_index == (callback_count - 1));
+_write_semaphore.post();
+});
+}

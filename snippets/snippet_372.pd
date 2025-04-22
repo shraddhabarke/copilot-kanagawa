@@ -1,0 +1,9 @@
+struct U_type {
+    Opcode  opcode;
+    Reg     rd;
+    uint20  imm_31_12;
+}inline int32 U_immediate(U_type u)
+{
+    const uint12 zero_11_0 = 0;
+    return sign_extend(concat(u.imm_31_12, zero_11_0));
+}

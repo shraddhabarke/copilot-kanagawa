@@ -1,0 +1,1 @@
+inline bool reduction_nor(T x) { return !reduction_or(x); }

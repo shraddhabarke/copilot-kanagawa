@@ -1,0 +1,8 @@
+void reset(uint32 updateInterval, bool reuseLastCode)
+{
+    _mode = compressor_mode::DEFLATE;
+    _tokenBufferSize = 0;
+    _crc.compute(0, {}, 0, true);
+    _lzcomp.reset();
+    _gzcomp.reset(updateInterval, reuseLastCode);
+}

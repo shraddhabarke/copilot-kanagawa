@@ -1,0 +1,9 @@
+uint32 AddOne(uint32 x){
+    return x + 1; }
+pipelined_for(numIter, [](uint32 tid) {
+    uint32[4] src;
+    uint32[4] dst;
+    static for (const auto i : 4) {
+        dst[i] = AddOne(src[i]);
+    }
+});

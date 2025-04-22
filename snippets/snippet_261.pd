@@ -1,0 +1,15 @@
+template
+    < auto N                                            //< Number of replicas to `body` to instantiate.
+    , typename T                                        //< Type of each output array element.
+    , auto MaxCallerThreads = opt::max_threads_limit    //< Maximum number of threads concurrently executing inside of `parallel_map`.
+                                                        // Caller must ensure this limit is not exceeded.
+    >
+inline T[N] parallel_map
+    ( auto count                //< Number of times that `body` will be invoked.  Must be no greater than `N`.
+    , (index_t<N>) -> T body    //< Function which returns one array element on each call.
+    )
+{
+    sim_assert(count <= N);
+    static parallel<N, MaxCallerThreads, true, T> loop;
+    return loop.go(count, body);
+}

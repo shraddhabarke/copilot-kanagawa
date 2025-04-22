@@ -1,0 +1,5 @@
+template<Denorm denorm_mode>
+inline specialCaseFlags getSpecialCases(float32PackedFormat a)
+{
+    return getSpecialCases_internal<_mantissa_width, _exponent_width, denorm_mode>(a);
+}

@@ -1,0 +1,5 @@
+template <auto N>
+inline bool or(vector<bool, N> v)
+{
+    return empty(v) ? false : reduce([](bool x, bool y){ return x || y; }, v);
+}

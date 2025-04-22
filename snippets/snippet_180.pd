@@ -1,0 +1,88 @@
+inline float32 expm1(float32 x)
+{
+    const auto structX = cast<float32PackedFormat>(x);
+    const auto binaryX = cast<uint32>(x);
+    const auto flags = getSpecialCases<Denorm::On>(structX);
+
+    float32PackedFormat result;
+    const int8 exponent = structX.exponent - 127;
+    const bool isSmallValue = (exponent < -23) && !flags.inf;
+
+    if(isSmallValue)
+    {
+        result = structX;
+    }
+    else
+    {
+        const bool isNegativeX = structX.sign == 1;
+        const bool isOutputInf = !isNegativeX && structX.exponent != 0xFF && binaryX >= 0x42B17218;
+        const bool isOutputMinus1 = isNegativeX && structX.exponent != 0xFF && binaryX >= 0xC18AA123;
+        const bool isPosInfinity = flags.inf && !isNegativeX;
+        const bool isNegInfinity = flags.inf && isNegativeX;
+
+        // change base to exp2
+        const auto Fbit = 47;
+        const auto exp2ValueSignificand = exp2_translate<23, Fbit>((1 << 23) | structX.mantissa);
+
+        // The exponent of max input is 6 of max input(0x42B17218).
+        const uint55 exp2Value = (exp2ValueSignificand << 6) >> (6 - exponent);
+        const auto temp = cast<tuple2<uint<Fbit>, uint<8>>>(exp2Value);
+        const auto integer = temp.second;
+        const auto fraction = temp.first;
+
+        // Compute exp2m1
+        const auto exp2m1Fbit = 47;
+        const auto exp2Fraction = exp2m1_lookup<Fbit, exp2m1Fbit>(isNegativeX, fraction);
+
+        int<1 + exp2m1Fbit> exp2m1;
+        if(integer == 0)
+        {
+            exp2m1 = exp2Fraction;
+        }
+        else
+        {
+            if(isNegativeX)
+            {
+                // Add 1 to exp2Fraction and divide by 2^integer, then subtract 1.
+                // if exp2Fraction is negtive, int<1 + F>(exp2Fraction) + (1 << F) = uint<F>(exp2Fraction).
+                const auto plus1 = cast<uint<exp2m1Fbit>>(exp2Fraction);
+                exp2m1 = (plus1 >> integer) - (1 << exp2m1Fbit);
+            }
+            else
+            {
+                // Multiply exp2Fraction by 2^integer and subtract 1.
+                exp2m1 = cast<decltype(exp2m1)>(exp2Fraction - (1 << (exp2m1Fbit - integer)));
+            }
+        }
+
+        // convert to float
+        const bool isNegativeExp2m1 = exp2m1 < 0;
+        const auto absValue = isNegativeExp2m1 ? -exp2m1 : exp2m1;
+        const auto leadingOneIndex = highest_one<uint24>(absValue >> (exp2m1Fbit - 24));
+
+        int8 exponentResult;
+        uint<exp2m1Fbit> mantissaResult;
+        if(integer > 0 && !isNegativeX)
+        {
+            exponentResult = cast<decltype(exponentResult)>(isNegativeExp2m1 ? (integer - 1) : integer);
+            mantissaResult = cast<decltype(mantissaResult)>(isNegativeExp2m1 ? (exp2m1 << 1) : exp2m1);
+        }
+        else
+        {
+            exponentResult = leadingOneIndex.value - 24;
+            mantissaResult = cast<decltype(mantissaResult)>(absValue << (-exponentResult));
+        }
+
+        const auto truncatedMantissa = mantissaResult >> (exp2m1Fbit - 24);
+        const auto roundedMantissa = (truncatedMantissa >> 1) + (truncatedMantissa & 1);
+        exponentResult = cast<decltype(exponentResult)>(exponentResult + (cast<uint1>(roundedMantissa >> 23) + 127));
+
+        // output
+        result.sign = cast<uint1>(isNegativeX);
+        result.exponent = (isNegInfinity || isOutputMinus1) ? 127 :
+                        (isOutputInf || isPosInfinity || flags.nan) ? 0xFF : cast<decltype(result.exponent)>(exponentResult);
+        result.mantissa = flags.nan ? 0x1 :
+                        (isOutputInf || isOutputMinus1 || flags.inf) ? 0x0 : cast<decltype(result.mantissa)>(roundedMantissa);
+    }
+    return cast<float32>(result);
+}

@@ -1,0 +1,11 @@
+uint32 mul(uint32 x) {
+    return x * 3;}void ExecuteOneReplica(uint32 numIter) {
+    pipelined_for(numIter, [](uint32 tid) {
+        static multiply_by_three _multiplier;
+        uint32[4] src;
+        uint32[4] dst;
+        static for (const auto i : 4) {
+            dst[i] = _multiplier.mul(src[i]);
+        }
+    });
+}

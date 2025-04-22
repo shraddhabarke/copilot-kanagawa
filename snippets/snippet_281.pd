@@ -1,0 +1,24 @@
+template
+        < typename Ctx //< Context type passed to and returned from the combine function.
+        >
+    inline Ctx bankwise_fold
+        ( addr_t addr //< Logical address of one element within the memory.
+                      // All elements that have matching offsets within banks are combined.
+        , Ctx initial //< Context value passed to the first call to `combine`.
+        , (pair<T, Ctx>)->pair<T, Ctx> combine //< Combination function.
+                                               //  Maps a previous value in the memory and the current context
+                                               //  to a new value stored in the memory and a new context.
+        )
+    {
+        // Determine offset within any given bank
+        auto decomposed_addr = decompose_address(addr);
+        Ctx current_context = initial;
+        static for (const auto i : Banks)         {
+            atomic
+            {
+                T prev = _memories[i][decomposed_addr.second];
+                auto combined = combine(make_pair(prev, current_context));
+                current_context = combined.second;
+                _memories[i][decomposed_addr.second] = combined.first; } }
+        return current_context;
+    }

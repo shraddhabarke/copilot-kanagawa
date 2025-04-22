@@ -1,0 +1,6 @@
+uint2 idx = 2;
+uint32 x = 54;
+uint32 y = 98;
+uint32[4] choices = { x, 3, 4, y };
+uint32 result = choices[idx];
+// result = 4

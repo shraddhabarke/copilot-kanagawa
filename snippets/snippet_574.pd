@@ -1,0 +1,5 @@
+void write_table( index_t<TableDepth> addr  //< The address of the element to write.
+, table_element_t element   //< The element to write.
+) {
+    sim_assert(addr < TableDepth);
+    _table[addr] = element;}

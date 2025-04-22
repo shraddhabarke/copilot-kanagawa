@@ -1,0 +1,5 @@
+inline word_t read_word(word_addr_t addr)
+{
+sim_assert(addr < WordCount);
+return _mem[addr];
+}

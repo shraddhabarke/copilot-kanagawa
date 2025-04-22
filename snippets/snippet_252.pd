@@ -1,0 +1,12 @@
+template <typename T>
+inline void range_for (T begin, T end, auto step, (T) -> void body)
+{
+    sim_assert (step > 0);
+
+    if (begin < end) do
+    {
+        body(begin);
+        begin += step;
+    }
+    while (begin < end);
+}

@@ -1,0 +1,21 @@
+template<auto F1, auto F2>
+inline int<2 + F2> cos_pirad(uint<1 + F1> value)
+{
+    uint9 index = (value << (COS_TABLE_LG_SIZE - 1)) >> F1;
+
+    // base for modified value
+    uint<1 + F1> segmentbase = index << (F1 + 1 - COS_TABLE_LG_SIZE);
+    uint<1 + F1> difference = value - segmentbase;
+
+    const auto coefficients = cos_coefficient_table[index];
+    const auto c2 = coefficients.c2;
+    const auto c1 = coefficients.c1;
+    const auto c0 = coefficients.c0;
+
+    const uint6 tmpFbit = COS_C2_FBIT + F1;
+    auto tmp = c2 * difference + (c1 << (tmpFbit - COS_C1_FBIT));
+    const auto resultTmpFbit = tmpFbit;
+    auto resultTmp = ((tmp * difference) >> F1) + (c0 << (resultTmpFbit - COS_C0_FBIT));
+    int<2 + F2> result = (resultTmp >> (resultTmpFbit - F2)) + ((resultTmp >> (resultTmpFbit - F2 - 1)) & 1);
+    return result;
+}

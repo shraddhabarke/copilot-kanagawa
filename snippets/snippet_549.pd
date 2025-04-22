@@ -1,0 +1,8 @@
+using unicode_code_point_t = uint21;
+template<typename T>
+struct code_point_stream_to_int_context_impl
+{
+    uint<bitsizeof(T)> accumulator;
+    bool negative;
+    bool has_content;
+}

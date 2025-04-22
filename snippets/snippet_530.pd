@@ -1,0 +1,5 @@
+T read(addr_t addr /*< Element address.*/)
+    {
+        auto value = _cyclicBuffer.read(addr);
+        return value[0];
+    }

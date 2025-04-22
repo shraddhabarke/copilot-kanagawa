@@ -1,0 +1,14 @@
+void reset()
+    {
+        // Free any entries in the buffer
+        atomic
+        {
+            auto freeCount = _freeCounter.count();
+            _freeCounter.add(Depth - freeCount);
+            // Ensure _freeCounter is full after reset
+            sim_assert(_freeCounter.count() == Depth);
+        }
+
+        _writeAddr = 0;
+        _freeAddr = 0;
+    }

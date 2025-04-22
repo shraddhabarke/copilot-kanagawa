@@ -1,0 +1,13 @@
+inline float32 add(float32 in1, float32 in2)
+{
+    float32 result;
+    if (denorm_mode == Denorm::On)
+    {
+        result = float32_add(in1, in2);
+    }
+    else
+    {
+        result = float32_add_denormoff(in1, in2);
+    }
+    return result;
+}

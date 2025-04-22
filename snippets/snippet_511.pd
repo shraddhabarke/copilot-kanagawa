@@ -1,0 +1,6 @@
+template<auto WindowSize, auto MaxLength>
+struct reference
+{
+    count_t<WindowSize> offset;
+    count_t<MaxLength> length;
+}

@@ -1,0 +1,15 @@
+template <auto N, typename I, typename T>
+inline T[N] pipelined_map(auto count, (I) -> T body)
+{
+    sim_assert(count <= N);
+    sim_assert(count <= (1 << bitsizeof I));
+
+    const auto fn = [body](I x) -> T
+    {
+        return body(x);
+    };
+
+    static pipelined<I, decltype(fn)> loop;
+
+    return loop.go(count, fn);
+}

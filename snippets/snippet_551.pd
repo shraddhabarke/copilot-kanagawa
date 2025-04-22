@@ -1,0 +1,68 @@
+template<typename T>
+inline code_point_stream_to_int_context<T> code_point_stream_to_int
+    ( unicode_code_point_t code_point             //< Input code point.
+    , code_point_stream_to_int_context<T> context //< Used to return the result
+                                                  // and track deserialzation state.
+    , bool start                                  //< Set to true on the first
+                                                  // code point of a string.
+    )
+{
+    const bool is_dash = (code_point == 0x2D);
+    const bool is_digit = (code_point >= 0x30) && (code_point <= 0x39);
+
+    // 4 bits is enough to represent [0,10]
+    uint4 value = code_point - 0x30;
+
+    // reset context to initial values if necessary
+    code_point_stream_to_int_context<T> empty_context = {};
+    context = start ? empty_context : context;
+
+    // handle leading negative sign
+    if (is_dash)
+    {
+        if (context.impl.has_content)
+        {
+            // Dash detected anywhere but the first character
+            context.error = true;
+        }
+        else
+        {
+            context.impl.negative = true;
+        }
+    }
+    else if (is_digit)
+    {
+        // Shift the accumulator and add the new value in
+        const auto new_accumulator = (context.impl.accumulator * 10) + value;
+
+        // Narrowing cast back into the accumlator
+        const auto max_value = (1 << bitsizeof(T)) - 1;
+
+        context.impl.accumulator = cast<uint<bitsizeof(T)>>(new_accumulator);
+
+        if (new_accumulator > max_value)
+        {
+            context.error = true;
+        }
+    }
+    else
+    {
+        // Invalid character
+        context.error = true;
+    }
+
+    // Record that the first character has been seen
+    context.impl.has_content = true;
+
+    // Cast from accumulator to the return value
+    const auto max_value_before_invert = context.impl.negative ? (1 << (bitsizeof(T) - 1)) : (1 << (bitsizeof(T) - 1)) - 1;
+
+    if (context.impl.accumulator > max_value_before_invert)
+    {
+        context.error = true;
+    }
+
+    context.value = cast<decltype(context.value)>(context.impl.negative ? -context.impl.accumulator : context.impl.accumulator);
+
+    return context;
+}

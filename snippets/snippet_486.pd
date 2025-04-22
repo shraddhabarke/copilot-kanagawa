@@ -1,0 +1,4 @@
+inline void read_unlock(rwlock_index_t index)
+    {
+        unlock(index, true);
+    }

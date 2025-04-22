@@ -1,0 +1,14 @@
+void reset()
+    {
+        // map-reduce functions use uint8 for index
+        sim_assert(clog2(NUM_INPUTS) <= 8);
+
+        _reset_flag = true;
+
+        if (!_initializer.check())
+        {
+            _transfer_loop();
+        }
+
+        wait_for(!_reset_flag);
+    }

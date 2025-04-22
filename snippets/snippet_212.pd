@@ -1,0 +1,13 @@
+void enqueue(T value)
+    {
+        // Get the value of the write pointer then increment the write pointer
+        auto producer_index = first(atomically<pointer_t>(increment));
+
+        // Store the value into the memory
+        _dataMem[producer_index] = value;
+
+        // Allow 1 more value to be read out
+        // Check for overflow (late)
+        sim_assert(_lateCounter.count() < Size);
+        _lateCounter.increment();
+    }

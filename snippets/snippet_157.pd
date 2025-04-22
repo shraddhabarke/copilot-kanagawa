@@ -1,0 +1,1 @@
+template <auto N> inline auto compose_endo((auto) -> auto f) { static assert(N > 0); static if (N == 1) return f; else return compose(f, compose_endo<N - 1>(f)); }

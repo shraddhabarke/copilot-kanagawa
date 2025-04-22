@@ -1,0 +1,22 @@
+template<auto MaxCount>
+    inline void write_words
+        ( vec::vector<pair<word_addr_t, word_t>, MaxCount> addresses_and_values //< Addresses and values of words to write.
+        )
+    {
+        // Broadcast parameters to all banks
+        parallel_for<Banks>(Banks, [addresses_and_values](index_t<Banks> bank_index)
+        {
+            // Determine which addresses map to this bank
+            bool[MaxCount] valid = map_indices<MaxCount>([bank_index, addresses_and_values](index_t<MaxCount> i)
+            {
+                return (i < addresses_and_values.size) && (is_word_in_bank(addresses_and_values.data[i].first, bank_index));
+            });
+
+            auto unzip_result = unzip(addresses_and_values.data);
+
+            // Map all addresses to the bank
+            bank_t::word_addr_t[MaxCount] addresses_in_bank = map(to_bank_word_addr, unzip_result.first);
+
+            _banks[bank_index].write_words(valid, addresses_in_bank, unzip_result.second);
+        });
+    }

@@ -1,0 +1,8 @@
+inline optional<bid32_t> dim_exactly(bid32_t x, bid32_t y)
+{
+    return dim_exactly_internal<_width, _max_integer,
+                                decimal32_constants::POS_ZERO,
+                                decimal32_constants::DEFAULT_NAN,
+                                decimal32_constants::POS_INFINITY,
+                                decimal32_constants::NEG_INFINITY>(x, y);
+}

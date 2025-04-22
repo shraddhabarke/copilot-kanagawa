@@ -1,0 +1,17 @@
+template <typename T, auto N /*< Maximum size.*/>
+struct vector
+{
+    T[N] data;
+    count_t<N> size;
+}
+
+template <auto N, typename T>
+inline vector<T, N> replicate(T x, count_t<N> length)
+{
+    sim_assert(length <= N);
+    vector<T, N> result;
+    static for(const auto i : N)
+        if (i < length)
+            result.data[i] = x;
+    return resize(result, length);
+}

@@ -1,0 +1,4 @@
+inline bool IsValidMatch(cache_entry<Key, LUtime> entry, Key key)
+{
+return (entry._valid && entry._key == key);
+}

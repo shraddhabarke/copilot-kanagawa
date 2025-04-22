@@ -1,0 +1,56 @@
+template<auto I, auto F>
+inline optional<fixed<I, F>> pow(fixed<I, F> base, fixed<I, F> expo)
+{
+    const auto baseValue = base.value;
+    const auto expoValue = expo.value;
+    optional<fixed<I, F>> result;
+
+    // detect invalid input pattern
+    bool sign = baseValue < 0;
+    const uint<F> expoFraction = expoValue;
+    const bool isValid = !sign || (sign && expoFraction == 0);
+
+    // normalize base value
+    const auto baseAbsValue = sign ? -baseValue : baseValue;
+    const auto leadingOneIndex = highest_one<uint<I + F>>(baseAbsValue);
+    const int6 exponent = leadingOneIndex.value - F;
+
+    const auto significandFbit = I + F - 1;
+    const uint<1 + significandFbit> significand = (baseAbsValue << (I + F - 1 - leadingOneIndex.value));
+
+    // log2(base)
+    const auto log2Fbit = 55;
+    const auto log2Fraction = log2_40_lookup<significandFbit, (log2Fbit + 1)>(significand);
+    const auto roundLog2Frcation = (log2Fraction >> 1) + (log2Fraction & 1);
+    const int<6 + log2Fbit> log2Value = (exponent << log2Fbit) + roundLog2Frcation;
+
+    // expo * log2(base)
+    const auto productFbit = F + log2Fbit;
+    const auto product = log2Value * expoValue;
+    const int<6 + (I - 1)> productExponent = product >> productFbit;
+
+    const auto productFractionBit = 38;
+    const uint<productFractionBit + 1> productFraction = product >> (productFbit - (productFractionBit + 1));
+    const auto roundProductFraction = (productFraction >> 1) + (productFraction & 1);
+
+    const auto fractionExp2Bit = I + F + 1;
+    const auto fractionExp2 = exp2_lookup<productFractionBit, fractionExp2Bit>(roundProductFraction);
+
+    // convert to fixed point
+    const auto truncatedFbitCount = F + 1;
+    const auto shiftedValue = (fractionExp2 << truncatedFbitCount) >> (truncatedFbitCount - productExponent);
+    const auto truncatedValue = shiftedValue >> (fractionExp2Bit - truncatedFbitCount);
+
+    const uint<I + 1 + F> roundedValue = (truncatedValue >> 1) + (truncatedValue & 1);
+    const bool isExpoEvenInteger = ((expoValue >> F) & 1) == 0;
+    sign = isExpoEvenInteger ? false : sign;
+
+    const int<I + 2 + F> signedValue = sign ? -roundedValue : roundedValue;
+    result.value.value = signedValue;
+
+    const int<I + F> minValue = -(1 << (I + F - 1));
+    const int<I + F> maxValue = (1 << (I + F - 1)) - 1;
+    result.is_valid = (minValue <= signedValue) && (signedValue <= maxValue) && isValid;
+
+    return result;
+}

@@ -1,0 +1,5 @@
+template <typename FunctionType, FunctionType fn, typename Capture>
+struct Closure
+{
+    Capture capture;
+}

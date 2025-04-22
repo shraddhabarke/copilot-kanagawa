@@ -1,0 +1,14 @@
+template <typename T, auto N /*< Maximum size.*/>
+struct vector
+{
+    T[N] data;
+    count_t<N> size;
+}
+
+template <typename T, auto N>
+inline vector<T, N> resize(vector<T, N> v, count_t<N> length)
+{
+    sim_assert(length <= N);
+    v.size = length;
+    return v;
+}

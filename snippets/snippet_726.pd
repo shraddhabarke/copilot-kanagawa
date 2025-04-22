@@ -1,0 +1,23 @@
+Value get_or_put
+( bool is_get               //< Whether this is a get operation.  If false, this is a put operation.
+, Key key               //< The key to read or write.
+, set_index_t set_index //< The hashed value of the key.
+, Value value           //< The new value to put.  Ignored if `is_get` is true.
+)
+{
+bool read_from_cache;
+
+auto getResult = _tags.get(key, set_index, false);
+
+if (is_get)
+{
+if (!getResult.hit)
+{
+value = load(key);
+}read_from_cache = getResult.hit;}
+else {
+    store(key, value);
+    read_from_cache = false;
+}
+return store_value_in_cache(set_index, getResult.idx, value, read_from_cache);
+}

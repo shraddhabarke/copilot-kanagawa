@@ -1,0 +1,4 @@
+T dequeue()
+    {
+        return dequeue_and_discard(0);
+    }

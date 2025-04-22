@@ -1,0 +1,4 @@
+[[pipelined]] void _transfer_flits(uint32 thread_index, input_index_t input_index) {
+    T entry = DequeueFn(input_index);
+    _fifo.enqueue(entry);
+}

@@ -1,0 +1,23 @@
+inline bool gt(float32 in1, float32 in2)
+{
+    // Unpack input
+    float32PackedFormat a;
+    float32PackedFormat b;
+    a = cast<float32PackedFormat>(in1);
+    b = cast<float32PackedFormat>(in2);
+
+    // Get zero, nan, or inf
+    specialCaseFlags a_flags = getSpecialCases<denorm_mode>(a);
+    specialCaseFlags b_flags = getSpecialCases<denorm_mode>(b);
+
+    bool result;
+    if (a_flags.nan || b_flags.nan)
+    {
+        result = false;
+    }
+    else
+    {
+        result = !eq<denorm_mode>(in1, in2) && !lt<denorm_mode>(in1, in2);
+    }
+    return result;
+}

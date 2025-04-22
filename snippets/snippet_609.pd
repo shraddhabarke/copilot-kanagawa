@@ -1,0 +1,6 @@
+void unlock()
+{
+// begin_strip
+_locked = false;
+// end_strip
+}

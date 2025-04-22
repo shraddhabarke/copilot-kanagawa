@@ -1,0 +1,6 @@
+inline bid64_t neg(bid64_t x)
+{
+    auto binary = cast<decimal64PackedFormat_t>(x);
+    binary.sign = ~binary.sign;
+    return cast<bid64_t>(binary);
+}

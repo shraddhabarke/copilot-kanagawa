@@ -1,0 +1,7 @@
+inline void set_MT(uint1 mt_set_index, MT_t i, uint<w> value)
+{
+const auto index_within_memory = n * mt_set_index + i;
+static for(const auto i : memory_count)
+{
+MT[i][index_within_memory] = value;
+}

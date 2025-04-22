@@ -1,0 +1,1 @@
+inline T[M] rotate_array_left(T[N] data, U amount) { sim_assert(amount < N);  return rotate_array<M, T, N, U, false>(data, amount); }

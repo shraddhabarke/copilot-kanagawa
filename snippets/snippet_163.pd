@@ -1,0 +1,8 @@
+import numeric.int.operator.modular as modular
+inline ctr_t count() {
+    ctr_t result;
+    atomic
+    {
+        result = modular::sub(_first, _second);
+    }
+    return result; }

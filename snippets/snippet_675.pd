@@ -1,0 +1,15 @@
+ [[async, pipelined, max_threads(1)]] void sort_leaves_async(index_t<MaxSorterPasses> tid,
+                                                            count_t<NumSymbols> numSymbols,
+                                                            bool universal)
+//                  ^^^^^^^^^^^^^^ Necessary to enforce dependency between subsequent invocations of
+//                                 sort_leaves_pipeline() each thread of which must complete (and invalidate
+//                                 the smallest values found) before the next can begin {
+static bool done;
+if (tid == 0) {
+    sim_assert(_sortedLeaves.count() == 0);
+    done = false;
+}
+if (!done) {
+    sort_leaves_pipeline(numSymbols + SorterWidth + 2, numSymbols, universal);
+    done = !_smallestLeaves[SorterWidth - 1].is_valid;
+}}

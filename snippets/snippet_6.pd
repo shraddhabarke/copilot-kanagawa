@@ -1,0 +1,12 @@
+template <typename T, auto N /*< Maximum size.*/>
+struct vector
+{
+    T[N] data;
+    count_t<N> size;
+}
+
+template <typename T, auto N>
+inline count_t<N> size(vector<T, N> v)
+{
+    return v.size;
+}

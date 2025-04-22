@@ -1,0 +1,117 @@
+inline optional<result> insert_or_update
+        ( Key key                           //< Key used to find a location to store the value
+        , bool reset                        //< True if all elements in the hash table should be removed before performing the search.
+        , bool insert_on_miss               //< True if a new `(Key, Value)` pair should be inserted into the table if a pair with a matching `key` is not already present.
+        , ()->Value allocate_fn             //< Function that is called when a key is inserted into the hash table.
+                                            // Returns a value that is passed to `access_fn`.
+        , (Value, bool)->Value access_fn    //< Function that accepts a previous value and a bool indicating if an insert occured.
+                                            // Returns a new value to store in the hash table associated with the key.
+                                            // If `key` was not already present in the table then,
+                                            // the first parameter is the value returned by `allocate_fn` and the second parameter is `true`.
+                                            // Otherwise, the first parameter is the value currently stored in the table and the second parameter is `false`.
+        )
+    {
+        // Update generation ID if resetting
+        auto generation_id = init_generational<GenerationBits>(reset);
+
+        // Generation ID 0 is the reset value
+        sim_assert(generation_id.second != 0);
+
+        // Lock the tags
+        // If generation_id.first is true, then acquire exclusive access
+        // which will block until preceding threads have drained
+        _tag_lock.lock(!generation_id.first);
+
+        if (generation_id.first)
+        {
+            // Reset all tags to generation ID 0 (invalid generation ID)
+            pipelined_for(NumSets, [](set_index_t set_index)
+            {
+                static for (const auto way_index : Associativity)
+                {
+                    _tags[way_index][set_index] = {};
+
+                    // Allow writes to be pipelined
+                    barrier;
+                }
+            });
+
+            // Reset hazard tracking history
+            static for (const auto i : HistorySize)
+            {
+                _outer_history[i].is_valid = false;
+            }
+        }
+
+        lookup_one_set_result internal_result;
+
+        static if (MaxIterations == 1)
+        {
+            // only perform 1 lookup, no loop necessary
+            internal_result = lookup_one_set(key, generation_id.second, insert_on_miss, 0);
+        }
+        else
+        {
+            // Linear probing.
+            // It is important to ensure that all threads that are probing
+            // have the same generation id.  If threads with different generation IDs
+            // can be probing at the same time, then a thread could incorrectly
+            // determine that a slot was unsued (because of a generation id mismatch).
+            // When reset=true, block until all younger threads have finished probing.
+            wait_for(test_thread_count(reset));
+
+            count_t<NumSets> offset = 0;
+
+            // allocate_fn is not called inside of this loop
+            // to ensure that calls to allocate_fn occur in the same order as calls
+            // to insert_or_update.
+            do
+            {
+                // will be cast to set_index_t
+                sim_assert(offset < NumSets);
+
+                internal_result = lookup_one_set(key, generation_id.second, insert_on_miss, cast<set_index_t>(offset));
+
+                offset++;
+
+                // internal_result.continue_searching term is for the case where insert_on_miss is false.
+                // In this case the search can stop as soon as 1 emtpy tag is found.
+                // (offset < NumSets) term prevents infinite loop if the table is full.
+            } while(!internal_result.element_index.is_valid && internal_result.continue_searching && (offset < NumSets) && (offset < MaxIterations)); 
+
+            _threads_in_flight.decrement();
+        }
+
+        optional<result> r = {};
+
+        if (internal_result.element_index.is_valid)
+        {
+            Value initial_value;
+
+            if (internal_result.inserted)
+            {
+                // First time this key has been inserted
+                // Get initial value
+                initial_value = allocate_fn();
+            }
+
+            bool inserted = internal_result.inserted;
+
+            auto update_result = _data.atomically(
+                internal_result.element_index.value,
+                [access_fn, inserted, initial_value](Value prev)
+                {
+                    return access_fn(inserted ? initial_value : prev, inserted);
+                });
+                
+            r.is_valid = true;
+            r.value.inserted = internal_result.inserted;
+            r.value.value.first = inserted ? initial_value : update_result.first;
+            r.value.value.second = update_result.second;
+        }
+
+        // Unlock the tags
+        _tag_lock.unlock(!generation_id.first);
+
+        return r;
+    }

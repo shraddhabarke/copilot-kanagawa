@@ -1,0 +1,90 @@
+inline optional<uint64> parse_scientific_format_to_float
+    ( bool positive
+    , uint64 mantissa
+    , int32 decimalExponent
+    , float_parser_parse_type parseType
+    )
+{
+    using productSize = uint<PRODUCT_SIZE>;
+    using correctLUTSize = uint<CORRECTED_LUT_BIT_WIDTH>;
+
+    bool succeeded = false;
+    uint64 result = 0;
+    auto resultMantissaBitWidth = (parseAsFloat32(parseType) ? 23 : 52);
+    auto resultExponentBitWidth = (parseAsFloat32(parseType) ? 8 : 11);
+    auto resultBitWidth = (parseAsFloat32(parseType) ? 32 : 64);
+    auto exponentMiddle = (parseAsFloat32(parseType) ? (128) : (1024));
+    auto effectiveMinDecimalExponent = (parseAsFloat32(parseType) ? MIN_FLOAT_DECIMAL_EXPONENT : MIN_DECIMAL_EXPONENT);
+    uint64 sign = (positive ? 0 : 1) << (resultBitWidth - 1);
+    auto infinityExponent = (parseAsFloat32(parseType) ? INF_EXP_32 : INF_EXP_64);
+    uint52 removeImplicitBitsMask = (1 << resultMantissaBitWidth) - 1;
+
+    uint10 lutIndex = decimalExponent - MIN_DECIMAL_EXPONENT;    
+    multiplier_entry multiplier = precomputedMultiplierLUT[lutIndex];
+    //lut has implicit 1 removed for compactness. We'll need to add it back on.
+    correctLUTSize implicit1 = 1 << LUT_BIT_WIDTH;
+    productSize product = mantissa * (implicit1 + multiplier.significand);
+    
+    if (decimalExponent > MAX_DECIMAL_EXPONENT){
+        succeeded = true;
+
+        result = sign + (infinityExponent << resultMantissaBitWidth);
+    }
+    else if (product == 0 || decimalExponent < effectiveMinDecimalExponent)
+    {
+        succeeded = true;
+        
+        //need to return 0, but also respect -0
+        result = sign;
+    }
+    else
+    {
+        auto highestBitIndex = highest_one<productSize>(product);
+        int16 binaryExponent = multiplier.exponent + exponentMiddle + highestBitIndex.value - CORRECTED_LUT_BIT_WIDTH;    
+
+        //shouldn't need more than 128bits removed
+        uint8 numBitsToRemove = highestBitIndex.value - resultMantissaBitWidth - (binaryExponent <= 0 ? binaryExponent-1 : 0);
+
+        productSize mask = (1 << numBitsToRemove) - 1;
+        productSize exactlyOneHalf = 1 << (numBitsToRemove - 1);
+
+        productSize bitsToRemove = product & mask;
+        uint55 resultMan = product >> numBitsToRemove;
+        uint54 mantissaOverflowed = 1 << (resultMantissaBitWidth + 1);
+
+        if (bitsToRemove > exactlyOneHalf)
+        {
+            resultMan++;
+        }
+        else if (bitsToRemove == exactlyOneHalf)
+        {
+            // round to nearest even
+            if ((resultMan & 1) == 1)
+            {
+                resultMan++;
+            }
+        }
+
+        if (binaryExponent < 0){
+            binaryExponent = 0;
+        }
+
+        if (resultMan >= mantissaOverflowed) {
+            binaryExponent++;
+        }
+
+        if (binaryExponent >= infinityExponent){
+            binaryExponent = infinityExponent;
+            resultMan = 0;
+        }
+
+        if (binaryExponent > 0) {
+            resultMan = resultMan & removeImplicitBitsMask;
+        }
+
+        result = sign + (binaryExponent << resultMantissaBitWidth) + resultMan;
+        succeeded = true;
+    }
+
+    return make_optional<uint64>(succeeded, result);
+}

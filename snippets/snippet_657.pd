@@ -1,0 +1,17 @@
+void wait_multiple(sem_ctr_t val)
+    {
+        if (Blocking)
+        {
+            wait_for(test_and_decrement(val));
+        }
+        else
+        {
+            bool result;
+            atomic
+            {
+                result = test_and_decrement(val);
+            }
+            // Check for underflow
+            sim_assert(result);
+        }
+    }

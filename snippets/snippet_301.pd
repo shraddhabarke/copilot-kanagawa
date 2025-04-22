@@ -1,0 +1,6 @@
+inline auto ceil_div(auto numerator, auto denominator)
+{
+    sim_assert(denominator > 0);
+
+    return cast<decltype(numerator)>((numerator + denominator - 1)) / denominator;
+}

@@ -1,0 +1,7 @@
+void clear_histogram()
+{
+    pipelined_for(bucket_count, [](sample_t i)
+    {
+        _histogram[i] = 0;
+    });
+}

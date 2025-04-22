@@ -1,0 +1,1 @@
+template <typename T, auto I, auto J> inline T[J][I] transpose(T[I][J] src) { T[J][I] result;  static for (const auto i : I) { static for (const auto j : J) { result[j][i] = src[i][j]; } }  return result; }

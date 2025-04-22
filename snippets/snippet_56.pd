@@ -1,0 +1,9 @@
+uint32 sum_for()
+{
+    uint32 result = 0;
+    for (const auto i : Depth)
+    {
+        result += _input_data[i];
+    }
+    return result;
+}

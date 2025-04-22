@@ -1,0 +1,5 @@
+template <typename NumeratorType, typename DenominatorType>
+inline NumeratorType[2] divide(NumeratorType numerator, DenominatorType denominator)
+{
+    return DU::divide<NumeratorType, DenominatorType, bitsizeof(NumeratorType)>(numerator, denominator);
+}

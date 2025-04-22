@@ -1,0 +1,15 @@
+void histogram_mutex()
+{
+    clear_histogram();
+    pipelined_for(batch_count, [](vector_index_t i)
+    {
+        batch_t batch = _batches[i];
+        pipelined_for_each(batch, [](index_t<vector_width> unused_index, sample_t sample)
+        {
+            static mutex _mutex;
+            _mutex.lock();
+            _histogram[sample] = _histogram[sample] + 1;
+            _mutex.unlock();
+        });
+    });
+}

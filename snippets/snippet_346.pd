@@ -1,0 +1,9 @@
+template<auto I, auto F>
+inline optional<fixed<I, F>> abs(fixed<I, F> x)
+{
+    optional<fixed<I, F>> result;
+
+    result.value.value = cast<decltype(result.value.value)>(x.value < 0 ? -x.value : x.value);
+    result.is_valid = result.value.value >= 0;
+    return result;
+}

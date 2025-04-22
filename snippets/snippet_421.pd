@@ -1,0 +1,16 @@
+inline float32 to_float32(bfloat16 value)
+{
+    const auto float32_mantissa_width = 23;
+    // bfloat16 and float32 have the same exponent width and bias
+
+    using float32PackedFormat = floatPackedFormat<float32_mantissa_width, _exponent_width>;
+    float32PackedFormat float_packed;
+
+    const auto bfloat16_packed = cast<bfloat16PackedFormat>(value);
+
+    float_packed.sign = bfloat16_packed.sign;
+    float_packed.exponent = bfloat16_packed.exponent;
+    float_packed.mantissa = bfloat16_packed.mantissa << (float32_mantissa_width - _mantissa_width);
+
+    return cast<float32>(float_packed);
+}

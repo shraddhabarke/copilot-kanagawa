@@ -1,0 +1,19 @@
+void flush()
+    {
+        // For each tag
+        pipelined_for (Depth, [](index_t<Depth> tid)
+        {
+            auto decomposed = div_mod(tid, Associativity);
+
+            optional<Key> key = _tags.get_and_clear_unwritten_key(decomposed.first, decomposed.second);
+
+            if (key.is_valid)
+            {
+                auto data_index = get_data_index(decomposed.first, decomposed.second);
+
+                optional<Word>[WordCount] value_and_enable = _data.read(data_index);
+
+                store(key.value, value_and_enable);
+            }
+        });
+    }

@@ -1,0 +1,51 @@
+template<typename T>
+inline auto wait_result(()->optional<T> fn)
+{
+    // Assign a unique ID to this thread
+    thread_index_within_function_t thread_id;
+
+    atomic
+    {
+        static thread_index_within_function_t _enter_thread_id = 0;
+
+        thread_id = _enter_thread_id;
+
+        _enter_thread_id = modular::increment(_enter_thread_id);
+    }
+
+    // Loop until fn returns true
+    bool continuing_looping = true;
+
+    optional<T> result;
+
+    // Loop body ensures ordering except in the case where wait_result is predicated
+    [[reorder_by_looping]]
+    do
+    {
+        // Hint to the compiler that these variables are not live at the start of the loop
+        continuing_looping = true;
+
+        result = {};
+
+        atomic
+        {
+            // Check to see if this thread is at the head of the line
+            static thread_index_within_function_t _expected_thread_id = 0;
+
+            bool head_of_line = (_expected_thread_id == thread_id);
+
+            if (head_of_line)
+            {
+                // Call fn()
+                result = fn();
+
+                // increment _expected_thread_id when result.is_valid is set
+                _expected_thread_id = modular::increment_if(_expected_thread_id, result.is_valid);
+
+                continuing_looping = !result.is_valid;
+            }
+        }
+    } while (continuing_looping);
+
+    return result.value;
+}

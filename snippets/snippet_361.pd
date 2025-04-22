@@ -1,0 +1,13 @@
+inline float32StickyFormat multNormalizeOutput1(float32StickyFormat in)
+{
+    float32StickyFormat out;
+
+    uint1 shiftAmount = ~cast<uint1>(in.mantissaGuardRound >> 25);
+
+    out.sticky = in.sticky;
+    out.mantissaGuardRound = in.mantissaGuardRound << shiftAmount;
+    out.exponent = in.exponent - shiftAmount;
+    out.sign = in.sign;
+
+    return(out);
+}

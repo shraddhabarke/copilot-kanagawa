@@ -1,0 +1,4 @@
+inline count_t<Size> count()
+    {
+        return _readSemaphore.count();
+    }

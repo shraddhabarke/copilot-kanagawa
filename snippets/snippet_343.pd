@@ -1,0 +1,10 @@
+template<auto I, auto F>
+inline optional<fixed<I, F>> round(fixed<I, F> x)
+{
+    auto value = x.value;
+    optional<fixed<I, F>> result;
+
+    result.value.value = cast<decltype(result.value.value)>((((value >> (F-1)) + 1) >> 1) << F); // error checking below
+    result.is_valid = (value < 0) || (result.value.value >= 0);
+    return result;
+}

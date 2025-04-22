@@ -1,0 +1,9 @@
+inline void assert_string(tag_t tag, bool cond, const string message)
+{
+    if (!cond)
+    {
+        println(message);
+        print_failure(tag);
+        sim_assert(false);
+    }
+}

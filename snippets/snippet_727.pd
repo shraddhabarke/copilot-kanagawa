@@ -1,0 +1,25 @@
+inline Value store_value_in_cache
+( set_index_t set_index       //< The hashed value of the key.
+, entry_index_t entry_index   //< The index within the cache line for the given entry.
+, Value newValue              //< The value to store into the cache.
+, bool readFromCache          //< Set to true if this function should return the existing value from the cache.
+)
+{
+Value result;
+
+auto dataIndex = set_index * Associativity + entry_index;
+atomic
+{
+Value dataInCache = m_data[dataIndex];
+if (readFromCache)
+{
+// Snap the data from the cache.
+result = dataInCache;
+} else {
+    // Update the cache.
+    dataInCache = newValue;
+    result = newValue;
+}
+m_data[dataIndex] = dataInCache;
+}
+return result;

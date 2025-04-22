@@ -1,0 +1,20 @@
+template <typename LUtime, typename entry_index_t>
+inline cache_entry_with_index<LUtime, entry_index_t> ReduceEntryForInsertion(cache_entry_with_index<LUtime, entry_index_t> x, cache_entry_with_index<LUtime, entry_index_t> y)
+{
+cache_entry_with_index<LUtime, entry_index_t> result;
+
+if (!x._valid)
+{
+// If x is invalid, we can store a new entry here without evicting any cached data.
+result = x;
+else if (!y._valid) {
+    result = y;
+}
+else if (x._lastUsed < y._lastUsed) {
+    // Both x and y are valid, but y was used more recently.  Evict x.
+    result = x;
+}
+else { 
+    result = y;
+}
+return result;}

@@ -1,0 +1,387 @@
+template <auto Width, auto MaxLength, auto WindowSize, auto DictAssociativity>
+inline ChooseMatchCallbackOutput<Width, MaxLength, WindowSize>
+    default_choose_match_callback_linear(ChooseMatchCallbackInput<Width, MaxLength, WindowSize, DictAssociativity> input)
+{
+    const auto MaxTotalLength = Width - 1 + MaxLength;
+    struct referenceChain
+    {
+        count_t<MaxTotalLength> totalLength;
+        count_t<Width> newRefCount;
+        bool[Width] newRef;
+    };
+    referenceChain[Width] bestChains;
+
+    // Find the longest reference chain starting from the most-significant byte of the word
+    const auto MinChainLength = 1;
+    static for(const auto pos : Width)
+    {
+        const auto rpos = Width - 1 - pos;
+
+        // Find the longest candidate starting from this position
+        count_t<MaxLength>[DictAssociativity] lengths;
+        static for(const auto assoc : DictAssociativity)
+        {
+            auto candidate = input.candidates[rpos][assoc];
+            lengths[assoc] = (candidate.is_valid ? candidate.value.length : 1);
+        }
+        auto maxLength = maximum(lengths);
+        sim_assert(maxLength != 0);
+
+        // Consider all lengths of this back-reference up to maxLength or to the end
+        // of the word (length-1 is equivalent to a literal, length-2 is skipped)
+        referenceChain[Width] chains;
+        static for(const auto lengthMinusOne : Width)
+        {
+            const auto length = lengthMinusOne + 1;
+            if (static(rpos + length <= Width))
+            {
+                referenceChain chain;
+
+                // If considering a reference that takes us to the end of the word (thus no chaining)
+                // then consider using its whole length even if it spills into the next word
+                if (static(rpos + length == Width) && maxLength > length)
+                {
+                    chain.totalLength = maxLength;
+                    chain.newRef[rpos] = true;
+                }
+                else
+                {
+                    chain.totalLength = length;
+
+                    if (static(length == 1))
+                    {
+                        chain.newRef[rpos] = true;
+                    }
+                    else if (static(length >= 3))
+                    {
+                        chain.newRef[rpos] = (length <= maxLength);
+                    }
+                }
+
+                if (chain.newRef[rpos])
+                {
+                    chain.newRefCount = 1;
+
+                    // Do not consider chaining if already reached end of word
+                    const auto nextOffset = rpos + length;
+                    if (static(nextOffset < Width))
+                    {
+                        // This chain does not yet span the entire word. Combine it with the next chain so that it does.
+                        auto nextChain = bestChains[nextOffset];
+                        chain.totalLength += nextChain.totalLength;
+                        chain.newRefCount += nextChain.newRefCount;
+                        sim_assert(rpos + chain.totalLength >= Width);
+                        auto mask = mask_greater_equal<Width, index_t<Width>>(nextOffset);
+                        static for(const auto i : Width)
+                        {
+                            // Check that no new references started before offset, and also that no new
+                            // references exists after the end of the next chain
+                            if (static(i < rpos) || mask[i])
+                                sim_assert(!chain.newRef[i]);
+                            if (static(i >= rpos + MinChainLength))
+                            {
+                                if (mask[i])
+                                    chain.newRef[i] = nextChain.newRef[i];
+                            }
+                        }
+                    }
+                }
+
+                chains[lengthMinusOne] = chain;
+            }
+        }
+
+        // For the set of all reference lengths, find the best one according to
+        // default_choose_match_callback_linear_best()
+        auto best = reduce(default_choose_match_callback_linear_best<referenceChain>, chains);
+        sim_assert(best.totalLength != 0);
+        sim_assert(best.newRefCount != 0);
+        sim_assert(best.newRef[rpos]);
+        bestChains[rpos] = best;
+    }
+
+    // Precompute other state ahead of entering the atomic block
+    using token_t = token<WindowSize, MaxLength>;
+    index_t<MaxLength>[Width] nextMasks;
+    optional<token_t>[Width] nextTokens;
+    count_t<2>[Width] nextBlackout;
+    index_t<Width>[Width][3] shortenLastMaskTo;
+    using offset_t = count_t<WindowSize>;
+    static for(const auto pos : Width)
+    {
+        // Precompute the number of future bytes that will get masked as a result
+        // of the last reference stretching into the following word(s)
+        auto totalLength = bestChains[pos].totalLength;
+        auto nextMask = pos + totalLength - Width;
+        sim_assert(nextMask >= 0 && nextMask <= MaxLength);
+        nextMasks[pos] = nextMask;
+
+        // Find the last newRefCount in order to determine which token will get
+        // held back; also precompute any bytes that must be blacked out from
+        // being shorten-able since that would result in an illegal length-2
+        // reference
+        // (since it is the first one that stretches to totalLength)
+        auto h1 = highest_one(bestChains[pos].newRef);
+        sim_assert(h1.is_valid);
+        auto candidates = input.candidates[h1.value];
+        auto lastRefLength = pos + totalLength - h1.value;
+        sim_assert(lastRefLength <= MaxLength);
+        optional<offset_t>[DictAssociativity] offsets;
+        static for(const auto assoc : DictAssociativity)
+        {
+            offsets[assoc].is_valid = (candidates[assoc].value.length >= lastRefLength);
+            offsets[assoc].value = candidates[assoc].value.offset;
+        }
+        auto fv = first_valid<offset_t>(offsets);
+        optional<token_t> tok;
+        count_t<2> blackout;
+        tok.is_valid = true;
+        if (lastRefLength == 1)
+        {
+            tok.is_valid &&= (h1.value < input.size);
+            tok.value.kind = input_kind::data;
+            tok.value.payload.data = input.literals[h1.value];
+            blackout = 0;
+        }
+        else
+        {
+            sim_assert(lastRefLength >= 3);
+            sim_assert(fv.is_valid);
+
+            tok.value.kind = input_kind::reference;
+            tok.value.payload.reference = { fv.value, lastRefLength };
+
+            // Blackout the first xor second byte of the next word from being shorten-able because
+            // that would result in a length-2 reference
+            blackout = (h1.value == Width - 1) ? 2 :
+                       (h1.value == Width - 2) ? 1 :
+                       /* (h1.value < Width - 2) */ 0;
+        }
+
+        nextTokens[pos] = tok;
+        nextBlackout[pos] = blackout;
+
+        // Since the last token from a previous match has been held back, pre-compute the ability to
+        // shorten this last token in order to find a better match
+        if (pos == 0)
+        {
+            shortenLastMaskTo[pos][0] = pos;
+        }
+        else
+        {
+            struct referenceChainWithPos
+            {
+                index_t<Width> pos;
+                count_t<MaxTotalLength> totalLength;
+                count_t<Width> newRefCount;
+            };
+            referenceChainWithPos[Width] chains;
+
+            if (pos > 1)
+            {
+                if (pos > 2)
+                {
+                    // Find the best chain to use from positions [2,pos]
+                    static for(const auto shortenBy : Width)
+                    {
+                        if (static(shortenBy <= pos - 2))
+                        {
+                            referenceChainWithPos chain;
+                            const auto shortenTo = pos - shortenBy;
+                            chain.pos = shortenTo;
+                            sim_assert(bestChains[shortenTo].totalLength > shortenBy);
+                            chain.totalLength = bestChains[shortenTo].totalLength - shortenBy;  // Account for the fact we're
+                                                                                                // potentially shortening a
+                                                                                                // previous token to use this
+                                                                                                // chain
+                            chain.newRefCount = bestChains[shortenTo].newRefCount;
+
+                            // Ascending shortenBy order since default_choose_match_callback_linear_best() prefers LHS
+                            // over RHS when tied so put smaller values first
+                            chains[shortenBy] = chain;
+                        }
+                    }
+                    chains[0] = reduce(default_choose_match_callback_linear_best<referenceChainWithPos>, chains);
+                    sim_assert(chains[0].pos >= 2 && chains[0].pos <= pos);
+
+                    // When the second byte is blacked out (to prevent a length-2 reference), this does
+                    // not also mean the first byte is; consider the range {0, [2,pos]} here
+                    chains[1].pos = 0;
+                    chains[1].totalLength = bestChains[0].totalLength - pos;
+                    chains[1].newRefCount = bestChains[0].newRefCount;
+
+                    auto bestIncludingPos0 = default_choose_match_callback_linear_best<referenceChainWithPos>(chains[0], chains[1]);
+                    shortenLastMaskTo[pos][2] = bestIncludingPos0.pos;
+                }
+                else
+                {
+                    sim_assert(pos == 2);
+
+                    chains[0].pos = 2;
+                    chains[0].totalLength = bestChains[2].totalLength - (pos - 2);
+                    chains[0].newRefCount = bestChains[2].newRefCount;
+                    shortenLastMaskTo[pos][2] = 2;
+                }
+
+                chains[1].pos = 1;
+                chains[1].totalLength = bestChains[1].totalLength - (pos - 1);
+                chains[1].newRefCount = bestChains[1].newRefCount;
+
+                // Find the best chain to use from positions [1,pos]
+                chains[0] = default_choose_match_callback_linear_best<referenceChainWithPos>(chains[0], chains[1]);
+                sim_assert(chains[0].pos >= 1 && chains[0].pos <= pos);
+                shortenLastMaskTo[pos][1] = chains[0].pos;
+            }
+            else
+            {
+                sim_assert(pos == 1);
+
+                chains[0].pos = 1;
+                chains[0].totalLength = bestChains[1].totalLength - (pos - 1);
+                chains[0].newRefCount = bestChains[1].newRefCount;
+                shortenLastMaskTo[pos][1] = 1;
+            }
+
+            chains[1].pos = 0;
+            chains[1].totalLength = bestChains[0].totalLength - pos;
+            chains[1].newRefCount = bestChains[0].newRefCount;
+
+            // Find the best chain to use from positions [0,pos]
+            chains[0] = default_choose_match_callback_linear_best<referenceChainWithPos>(chains[0], chains[1]);
+            sim_assert(chains[0].pos <= pos);
+            shortenLastMaskTo[pos][0] = chains[0].pos;
+        }
+    }
+
+    optional<index_t<Width>> snappedLastMask;
+    optional<token_t> snappedLastToken;
+    auto last = (input.size == 0);
+    bool snappedLastMaskValid;
+    atomic
+    {
+        static index_t<MaxLength> _lastMask = 0;
+        static count_t<2> _lastBlackout = 0;
+        static optional<token_t> _lastToken = {};
+        static uint8 _lastLiteral = {};
+
+        snappedLastToken = _lastToken;
+        snappedLastMask.is_valid = (_lastMask < Width);
+        // Shorten previously-held-back token length by the allowable amount (accounting for
+        // possible blackout of the first xor second byte)
+        snappedLastMask.value = shortenLastMaskTo[_lastMask][_lastBlackout];
+
+        if (!_lastToken.is_valid || _lastToken.value.kind != input_kind::reference)
+            sim_assert(snappedLastMask.value == _lastMask);
+        else
+            sim_assert(snappedLastMask.value <= _lastMask);
+
+        if (last)
+        {
+            _lastMask = 0; // Reset to zero for next time round
+            _lastToken.is_valid = false;
+            _lastBlackout = 0;
+        }
+        else if (!snappedLastMask.is_valid)
+        {
+            _lastMask -= Width; // A reference from a prior word has masked out this entire word
+            _lastBlackout = 0;
+        }
+        else
+        {
+            // Shorten held-back token length by appropriate value
+            count_t<Width> shortenBy = (_lastMask - snappedLastMask.value);
+            snappedLastToken.value.payload.reference.length -= shortenBy;
+
+            if (snappedLastToken.value.kind == input_kind::reference)
+            {
+                // If it drops this token length to 1, convert it to a literal
+                if (snappedLastToken.value.payload.reference.length == 1)
+                {
+                    sim_assert(snappedLastMask.value == 0);
+                    snappedLastToken.value.kind = input_kind::data;
+                    snappedLastToken.value.payload.data = _lastLiteral;
+                }
+                else
+                    sim_assert(snappedLastToken.value.payload.reference.length >= 3);
+            }
+
+            _lastMask = nextMasks[snappedLastMask.value];
+            _lastBlackout = nextBlackout[snappedLastMask.value];
+            _lastToken = nextTokens[snappedLastMask.value];
+        }
+
+        _lastLiteral = input.literals[Width-1];
+    }
+
+    optional<token_t>[Width] result;
+
+    // Restore the previously held back token
+    result[0].is_valid = (snappedLastMask.is_valid && snappedLastToken.is_valid);
+    result[0].value = snappedLastToken.value;
+
+    auto bestChain = bestChains[snappedLastMask.value];
+
+    // Re-discover match lengths by counting how many times each reference appears in the prefix sum
+    auto newRefPrefixSum = prefix_sum<count_t<Width>>(cast<uint1[Width]>(bestChain.newRef));
+    count_t<Width>[Width] newRefLengths;
+    static for(const auto iref : Width)
+    {
+        bool[Width] refMatches;
+        const auto irefPlusOne = iref + 1;
+        static for(const auto pos : Width)
+        {
+            refMatches[pos] = (newRefPrefixSum[pos] == irefPlusOne);
+        }
+        newRefLengths[irefPlusOne % Width] = pop_count<bool[Width]>(refMatches);
+    }
+
+    // Now populate all but the last token
+    // (consider only up to but not including the last position, because any such last token there
+    // would be held back anyway)
+    auto mask = mask_less_than<Width>(input.size);
+    static for(const auto pos : Width - 1)
+    {
+        optional<token_t> tok;
+        // Valid reference only if not masked out by a previous word or by other references
+        // in this same word
+        tok.is_valid = (snappedLastMask.is_valid && bestChain.newRef[pos]);
+
+        // Ignore the last reference (since it is being held back)
+        tok.is_valid &&= (newRefPrefixSum[pos] != newRefPrefixSum[Width-1]);
+
+        auto iref = newRefPrefixSum[pos] % Width;
+        auto length = newRefLengths[iref];
+        if (tok.is_valid)
+            sim_assert(length != 0);
+
+        // Find the first candidate of at least this requested length
+        // (prefer lower-index candidates since they have a smaller offset)
+        optional<offset_t>[DictAssociativity] offsets;
+        static for(const auto assoc : DictAssociativity)
+        {
+            auto candidate = input.candidates[pos][assoc];
+            offsets[assoc].is_valid = (candidate.value.length >= length);
+            offsets[assoc].value = candidate.value.offset;
+        }
+        auto fv = first_valid<offset_t>(offsets);
+        auto newRefOffset = fv.value;
+        if (tok.is_valid && length != 1)
+            sim_assert(fv.is_valid);
+
+        if (length == 1)
+        {
+            tok.is_valid &&= mask[pos];
+            tok.value.kind = input_kind::data;
+            tok.value.payload.data = input.literals[pos];
+        }
+        else
+        {
+            tok.value.kind = input_kind::reference;
+            tok.value.payload.reference = {newRefOffset, length};
+        }
+
+        result[pos + 1] = tok;
+    }
+
+    return result;
+}

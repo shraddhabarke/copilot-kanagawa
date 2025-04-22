@@ -1,0 +1,61 @@
+inline float32 rcp(float32 x)
+{
+    auto binary32 = cast<float32PackedFormat>(x);
+    uint32 value = cast<uint32>(x);
+
+    if (binary32.exponent == 0)
+    {
+        value = (binary32.sign == 0)
+            ? float32_constants::POS_INFINITY
+            : float32_constants::NEG_INFINITY;
+    }
+    else if (value == float32_constants::POS_INFINITY)
+    {
+        value = float32_constants::POS_ZERO;
+    }
+    else if (value == float32_constants::NEG_INFINITY)
+    {
+        value = float32_constants::NEG_ZERO;
+    }
+    else if (binary32.exponent != 0xFF)
+    {
+        const auto significand = (1 << 23) | binary32.mantissa;
+
+        // approximate
+        const auto approxFbitCount = 8;
+        const uint<1 + approxFbitCount> approxValue = fixed_internal::rcp_lookup<23, approxFbitCount>(significand);
+
+        // 1st refinement
+        const auto refinedFbitCount_0 = 16;
+        const uint<1 + refinedFbitCount_0> refinedValue_0 =
+            fixed_internal::rcp_refine<23, approxFbitCount, refinedFbitCount_0>(significand, approxValue);
+
+        // 2nd refinement
+        const auto refinedFbitCount_1 = 25;
+        uint<1 + refinedFbitCount_1> refinedValue_1 =
+            fixed_internal::rcp_refine<23, refinedFbitCount_0, refinedFbitCount_1>(significand, refinedValue_0);
+
+        // Adjust the significand from ~(0.5, 1.0] to [1.0, 2.0).
+        bool is_one = (refinedValue_1 >> refinedFbitCount_1) == 1;
+        refinedValue_1 = is_one ? (refinedValue_1 >> 1) : refinedValue_1;
+        binary32.exponent = 254 - binary32.exponent;
+        binary32.exponent = cast<decltype(binary32.exponent)>(binary32.exponent - (is_one ? 0 : 1));
+
+        // round to 23 fraction bits
+        refinedValue_1 = (refinedValue_1 + (refinedValue_1 & 1)) >> 1;
+
+        if (binary32.exponent == 0 || binary32.exponent == 0xFF)
+        {
+            binary32.exponent = 0;
+            binary32.mantissa = 0;
+        }
+        else
+        {
+            binary32.mantissa = cast<decltype(binary32.mantissa)>(refinedValue_1);
+        }
+
+        value = cast<uint32>(binary32);
+    }
+
+    return cast<float32>(value);
+}

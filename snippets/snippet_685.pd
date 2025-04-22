@@ -1,0 +1,4 @@
+inline word_t read_aligned(addr_t addr)
+    {
+        return cast<word_t>(mem.read_aligned(addr));
+    }

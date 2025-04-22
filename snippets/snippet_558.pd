@@ -1,0 +1,7 @@
+inline void set_mode(compressor_mode mode)
+{
+    if (EnableTraining)
+        _mode = mode;
+    else
+        sim_assert(mode == compressor_mode::DEFLATE);
+}

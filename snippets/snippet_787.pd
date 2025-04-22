@@ -1,0 +1,8 @@
+uint32 numIter;
+pipelined_for(numIter, [](uint32 outer_tid) {
+    pipelined_for(4, [](uint32 inner_tid)
+    {
+        uint32 j = inner_tid + 4;
+        println(j);
+    });
+});

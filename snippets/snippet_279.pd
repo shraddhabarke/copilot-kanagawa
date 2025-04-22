@@ -1,0 +1,27 @@
+inline pair<T, T> atomically
+        ( addr_t addr //< Address of the element to read.
+        , (T)->T modify  //< Function that accepts the value of the element read from the memory
+                         //  and returns a value to write into the memory at the same address.
+        )
+    {
+        auto decomposed_addr = decompose_address(addr);
+
+        pair<T, T> result;
+
+        static for (const auto i : Banks)
+        {
+            if (i == decomposed_addr.first)
+            {
+                [[schedule(BankUpdateRate)]]
+                {
+                    result.first = _memories[i][decomposed_addr.second];
+
+                    result.second = modify(result.first);
+
+                    _memories[i][decomposed_addr.second] = result.second;
+                }
+            }
+        }
+
+        return result;
+    }

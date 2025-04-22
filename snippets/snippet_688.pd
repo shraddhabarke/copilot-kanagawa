@@ -1,0 +1,5 @@
+template <auto N = 1>
+    inline void write(addr_t addr, word_t value, byte_count_t size)
+    {
+        mem.write<N>(addr, cast<uint8[BytesPerWord]>(value), size);
+    }

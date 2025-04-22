@@ -1,0 +1,5 @@
+template <auto N>
+inline bool and(vector<bool, N> v)
+{
+    return empty(v) ? true : reduce([](bool x, bool y){ return x && y; }, v);
+}

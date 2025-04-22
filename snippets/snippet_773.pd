@@ -1,0 +1,27 @@
+template<typename T, auto Count>
+class fold_helper
+{
+private:
+    memory<T, Count> _input_data;
+    using element_index_t = index_t<Count>;
+public:
+ void write_input(element_index_t index, T data)
+ {
+     _input_data[index] = data;
+}
+inline T fold((T, T)->T operator_fn) { return pipelined_last(){ bool is_first = (index == 0);
+
+            T val = _input_data[index];
+
+            T new_result;
+
+            atomic
+            {
+                static T _curr_result;
+
+                new_result = is_first ? val : operator_fn(val, _curr_result);
+
+                _curr_result = new_result;
+            }
+
+            return new_result; }

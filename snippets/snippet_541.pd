@@ -1,0 +1,5 @@
+bool check_hash(text_t expected_hash)
+    {
+        auto generated_hash = read_hash();
+        return (generated_hash == expected_hash);
+    }

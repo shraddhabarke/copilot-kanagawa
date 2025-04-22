@@ -1,0 +1,22 @@
+template<AES_GCM_CryptoMode Mode>
+class AES_GCM_Functional
+{
+private:
+    AES_ECB _aes_ecb;
+    iv_t _iv;
+    counter_t _counter;
+    text_t _stored_hash;
+    text_t _hash_key; // H = E_k(0)
+    text_t _encrypted_iv0; // E_k(iv_0)
+    uint32 _aad_length; // bytes
+    uint32 _crypto_length; // bytes
+    // Concatenate counter and user supplied initialization vector to create
+    // initialization vector for encryption. Increment the counter for the next
+    // plaintext
+    inline text_t _get_and_increment_iv()
+    {
+        counter_t snapped_counter;
+        atomic {
+            snapped_counter = _counter;
+            _counter++; }
+        return concat(_iv, snapped_counter); }

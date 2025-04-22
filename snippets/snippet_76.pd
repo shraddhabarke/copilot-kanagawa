@@ -1,0 +1,4 @@
+template <typename T> inline bitcount_t<T> pop_count(T value) { // Reduction tree to improve area of synthesized structure
+ const auto Width = bitsizeof(T); bitcount_t<T>[Width] cts;  uint1[Width] value_as_bits = cast<uint1[Width]>(value);  // Populate cts array from initial bit vector
+ static for (const auto i : Width) { cts[i] = value_as_bits[i]; }
+ return sum<bitcount_t<T>>(cts);}

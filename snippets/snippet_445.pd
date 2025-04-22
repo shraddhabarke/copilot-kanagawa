@@ -1,0 +1,16 @@
+inline read_word_t read_aligned(addr_t addr)
+    {
+        sim_assert((addr & (WordSize - 1)) == 0);
+
+        T[NumHorizontalBanks][NumVerticalBanks][BankWordSize] value;
+
+        static for(const auto h : NumHorizontalBanks)
+        {
+            static for(const auto v : NumVerticalBanks)
+            {
+                value[h][v] = mem[h][v][addr / NumVerticalBanks];
+            }
+        }
+
+        return reinterpret_cast<read_word_t>(value[addr / WordSize]);
+    }

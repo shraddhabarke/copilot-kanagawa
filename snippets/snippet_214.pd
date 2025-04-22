@@ -1,0 +1,4 @@
+inline bool empty()
+    {
+        return _lateCounter.count() == 0;
+    }

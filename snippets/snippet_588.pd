@@ -1,0 +1,77 @@
+schedule_t _create_schedule()
+{
+    packet_reorderer_metadata_entry_t[NUM_INPUTS] entries = ReadMetadataFn();
+    uint32[NUM_INPUTS] flits_left;
+    static for (const auto i : NUM_INPUTS)
+    {
+        sim_assert(entries[i].flits_written >= _flits_read[i]);
+        flits_left[i] = entries[i].flits_written - _flits_read[i];
+    }
+
+    map_result_t[SCHEDULE_WIDTH] search_results;
+    static for (const auto schedule_i : SCHEDULE_WIDTH)
+    {
+        map_input_t[NUM_INPUTS] map_input;
+        static for (const auto i : NUM_INPUTS)
+        {
+            map_input[i].input_index = i;
+            map_input[i].curr_packet = _curr_packet;
+            map_input[i].schedule_i = schedule_i;
+            map_input[i].packet_number = entries[i].packet_number;
+            map_input[i].write_done = entries[i].write_done;
+            map_input[i].valid = entries[i].valid;
+        }
+        search_results[schedule_i] = map_reduce(map_fn, reduce_fn, map_input);
+    }
+
+    schedule_t schedule;
+    static for (const auto i : SCHEDULE_WIDTH)
+    {
+        input_index_t input_index = search_results[i].input_index;
+        schedule[i].input_index = input_index;
+        schedule[i].num_flits = flits_left[input_index];
+        schedule[i].valid = search_results[i].found;
+    }
+
+    done_t[SCHEDULE_WIDTH] done_input;
+    static for (const auto i : SCHEDULE_WIDTH)
+    {
+        done_input[i].full = schedule[i].valid && search_results[i].done;
+        done_input[i].count = done_input[i].full ? 1 : 0;
+    }
+
+    done_t done_entries = reduce(done_reduce_fn, done_input);
+
+    static for (const auto i : SCHEDULE_WIDTH)
+    {
+        if (i < done_entries.count)
+        {
+            schedule[i].valid = true;
+        }
+        else if (i > done_entries.count)
+        {
+            schedule[i].valid = false;
+        }
+    }
+
+    bool[NUM_INPUTS] inc_read_addr_valids;
+    static for (const auto i : NUM_INPUTS)
+    {
+        inc_read_addr_valids[i] = false;
+        if (entries[i].valid)
+        {
+            if (cast<uint32>(entries[i].packet_number - _curr_packet) < done_entries.count)
+            {
+                _flits_read[i] = 0;
+                inc_read_addr_valids[i] = true;
+            }
+            else if (entries[i].packet_number - _curr_packet == done_entries.count && done_entries.count < SCHEDULE_WIDTH && schedule[done_entries.count].valid)
+            {
+                _flits_read[i] += flits_left[i];
+            }
+        }
+    }
+    IncReadAddrFn(inc_read_addr_valids);
+    _curr_packet += done_entries.count;
+    return schedule;
+}

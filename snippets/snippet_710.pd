@@ -1,0 +1,15 @@
+inline void hw_assert
+( bool shouldBeTrue        //< A boolean expression which should always evaluate
+                           // to true otherwise the assertion fires.
+, const string description //< String associated with the inspectable.)
+{
+static bool assertionHit = false;
+inspectable(assertionHit, description);
+
+    if (!shouldBeTrue)
+    {
+        println("Assertion failure: ", description);
+
+        assertionHit = true;
+    } 
+}

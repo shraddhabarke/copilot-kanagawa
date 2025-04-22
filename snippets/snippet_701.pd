@@ -1,0 +1,12 @@
+inline uint512 Read
+( uint64 addr             //< Byte address of the DRAM word to read.
+                          // This address must be 64B aligned (lower 6 bits zero).
+, transaction_size_t size //< Size of the read, in bytes.
+, bool is_last            //< Set to true on the last read of the transaction, false otherwise.
+                          // This parameter guarantees that data read from two different DRAM
+                          // transactions are not inadvertently interleaved.
+) { AssertAlignment(addr, size);
+        AssertIsLast(size, is_last);
+
+        return _dram.read(addr, size, is_last);
+    }

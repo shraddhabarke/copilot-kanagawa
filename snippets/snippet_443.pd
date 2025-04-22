@@ -1,0 +1,9 @@
+inline void write_aligned(addr_t addr, word_t value)
+    {
+        sim_assert((addr & (WordSize - 1)) == 0);
+
+        static for(const auto i : WordSize)
+        {
+            mem[i][addr / WordSize] = value[i];
+        }
+    }

@@ -1,0 +1,5 @@
+template <typename FunctionType, FunctionType fn, typename Capture>
+inline Closure<FunctionType, fn, Capture> make_closure(Capture capture)
+{
+    return {capture};
+}

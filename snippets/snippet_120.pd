@@ -1,0 +1,1 @@
+template <typename T, auto N> inline auto zip_with_indices((index_t<N>, T) -> auto f, T[N] x) { return zip_with(f, template indices<N>(), x); }

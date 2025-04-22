@@ -1,0 +1,5 @@
+template<Denorm denorm_mode>
+inline bfloat16 floor(bfloat16 x)
+{
+    return floor_internal<bfloat16, _mantissa_width, _exponent_width, _exponent_bias, denorm_mode>(x);
+}

@@ -1,0 +1,23 @@
+iv_counter_t _get_and_increment_iv(bool initialize, iv_t new_iv)
+    {
+        iv_counter_t result;
+
+        atomic
+        {
+            static iv_t iv;
+            if (initialize)
+            {
+                iv = new_iv;
+            }
+            result.iv = iv;
+        }
+
+        atomic
+        {
+            static counter_t counter;
+            counter = initialize ? 1 : counter + 1;
+            result.counter = counter;
+        }
+
+        return result;
+    }

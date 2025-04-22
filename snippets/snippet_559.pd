@@ -1,0 +1,4 @@
+inline void set_max_stall_count(count_t<MaxStallCount == 0 ? 1 : MaxStallCount> maxStallCount)
+{
+    _lzcomp.set_max_stall_count(maxStallCount);
+}

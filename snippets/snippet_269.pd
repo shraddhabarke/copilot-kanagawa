@@ -1,0 +1,9 @@
+inline void wait(()->bool fn)
+{
+    const auto wrapper = [fn]() -> optional<uint1>
+    {
+        return make_optional<uint1>(fn(), 0);
+    };
+
+    wait_result<uint1>(wrapper);
+}

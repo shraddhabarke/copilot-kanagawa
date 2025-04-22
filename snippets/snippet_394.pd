@@ -1,0 +1,8 @@
+inline optional<bid64_t> dim_exactly(bid64_t x, bid64_t y)
+{
+    return dim_exactly_internal<_width, _max_integer,
+                                decimal64_constants::POS_ZERO,
+                                decimal64_constants::DEFAULT_NAN,
+                                decimal64_constants::POS_INFINITY,
+                                decimal64_constants::NEG_INFINITY>(x, y);
+}

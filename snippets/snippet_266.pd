@@ -1,0 +1,18 @@
+template
+    < auto StateCount               //< Total number of possible states.
+    , typename SpeculativeUpdate    //< The output type of `fn`.
+    >
+inline auto speculate_updates
+    ( (index_t<StateCount>) -> SpeculativeUpdate fn  //< Function which is called `StateCount` times with values equal to either:
+                                                     // `0, 1, 2, ..., StateCount-1`
+                                                     // or
+                                                     // `override.value, override.value, ..., override.value`
+    , optional<index_t<StateCount>> override         //< If valid, then all returned results are equal to `fn(override.value)`.
+                                                     // Useful for cases where downstream code should behave as if it ignores the "current" state.
+    )
+{
+    return map_indices([override, fn](index_t<StateCount> i)
+        {
+            return fn(from_optional(i, override));
+        });
+}

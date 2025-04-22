@@ -1,0 +1,10 @@
+uint512 ReadUnified64(uint64 addr){
+    DecomposedAddress decomposedAddr = cast<DecomposedAddress>(addr);
+    uint512 result;
+    static for(const auto i : NUM_DRAM_CHANNELS) {
+        if (i == decomposedAddr._channelIndex)
+        {
+            result = DramChannels[i].Read(decomposedAddr._addressWithinChannel * 64, 64, true);
+        }
+    }
+    return result;}

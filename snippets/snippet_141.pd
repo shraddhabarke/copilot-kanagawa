@@ -1,0 +1,1 @@
+inline auto compose((auto) -> auto f, (auto) -> auto g) { return [f, g](auto x) { return f(g(x)); }; }

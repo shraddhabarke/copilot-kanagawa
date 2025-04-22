@@ -1,0 +1,15 @@
+inline float32 dim(float32 x, float32 y)
+{
+    float32 result;
+
+    if (isnan(x) || isnan(y))
+    {
+        result = cast<float32>(cast<uint32>(float32_constants::DEFAULT_NAN));
+    }
+    else
+    {
+        result = gt<denorm_mode>(x, y) ? sub<denorm_mode>(x, y) : 0.0;
+    }
+
+    return result;
+}

@@ -1,0 +1,1 @@
+inline auto uncurry((auto) -> auto f) { return [f](auto x, auto y) { auto g = f(x); return g(y); }; }

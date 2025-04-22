@@ -1,0 +1,40 @@
+template<auto MaxCount>
+    inline vec::vector<bool, MaxCount> read_bits
+        ( vec::vector<bit_addr_t, MaxCount> addresses //< Addresses of bits to read.
+        )
+    {
+        // Broadcast addresses to all banks
+        auto results = parallel_map<Banks>(Banks, [addresses](index_t<Banks> bank_index) -> optional<bool>[MaxCount]
+        {
+            // Determine which addresses map to this bank
+            bool[MaxCount] valid = map_indices<MaxCount>([bank_index, addresses](index_t<MaxCount> i)
+            {
+                return (i < addresses.size) && (is_bit_in_bank(addresses.data[i], bank_index));
+            });
+
+            // Map all addresses to the bank
+            bank_t::bit_addr_t[MaxCount] addresses_in_bank = map(to_bank_bit_addr, addresses.data);
+
+            return _banks[bank_index].read_bits(valid, addresses_in_bank);
+        });
+
+        vec::vector<bool, MaxCount> result;
+
+        result.size = addresses.size;
+
+        optional<bool>[MaxCount][Banks] transposed_result = transpose(results);
+
+        result.data = map_indices([transposed_result, result](index_t<MaxCount> i)
+        {
+            optional<bool>[Banks] src_row = transposed_result[i];
+
+            optional<bool> selected_bank = first_valid(src_row);
+
+            // if (i < result.size), then exactly one element in src_row will be valid
+            sim_assert(selected_bank.is_valid || (i >= result.size));
+
+            return selected_bank.value;
+        });
+
+        return result;
+    }

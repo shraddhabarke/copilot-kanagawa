@@ -1,0 +1,24 @@
+template
+< typename Key       //< The type of key for looking up a value in the cache.
+, typename LUtime    //< The type to use for storing the time a cache entry was
+// most recently used. Using a wider type makes LRU eviction
+// more accurate for a set associative cache, but for a direct
+// cache where LRU does not apply, using `uint1` saves space.
+, auto Associativity //< The number of entries to store for a given hash value,
+// keeping the most recently used values. Pass 1 to create
+// a directly mapped cache.
+, auto Depth         //< The total number of entries to cache. Must be a multiple
+// of `Associativity`.
+>
+class cache_tags
+{
+private:
+const auto _setCount = Depth / Associativity;
+const auto _entryIndexBits = (clog2(Associativity) > 0) ? clog2(Associativity) : 1;
+
+public:
+using set_index_t = index_t<_setCount> ;
+using entry_index_t = uint<_entryIndexBits> ;
+
+private:
+memory_norep<cache_tag<Key, LUtime, Associativity>, _setCount> m_tags;

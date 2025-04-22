@@ -1,0 +1,7 @@
+void initialize()
+{
+// If this assert fires, Depth is not a multiple of Associativity.
+sim_assert(Depth == _setCount * Associativity);
+
+InitializeCacheTag(_setCount);
+}

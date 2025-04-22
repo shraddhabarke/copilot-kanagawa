@@ -1,0 +1,16 @@
+T dequeue()
+    {
+        // Block the calling thread until an entry is available
+        _readSemaphore.wait();
+
+        // Get the value of the read pointer then increment the read pointer
+        auto consumer_index = first(atomically<pointer_t>(increment));
+
+        // Read the value from the data memory
+        T result = _dataMem[consumer_index];
+
+        // Now that the read has occured, allow another thread to overwrite the data
+        _writeSemaphore.post();
+
+        return result;
+    }

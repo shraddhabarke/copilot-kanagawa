@@ -1,0 +1,4 @@
+inline void async_exec(() -> void task)
+{
+    async_then_void(task, [](){});
+}

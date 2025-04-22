@@ -1,0 +1,1 @@
+inline auto constant(auto x) { using return_t = decltype(x);  return [x](auto y) -> return_t { return x; }; }

@@ -1,0 +1,34 @@
+template< auto N                  
+//< Length of shift register, typename T              
+//< Type of each buffer entry, bool Initialize = true  
+//< true if the state values should be initialized to {}
+>inline pair<T[N], T[N]> serial_in_parallel_out(T data)
+{
+    pair<T[N], T[N]> result;
+
+    atomic
+    {
+        static if (Initialize)
+        {
+            static T[N] reg = {};
+        }
+        else
+        {
+            static T[N] reg;
+        }
+
+        const auto snappedReg = reg;
+
+        static for(const auto i : N)
+        {
+            if (i != N - 1)
+                reg[i] = snappedReg[i+1];
+            else
+                reg[i] = data;
+        }
+
+        result = {snappedReg, reg};
+    }
+
+    return result;
+}

@@ -1,0 +1,26 @@
+T dequeue(fifo_idx_t which, bool pop)
+    {
+        // Block the calling thread until an entry is available
+        _readSemaphore.wait(which, pop);
+
+        // Get the value of the read pointer, and optionally increment the read pointer
+        pointer_t snappedConsumerIndex;
+
+        atomic
+        {
+            snappedConsumerIndex = _consumerIndex[which];
+
+            _consumerIndex[which] = modular::increment_if(snappedConsumerIndex, pop);
+        }
+
+        // Read the value from the data memory
+        T result = _dataMem[Size * which + snappedConsumerIndex];
+
+        // Now that the read has occured, allow another thread to overwrite the data
+        if (pop)
+        {
+            _writeSemaphore.post(which);
+        }
+
+        return result;
+    }

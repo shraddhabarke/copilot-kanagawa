@@ -1,0 +1,1 @@
+template <typename T> inline P::pair<bool, T> optional_to_pair(optional<T> x) { return P::make_pair(x.is_valid, x.value); }

@@ -1,0 +1,65 @@
+inline float32 atan(float32 x)
+{
+    const auto structX = cast<float32PackedFormat>(x);
+    const auto flags = getSpecialCases<Denorm::Off>(structX);
+
+    uint32 binaryResult;
+    if (isnan(x))
+    {
+        binaryResult = float32_constants::DEFAULT_NAN;
+    }
+    else if (flags.zero || structX.exponent <= 115)
+    {
+        binaryResult = cast<uint32>(x);
+    }
+    else if (structX.exponent >= 150)
+    {
+        binaryResult = 0x3FC90FDB | (structX.sign << 31);
+    }
+    else
+    {
+        const uint6 relativeExponent = structX.exponent - 116;
+        const uint23 fraction = structX.mantissa;
+
+        const uint7 index_m11 = ((relativeExponent << 3)        | (fraction >> 20));
+        const uint9 index_m3  = (((relativeExponent - 8) << 5)  | (fraction >> 18)) + 64;
+        const uint9 index_5   = ((relativeExponent << 4)        | (fraction >> 19)) + 64;
+        const uint9 index_9   = (((relativeExponent - 20) << 3) | (fraction >> 20)) + 384;
+        const uint9 index = (relativeExponent < 16) ?
+            ((relativeExponent < 8)  ? index_m11 : index_m3) :
+            ((relativeExponent < 20) ? index_5 : index_9);
+
+        const auto RESIDUAL_FBIT = 20;
+        const uint<RESIDUAL_FBIT> residual = (relativeExponent < 16) ?
+            ((relativeExponent < 8)  ? fraction        : (fraction << 2)) :
+            ((relativeExponent < 20) ? (fraction << 1) : fraction);
+
+        const auto row = atan_table[index];
+
+        const auto c0 = row.c0;
+        const auto c1 = row.c1;
+        const auto c2 = row.c2;
+        const auto c3 = row.c3;
+        const auto exponentBase = row.exponent;
+
+        const auto product_3 = (residual * c3) >> (RESIDUAL_FBIT + ATAN_C3_FBIT - ATAN_C2_FBIT);
+        const auto product_2 = (residual * (c2 + product_3)) >> (RESIDUAL_FBIT + ATAN_C2_FBIT - ATAN_C1_FBIT);
+        const auto product_1 = (residual * (c1 + product_2)) >> (RESIDUAL_FBIT + ATAN_C1_FBIT - ATAN_C0_FBIT);
+        const uint26 mantissa26 = (c0 + product_1) >> (ATAN_C0_FBIT - 26);      // [0.25, 1) with 26 fraction bits
+
+        const uint25 mantissa24 = mux(cast<uint1>(mantissa26 >> 25), mantissa26, mantissa26 >> 1);
+        const auto   mantExpo24 = mux(cast<uint1>(mantissa26 >> 25), -1, 0);    // the initial -1 has been counted in exponentBase
+
+        const uint25 mantissa23 = (mantissa24 >> 1) + (mantissa24 & 1);
+        const auto   mantExpo23 = mantExpo24;
+
+        const uint24 mantissa = mux(cast<uint1>(mantissa23 >> 24), mantissa23, mantissa23 >> 1);
+        const auto   mantExpo = mantExpo23 + mux(cast<uint1>(mantissa23 >> 24), 0, 1);
+
+        const float32PackedFormat structResult = { mantissa, 127 + exponentBase + mantExpo, structX.sign};
+
+        binaryResult = cast<uint32>(structResult);
+    }
+
+    return cast<float32>(binaryResult);
+}

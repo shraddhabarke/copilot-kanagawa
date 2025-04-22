@@ -1,0 +1,22 @@
+void enqueue(array_t values)
+    {
+        // Block until there is room for one more array
+        _write_semaphore.wait();
+
+        // Get the value of the write pointer, and increment the write pointer
+        decomposed_addr producer_index = increment_address(1);
+
+        // Store the values into the memories
+        static for (const auto i : ArraySize)
+        {
+            index_t<ArraySize> select = i - producer_index.index_within_square;
+
+            _data_memories[i][producer_index.square_base + select] = values[select];
+        }
+
+        if (producer_index.index_within_square == (ArraySize - 1))
+        {
+            // Allow an entire square to be dequeued
+            _read_semaphore.post_multiple(ArraySize);
+        }
+    }

@@ -1,0 +1,18 @@
+pipelined_for(8, [](uint3 index) {
+    uint5 input_value = (index + 13) * 7;
+    // Pass input value to a helper object
+    // begin_strip
+    _smallest_uint5_out_of_8.write_input(index, input_value);
+    // end_strip
+});
+run_scalar_test<uint5>([]() {
+    uint5 result = 0;
+    // Call helper object to compute minimum of all input values
+    // begin_strip
+    const auto min = [](uint5 a, uint5 b) -> uint5 {
+        return a < b ? a : b;
+    };
+    result = _smallest_uint5_out_of_8.fold(min); 
+    // end_strip
+    return result;}, 
+2, "smallest_uint5_out_of_8");

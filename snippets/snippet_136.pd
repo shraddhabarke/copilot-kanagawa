@@ -1,0 +1,1 @@
+template <typename T, auto N> inline T at(T[N] x, index_t<N> i) { sim_assert(i < N); return x[i]; }

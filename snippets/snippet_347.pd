@@ -1,0 +1,5 @@
+template<auto I, auto F>
+inline fixed<I, F> min(fixed<I, F> x, fixed<I, F> y)
+{
+    return y.value < x.value ? y : x;
+}

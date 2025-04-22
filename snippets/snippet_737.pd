@@ -1,0 +1,41 @@
+inline void compute_one_mt_entry(MT_t i)
+{
+// Effectively this code is doing:
+// uint<w> x = (MT[i] & upper_mask) + (MT[(i + 1) % n] & lower_mask);
+// However n is not always a power of 2, so the % operator doesn't work here.
+// We know i + 1 is never more than n, so we don't need to call divide_unsigned.
+MT_t next_element_index = checked_cast<MT_t>(i + 1);
+uint1 next_element_set_index;
+if (next_element_index == n)
+{
+next_element_set_index = next_mt;
+next_element_index = 0;
+}       else {
+next_element_set_index = current_mt;
+    }
+    uint<w> x = (get_MT(0, current_mt, i) & upper_mask) | (get_MT(1, next_element_set_index, next_element_index) & lower_mask);
+    uint<w> xA = x >> 1;
+    if (cast<uint1>(x) != 0)  // lowest bit of x is 1 {
+        xA = xA ^ a;
+    }
+    // Effectively:
+    // MT[i] = MT[(i + m) % n] ^ xA;
+    // m < n and i < n, therefore (i + m) < 2 * n
+    // therefore a general modulo isn't necessary, but we do need to account
+    // for the case where (i + m) > n
+    auto i_plus_m = i + m;
+    MT_t source_index = checked_cast<MT_t>(i_plus_m < n ? i_plus_m : i_plus_m - n);
+    // Low indices, which we set early in the twist operation, are computed entirely
+    // based on values in the current MT.  For higher indices, the value is based on
+    // a value that was "overwritten" earlier in the twist.  Therefore we must decide
+    // here whether to fetch MT[(i + m) % n] from either the current set of MT values
+    // or the "next" set being computed now.
+    uint1 mt_set_index;
+    if (i < (n - m)) {
+        mt_set_index = current_mt;
+    }
+    else {
+        mt_set_index = next_mt;
+    }
+    set_MT(next_mt, i, (get_MT(2, mt_set_index, source_index) ^ xA));
+}

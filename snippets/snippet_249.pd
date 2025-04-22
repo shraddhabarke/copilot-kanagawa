@@ -1,0 +1,5 @@
+template<Denorm denorm_mode>
+inline uint64 trunc(uint64 x)
+{
+    return trunc_internal<uint64, _mantissa_width, _exponent_width, _exponent_bias, denorm_mode>(x);
+}

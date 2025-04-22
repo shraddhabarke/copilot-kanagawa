@@ -1,0 +1,35 @@
+template<auto MaxReaders>
+class rwlock
+{
+private:
+    // member variables and methods here
+    // begin_strip
+    bool _writer_in_flight = false;
+    counter<MaxReaders, 0> _readers_in_flight;
+    inline bool lock_internal(bool is_writer)
+    {
+        bool result = false;
+        if (is_writer)
+        {
+            // Only allow a new writer if there is no in-flight reads or writers
+            result = !_writer_in_flight && (0 == _readers_in_flight.count());
+        }
+        else
+        {
+            // Allow a reader if there is no writer in-flight
+            result = !_writer_in_flight;
+        }
+        if (result)
+        {
+            if (is_writer)
+            {
+                _writer_in_flight = true;
+            }
+            else
+            {
+                _readers_in_flight.add(1);
+            }
+        }
+        return result;
+    }
+    // end_strip

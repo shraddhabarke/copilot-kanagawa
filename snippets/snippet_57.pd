@@ -1,0 +1,13 @@
+uint32 sum_pipelined_for()
+{
+    _result = 0;
+    pipelined_for(Depth, [](element_index_t i)
+    {
+        const uint32 input = _input_data[i];
+        atomic
+        {
+            _result += input;
+        }
+    });
+    return _result;
+}

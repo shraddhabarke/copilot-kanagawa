@@ -1,0 +1,11 @@
+inline void load_twiddle_factors(proc_addr_t processor_id, twiddle_addr_t address, sin_cos_t<NativeDataType> input_data)
+    {
+        static for (const auto i: NumProcs)
+        {
+            if(i == processor_id)
+            {
+                _processor_array[i].write_twiddle_factors(address, input_data);
+            }
+            barrier;
+        }
+    }

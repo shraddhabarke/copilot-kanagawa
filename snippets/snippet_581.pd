@@ -1,0 +1,4 @@
+packet_reorderer_metadata_entry_t read_metadata()
+    {
+        return _metadata_mem[_read_addr];
+    }

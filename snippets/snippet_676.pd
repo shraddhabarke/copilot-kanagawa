@@ -1,0 +1,36 @@
+[[pipelined]] void sort_leaves_pipeline(index_t<NumSymbols + SorterWidth + 2> tid, count_t<NumSymbols> numSymbols, bool universal){
+    if (tid < numSymbols) {
+        auto is_first = (tid == 0);
+        auto is_last = (tid == numSymbols - 1);
+        auto freq = _freqs[tid];
+        auto validTag = _validTag;
+        node_t leaf = {tid, (freq.tag == validTag) ? (freq.value != 0) ? freq.value
+                                                                       : (universal) ? 1 : InvalidLeafFreq
+                                                   : InvalidLeafFreq};
+        auto result = partial_sort<SorterWidth>(leaf,
+                                                [](node_t lhs, node_t rhs) { return lhs.freq < rhs.freq; },
+                                                is_last);
+        static for(const auto i : SorterWidth) {
+            _smallestLeaves[i].is_valid = result[i].is_valid && (result[i].value.freq != InvalidLeafFreq);
+            _smallestLeaves[i].value = result[i].value;
+        }
+        barrier;
+    }
+    else {
+        // After all symbols have been scanned, use the last SorterWidth + 2 threads for enqueue-ing
+        auto localTid = tid - numSymbols;
+        sim_assert(localTid < SorterWidth + 2);
+        // Saturate at the last leaf
+        auto leaf = _smallestLeaves[localTid < SorterWidth ? localTid : SorterWidth - 1];
+        if ((localTid < SorterWidth && leaf.is_valid) ||  // Enqueue leaves as normal
+            (localTid >= SorterWidth && !leaf.is_valid))  // For the last two threads, enqueue the last
+                                                          // leaf only if it is invalid {
+            _sortedLeaves.enqueue(leaf.value);
+            auto invalidTag = ~_validTag;
+            // Remember to invalidate any processed valid leaves so that they don't get picked up again
+            // (also writuing back the divided-in-half frequency for potential retries)
+            if (leaf.is_valid)
+                _freqs[leaf.value.ptr] = { invalidTag, max(1, leaf.value.freq >> 1) };
+        }
+    }
+}

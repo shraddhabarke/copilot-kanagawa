@@ -1,0 +1,25 @@
+inline void insert_header_serialized(
+    uint8[bytes_per_cycle] input_data, 
+    count_t<bytes_per_cycle> valid_count,
+    optional<header> head,
+    bool end_of_packet,
+    (uint8[bytes_per_cycle], count_t<bytes_per_cycle>, bool)->void output_cb)
+{
+    static mutex _mutex;
+    _mutex.lock();
+
+    if (head.is_valid)
+    {
+        output_cb(
+            cast<uint8[4]>(head.value.ip),
+            bytesizeof(head.value.ip),
+            false);
+
+        output_cb(
+            reinterpret_cast<uint8[4]>(head.value.port),
+            bytesizeof(head.value.port),
+            false);
+    }
+    output_cb(input_data, valid_count, end_of_packet);
+    _mutex.unlock();
+}

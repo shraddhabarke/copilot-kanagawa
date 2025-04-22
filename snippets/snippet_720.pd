@@ -1,0 +1,13 @@
+[[pipelined]] void InitializeCacheTag(set_index_t threadId)
+{
+cache_tag<Key, LUtime, Associativity> tag;
+static for (const auto j : Associativity)
+{
+cache_entry<Key, LUtime> entry;
+entry._valid = false;
+entry._unwritten = false;
+entry._lastUsed = 0; // not strictly necessary, but makes for cleaner debug output
+tag._entries[j] = entry;
+} }
+    m_tags[threadId] = tag;
+}

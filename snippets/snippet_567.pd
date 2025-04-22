@@ -1,0 +1,29 @@
+inline void print_hex(auto n)
+{
+    const auto digits = (3 + bitsizeof n) / 4;
+
+    static for(const auto i : digits)
+    {
+        const auto digit = cast<index_t<16>>(n >> (4 * (digits - i - 1)));
+
+        switch (digit)
+        {
+            case 0x0: print("0"); break;
+            case 0x1: print("1"); break;
+            case 0x2: print("2"); break;
+            case 0x3: print("3"); break;
+            case 0x4: print("4"); break;
+            case 0x5: print("5"); break;
+            case 0x6: print("6"); break;
+            case 0x7: print("7"); break;
+            case 0x8: print("8"); break;
+            case 0x9: print("9"); break;
+            case 0xa: print("a"); break;
+            case 0xb: print("b"); break;
+            case 0xc: print("c"); break;
+            case 0xd: print("d"); break;
+            case 0xe: print("e"); break;
+            case 0xf: print("f"); break;
+        }
+    }
+}

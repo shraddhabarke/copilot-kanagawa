@@ -1,0 +1,100 @@
+inline bfloat16 sqrt(bfloat16 val)
+{
+    const bfloat16PackedFormat in = cast<bfloat16PackedFormat>(val);
+
+    const uint13[2] C0_odd  = {5794, 7094};
+    const uint10[2] C1_odd  = {716, 588};
+    const uint6[2]  C2_odd  = {33, 19}; // Negative values accounted for below in quadratic expression
+    const uint13 C0_even = 4099;
+    const uint10 C1_even = 495;
+    const uint6  C2_even = 18; // Negative values accounted for below in quadratic expression
+
+    bool sign = in.sign != 0;
+    bool even_coeff = cast<uint1>(in.exponent) == 1;
+    bool bypass = false;
+
+    uint7 mantissa_bypass;
+    uint8 x = in.mantissa << 1;
+
+    auto flags = getSpecialCases<Denorm::Off>(in);
+
+    uint13 c0;
+    uint10 c1;
+    uint6 c2;
+
+    if (flags.inf || flags.nan || flags.zero || (sign && !flags.zero))
+    {
+        c0 = 0;
+        c1 = 0;
+        c2 = 0;
+        x = 0;
+    }
+    else
+    {
+        if (even_coeff)
+        {
+            c0 = C0_even;
+            c1 = C1_even;
+            c2 = C2_even;
+
+            x &= 0xff;
+        }
+        else
+        {
+            const uint1 index = cast<uint1>(x >> 7);
+
+            c0 = C0_odd[index];
+            c1 = C1_odd[index];
+            c2 = C2_odd[index];
+
+            x &= 0x7f;
+        }
+    }
+
+    bfloat16PackedFormat r_val;
+
+    // Compute _exp on the side and special cases that must be bypassed
+    if (sign && !flags.zero)
+    {
+        // NaN for negative numbers
+        bypass          = true;
+        mantissa_bypass = 0x7f;
+        r_val.exponent  = 0xff;
+    }
+    else if (flags.inf || flags.nan)
+    {
+        // Propagate these through
+        bypass          = true;
+        mantissa_bypass = in.mantissa;
+        r_val.exponent  = in.exponent;
+    }
+    else if (flags.zero)
+    {
+        bypass          = true;
+        mantissa_bypass = 0;
+        r_val.exponent  = 0;
+    }
+    else
+    {
+        if (even_coeff)
+        {
+            r_val.exponent = in.exponent / 2 - 63 + 127;
+        }
+        else
+        {
+            r_val.exponent = in.exponent / 2 - 64 + 127;
+        }
+    }
+
+    // Quadratic approximation
+    uint15 constant_term = c0 << 2;
+    uint14 linear_term = (c1 * x) >> 4;
+    uint10 x_squared = ((x * x) >> 6);
+    uint12 quadratic_term = (c2 * x_squared) >> 4;
+    uint7 mantissa = (constant_term + linear_term - quadratic_term) >> 7;
+
+    r_val.mantissa = bypass ? mantissa_bypass : mantissa;
+    r_val.sign = in.sign;
+
+    return cast<bfloat16>(r_val);
+}

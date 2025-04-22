@@ -1,0 +1,5 @@
+template<auto Width, auto Nan>
+inline uint<Width> max_internal(uint<Width> x, uint<Width> y)
+{
+    return minmax<Width, Nan>(gt_internal<Width>, x, y);
+}

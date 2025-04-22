@@ -1,0 +1,43 @@
+
+template
+        < auto N //< The number of elements to read.
+        >
+    inline T[N] read_vec
+        ( addr_t[N] addresses //< The addresses to read from.
+        )
+    {
+        // Banks parameter explicitly specified to support the case where Banks = 1.
+        // In this case, the number of banks cannoted be deduced from the return type of address_to_bank_index.
+        auto per_bank_request_count = read_requests_per_bank<Banks>(addresses, address_to_bank_index);
+        // Determine the maximum number of reads for any single bank
+        count_t<N> thread_count = maximum(per_bank_request_count);
+        return pipelined_last(thread_count, [addresses](index_t<N> tid) -> T[N]
+        {
+            auto schedule = schedule_read_requests(addresses, address_to_bank_index, tid);
+            T[Banks] per_bank_results;
+            static for (const auto i : Banks)
+            {
+                // Select an address for this bank
+                auto address_index = schedule.first[i];
+                addr_t addr = addresses[address_index.value];
+                auto decomposed_addr = decompose_address(addr);
+                sim_assert(!address_index.is_valid || (decomposed_addr.first == i));
+                // Read from this bank
+                per_bank_results[i] = _memories[i][decomposed_addr.second];
+                // Ensure banks are accessed in unique pipeline stages
+                barrier;
+            }
+            // Broadcast per-bank values to requests
+            auto this_thread_results = map(
+                [per_bank_results](optional<bank_index_t> i)
+                {
+                    return make_optional(i.is_valid, per_bank_results[i.value]);
+                },
+                schedule.second);
+            // Combine requests across threads
+            return second(sync::atomically([this_thread_results](T[N] prev)
+            {
+                return zip_with(from_optional<T>, prev, this_thread_results);
+            }));
+        });
+    

@@ -1,0 +1,15 @@
+inline int_t write(Current current, Decoded decoded, int_t loaded, Results results) {
+    const int_t value = decoded.mul
+       ? MICRO_OP_MUL
+            ? hart[current.hid].micro_op.mul
+            : results.mul
+        : mux(decoded.kind,
+            results.compute,                                   // Compute
+             cast<int_t>((current.next_pc | IMEM_ORIGIN) << 2), // Control
+            loaded,                                            // Memory
+            results.csr);                                      // System
+  if (decoded.format.rd.is_valid) {
+    sim_assert(!decoded.illegal);
+    register_set(current.hid, decoded.format.rd.value, value);
+ }
+  return value; }

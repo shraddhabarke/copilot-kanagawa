@@ -1,0 +1,19 @@
+inline auto fixture()
+{
+    static if (decltype(Fixture::run) == () -> bool)
+    {
+        return []()
+        {
+            static Fixture test;
+            return test.run();
+        };
+    }
+    else
+    {
+        return [](tag_t tag)
+        {
+            static Fixture test;
+            test.run(tag);
+        };
+    }
+}

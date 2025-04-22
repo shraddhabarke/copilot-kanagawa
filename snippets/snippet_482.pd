@@ -1,0 +1,26 @@
+inline bool test_and_decrement(sem_idx_t which, sem_ctr_t val, bool decrement_count)
+    {
+        bool result = false;
+
+        sem_ctr_t[N] counts;
+
+        static for(const auto i : N)
+        {
+            counts[i] = _counter[i].count();
+        }
+
+        result = counts[which] >= val;
+
+        if (result && decrement_count)
+        {
+            static for(const auto i : N)
+            {
+                if (i == which)
+                {
+                    _counter[i].subtract(val);
+                }
+            }
+        }
+
+        return result;
+    }

@@ -1,0 +1,19 @@
+pipelined_for(32, [](uint5 index) {
+    uint12 input_value = index * 7;
+    // Pass input value to a helper object
+    // begin_strip
+    _largest_uint12_out_of_32.write_input(index, input_value);
+    // end_strip
+});
+run_scalar_test<uint12>([]() { 
+     uint12 result = 0;
+     // Call helper object to compute maximum of all input values
+     // begin_strip
+     const auto max = [](uint12 a, uint12 b) -> uint12 {
+         return a > b ? a : b;
+     };
+     result = _largest_uint12_out_of_32.fold(max); 
+     // end_strip
+     return result;
+ }, 
+ 217, "largest_uint12_out_of_32");

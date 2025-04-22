@@ -1,0 +1,23 @@
+counter<MaxThreads, 0> _read_lock_counter;
+    bool _write_locked = false;
+
+    inline bool check_lock(bool is_reader)
+    {
+        bool result = false;
+        auto rlocks_used = _read_lock_counter.count();
+
+        if (is_reader)
+        {
+            result = !_write_locked && (rlocks_used < MaxThreads);
+        }
+        else
+        {
+            result = !_write_locked && (rlocks_used == 0);
+        }
+
+        // Update lock state
+        _read_lock_counter.add(cast<uint1>(result && is_reader));
+        _write_locked = (result && !is_reader);
+
+        return result;
+    }

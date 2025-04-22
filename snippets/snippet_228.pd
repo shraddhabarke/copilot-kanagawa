@@ -1,0 +1,9 @@
+inline float64StickyFormat normalizeOutput2Zero(float64StickyFormat input)
+{
+    float64StickyFormat out;
+    out.sticky = 0;
+    out.mantissaGuardRound = 0;
+    out.exponent = -1023;
+    out.sign = input.sign;
+    return(out);
+}

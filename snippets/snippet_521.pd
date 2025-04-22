@@ -1,0 +1,24 @@
+void write(T[WordSize] word)
+    {
+        // Wait for a free entry
+        inline bool entry_available()
+        {
+            bool result = (_freeCounter.count() != 0);
+            if (result)
+            {
+                _freeCounter.subtract(1);
+            }
+            return result;
+        }
+        wait_for(entry_available());
+
+        // Increment write pointer
+        addr_t localWriteAddr;
+        atomic
+        {
+            localWriteAddr = _writeAddr;
+            _writeAddr++;
+        }
+        // Write to memory
+        _cyclicBufferMem.write_aligned((localWriteAddr % Depth) * WordSize, word);
+    }

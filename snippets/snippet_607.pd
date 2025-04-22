@@ -1,0 +1,9 @@
+bool _locked = false;
+lock_internal(){ bool result = !_locked;
+
+        if (result)
+        {
+            _locked = true;
+        }
+
+        return result; }

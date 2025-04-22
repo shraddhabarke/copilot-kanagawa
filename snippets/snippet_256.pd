@@ -1,0 +1,8 @@
+template <typename I>
+inline void pipelined_do((I) -> bool body)
+{
+    pipelined_for(1 << bitsizeof I, [body](I tid)
+    {
+        do ; while (body(tid));
+    });
+}

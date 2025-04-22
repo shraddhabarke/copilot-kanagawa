@@ -1,0 +1,1 @@
+template <typename T, auto N, typename R> inline R map_reduce((T) -> R map_fn, (R, R) -> R reduce_fn, T[N] x) { return reduce(reduce_fn, map(map_fn, x)); }

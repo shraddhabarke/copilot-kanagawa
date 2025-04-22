@@ -1,0 +1,4 @@
+inline T decrement(T t)
+{
+    return sub(t, 1);
+}

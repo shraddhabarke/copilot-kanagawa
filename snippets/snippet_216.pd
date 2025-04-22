@@ -1,0 +1,10 @@
+inline void pop()
+    {
+        // Check for underflow
+        sim_assert(!empty());
+
+        _consumerIndex = modular::increment(_consumerIndex);
+
+        _earlyCounter.subtract(1);
+        _lateCounter.subtract(1);
+    }

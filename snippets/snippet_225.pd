@@ -1,0 +1,8 @@
+template <typename T, auto N>
+using memory_ecc_strict = [[memory, ecc(make_optional_from_ecc_error<T>)]] T[N];
+
+template <typename T>
+inline optional<T> make_optional_from_ecc_valid(bool error, bool valid, T value)
+{
+    return make_optional(valid, value);
+}

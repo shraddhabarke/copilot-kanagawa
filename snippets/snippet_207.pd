@@ -1,0 +1,14 @@
+void enqueue(T value)
+    {
+        // Block until the FIFO is no longer full
+        _writeSemaphore.wait();
+
+        // Get the value of the write pointer then increment the write pointer
+        auto producer_index = first(atomically<pointer_t>(increment));
+
+        // Store the value into the memory
+        _dataMem[producer_index] = value;
+
+        // Allow 1 more thread to get a value out
+        _readSemaphore.post();
+    }

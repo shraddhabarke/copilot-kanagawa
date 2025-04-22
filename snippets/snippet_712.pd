@@ -1,0 +1,21 @@
+void write(entry_type event)
+    {
+        pointer_type write_pointer;
+
+        atomic
+        {
+            write_pointer = _write_pointer;
+            _write_pointer++;
+        }
+
+        // write_pointer arithmetic should wrap
+        sim_assert(write_pointer < depth);
+
+        // if write_pointer is -1, _write_pointer has wrapped to 0
+        if (write_pointer == cast<pointer_type>(-1))
+        {
+            _write_wrapped = true;
+        }
+
+        _log[write_pointer] = event;
+    }

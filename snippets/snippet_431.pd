@@ -1,0 +1,16 @@
+template<Denorm denorm_mode>
+inline bfloat16 dim(bfloat16 x, bfloat16 y)
+{
+    bfloat16 result;
+
+    if (isnan(x) || isnan(y))
+    {
+        result = bfloat16_constants::DEFAULT_NAN;
+    }
+    else
+    {
+        result = gt<denorm_mode>(x, y) ? sub<denorm_mode>(x, y) : bfloat16_constants::POS_ZERO;
+    }
+
+    return result;
+}

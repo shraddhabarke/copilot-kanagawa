@@ -1,0 +1,10 @@
+void ExecuteFourReplicas(uint32 numIter) {
+    pipelined_for(numIter, [](uint32 tid) {
+        static multiply_by_three[4] _multipliers;
+        uint32[4] src;
+        uint32[4] dst;
+        static for (const auto i : 4) {
+            dst[i] = _multipliers[i].mul(src[i]);
+        }
+    });
+}

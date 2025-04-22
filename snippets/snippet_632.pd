@@ -1,0 +1,5 @@
+inline int_t dmem_read
+ ( hart_index_t hid  //< Hart index.
+ , uint_t addr       //< DMEM byte address to read from.
+ ) {
+    return core.dmem_read(hid, checked_cast<dmem_addr_t>(addr));}

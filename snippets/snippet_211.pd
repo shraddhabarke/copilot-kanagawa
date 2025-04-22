@@ -1,0 +1,12 @@
+inline bool check_and_reserve()
+    {
+        bool result = false;
+
+        if (!full())
+        {
+            reserve_enqueue();
+            result = true;
+        }
+
+        return result;
+    }

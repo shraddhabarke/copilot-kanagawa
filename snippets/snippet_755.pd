@@ -1,0 +1,11 @@
+[[async]] void free(input_bit_index_t bit_index) {
+    // Convert from bit index to byte index
+    auto byte_index = bit_index >> clog2(BitsPerByte);
+    auto free_addr = byte_index / MemoryWidthBytes;
+    // Avoid underflow
+    if (free_addr != 0)
+    {
+        // Free up to the entry before this bit index
+        free_addr--;
+        _input_buffer.free(free_addr);
+    }}

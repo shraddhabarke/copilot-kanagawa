@@ -1,0 +1,6 @@
+inline bid32_t abs(bid32_t x)
+{
+    auto s = cast<decimal32PackedFormat_t>(x);
+    s.sign = 0;
+    return cast<bid32_t>(s);
+}

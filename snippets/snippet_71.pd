@@ -1,0 +1,11 @@
+inline auto lift2_optional((auto, auto) -> auto fn) {
+    return [fn](auto x, auto y)
+    {
+        optional<decltype(fn(x, y))> result = {};
+        if (x.is_valid && y.is_valid)
+        {
+            result = make_optional(true, fn(x.value, y.value));
+        }
+        return result;
+    };
+}

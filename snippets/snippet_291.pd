@@ -1,0 +1,5 @@
+template <typename T /*< Output*/>
+inline T reinterpret_cast(auto x)
+{
+    return cast<T>(cast<uint<bitsizeof T>>(cast<uint<bitsizeof x>>(x)));
+}

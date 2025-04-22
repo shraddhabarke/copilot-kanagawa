@@ -1,0 +1,1 @@
+template <typename T, auto N> inline T maximum(T[N] x) { return reduce(selecting(Ord::greater_than), x); }

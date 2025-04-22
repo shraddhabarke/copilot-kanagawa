@@ -1,0 +1,8 @@
+template <typename T, auto N>
+inline vector<T, N> erase(vector<T, N> v, index_t<N> pos)
+{
+    sim_assert(pos < v.size && v.size > 0);
+    v.data = A::copy_array(v.data, pos + 1, v.data, pos, v.size - pos - 1);
+    v.size--;
+    return v;
+}

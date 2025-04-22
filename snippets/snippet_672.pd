@@ -1,0 +1,6 @@
+using codeLengthFreq_t = count_t<NumSymbols>;
+[[pipelined]] void reset(index_t<NumSymbols> tid) {
+    static assert(NumSymbols > MaxCodeLength);
+    _codebook[tid] = {0, 0};
+    _freqs[tid] = {};
+}

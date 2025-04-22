@@ -1,0 +1,14 @@
+template <typename R, typename T, auto N>
+inline vector<R, N> map_optional((T) -> optional<R> f, vector<T, N> v)
+{
+    auto opts   = map(f, v);
+    auto elems  = A::map([](optional<R> x){ return x.value; }, opts.data);
+    auto valids = A::zip_with_indices( [opts](index_t<N> i, optional<R> x)
+                                       {
+                                           return i < opts.size && x.is_valid;
+                                       }
+                                     , opts.data
+                                     );
+    auto p = A::gather(valids, elems);
+    return {p.first, p.second};
+}

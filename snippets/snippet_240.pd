@@ -1,0 +1,50 @@
+inline float64 from_float32(float32 value)
+{
+    const auto float32_mantissa_width = 23;
+    const auto float64_mantissa_width = _mantissa_width;
+    const auto float32_exponent_bias = 127;
+    const auto float64_exponent_bias = _exponent_bias;
+    const auto float32_exponent_all_bits = 0xFF;
+    const auto float64_exponent_all_bits = 0x7FF;
+
+    const auto float_packed = cast<float32PackedFormat>(value);
+    float64PackedFormat double_packed;
+
+    if (float_packed.exponent == 0 && float_packed.mantissa == 0)
+    {
+        // Zero is a bit special
+        double_packed.exponent = 0;
+        double_packed.mantissa = 0;
+    }
+    else if (float_packed.exponent == float32_exponent_all_bits)
+    {
+        // Special values infinity and Nan
+        double_packed.exponent = float64_exponent_all_bits;
+        double_packed.mantissa = float_packed.mantissa;
+        double_packed.mantissa = double_packed.mantissa << (float64_mantissa_width - float32_mantissa_width);
+    }
+    else
+    {
+        if (float_packed.exponent == 0)
+        {
+            // Denormalized floats
+            const auto highest = highest_one<int<float32_mantissa_width>>(float_packed.mantissa);
+            double_packed.exponent = (-(float32_mantissa_width - highest.value)) + (-(float32_exponent_bias - 1)) + float64_exponent_bias;
+            double_packed.mantissa = float_packed.mantissa;
+            double_packed.mantissa = cast<decltype(double_packed.mantissa)>(double_packed.mantissa << (float64_mantissa_width - highest.value));
+        }
+        else
+        {
+            // Normalized floats
+            int23 float_exp = float_packed.exponent;
+            float_exp -= float32_exponent_bias;
+            double_packed.exponent = float_exp;
+            double_packed.exponent += float64_exponent_bias;
+            double_packed.mantissa = float_packed.mantissa;
+            double_packed.mantissa = double_packed.mantissa << (float64_mantissa_width - float32_mantissa_width);
+        }
+    }
+    double_packed.sign = float_packed.sign;
+
+    return cast<float64>(double_packed);
+}

@@ -1,0 +1,15 @@
+inline treeNode_t merge_interior_interior() {
+sim_assert(_interior[0].freq != InvalidInteriorFreq);
+sim_assert(_interior[1].freq != InvalidInteriorFreq);
+sim_assert(_interior[0].freq + _interior[1].freq <= MaxTreeNodeFreq);
+treeNode_t t;
+t.left = _interior[0].ptr;
+t.leftIsLeaf = false;
+t.right = _interior[1].ptr;
+t.rightIsLeaf = false;
+t.freq = _interior[0].freq + _interior[1].freq;
+// Pop both interior nodes by invalidating them
+// (will get updated by the outer function)
+_interior[0].freq = InvalidInteriorFreq;
+_interior[1].freq = InvalidInteriorFreq;
+return t;}

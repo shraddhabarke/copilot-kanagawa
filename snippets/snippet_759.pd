@@ -1,0 +1,16 @@
+inline code_and_length_t get_code_length(code_t code, huffman_code huff){
+    code_length_t len = decode_length<MinCodeBits>(code,
+        [huff](code_length_t length)
+        {
+            return _huffman_tables.get_last_code<MaxCodeBits>(huff, length);
+        },
+        [huff]() {
+            return _huffman_tables.get_max_length<clog2(MaxCodeBits)>(huff);
+        }
+    ); 
+    code_and_length_t ret;
+    ret.length = len;
+    sim_assert(ret.length != 0);
+    ret.code = code >> (MaxCodeBits - ret.length);
+    return ret;
+}

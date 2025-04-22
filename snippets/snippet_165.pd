@@ -1,0 +1,6 @@
+inline void add(ctr_t amount) {
+    atomic
+    {
+        _first = modular::add(_first, amount);
+    }
+}

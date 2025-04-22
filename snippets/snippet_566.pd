@@ -1,0 +1,4 @@
+inline void set_status(tag_t tag)
+{
+    update_status({true, tag});
+}

@@ -1,0 +1,36 @@
+inline input_t resolve_self_references(input_t input) {
+   input_t result = input;
+    // The outer loop runs log2(Width) iterations - which is enough to remove all self-references in the worst case input
+    // The inner loop runs Width iterations.  There are no loop-carried depedencies in the inner loop
+    static for (const auto iteration : clog2(Width)) {
+        input_t new_result = result;
+        static for (const auto i : Width) {
+            if (input_kind::reference == result[i].kind) {
+                auto i_minus_offset = i - result[i].payload.offset;
+               if (i_minus_offset >= 0)  {
+                    // Element i is a reference to an element in this same input
+                    // Look at the referenced element
+                    reference_t other_index = i_minus_offset;
+                    if (input_kind::reference == result[other_index].kind)  {
+                        // The referenced element is a reference - dereference
+                        new_result[i].payload.offset = result[other_index].payload.offset + result[i].payload.offset;
+                    }
+                    else {
+                        // The referenced element is raw data, replace the reference at i with raw data
+                        new_result[i].kind = input_kind::data;
+                        new_result[i].payload.data = result[other_index].payload.data;
+                    }
+                }
+            }
+        }
+        result = new_result;
+    }
+    // Assert that all self-references have been removed
+    static for (const auto i : Width) {
+        if (input_kind::reference == result[i].kind) {
+            sim_assert(result[i].payload.offset > i);
+            sim_assert(result[i].payload.offset <= WindowSize + i);
+        }
+    }
+    return result;
+}

@@ -1,0 +1,26 @@
+writer_dot_write_code_lengths(index_t<HLIT> tid){
+    sim_assert(codeLengthCount.journal_count() != 0);
+    auto entry = codeLengthCount.journal_get(tid);
+    sim_assert(entry.sym <= 18);
+    auto sym = entry.sym;
+    auto c = writer.len_code(sym);
+    uint<gz::MaxLengthCodeBits + 7> data = c.code;
+    count_t<gz::MaxLengthCodeBits + 7> size = c.length;
+    sim_assert(size > 0);
+    data |= entry.repeatFor << size;
+    if (sym == 16) {
+        sim_assert(entry.repeatFor < 4);
+        size += 2;
+    }
+    else if (sym == 17) {
+        sim_assert(entry.repeatFor < 8);
+        size += 3;
+    }
+    else if (sym == 18) {
+        size += 7;
+    }
+    else{
+        sim_assert(entry.repeatFor == 0);
+    }
+    return {data, size};
+}

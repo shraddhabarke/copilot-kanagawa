@@ -1,0 +1,1 @@
+inline auto curry((auto, auto) -> auto f) { return [f](auto x) { return [f, x](auto y) { return f(x, y); }; }; }

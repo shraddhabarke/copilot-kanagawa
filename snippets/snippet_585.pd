@@ -1,0 +1,8 @@
+inline map_result_t map_fn(map_input_t x){
+    map_result_t output;
+    // Find if this input has the correct packet number
+    output.found = (x.packet_number == x.curr_packet + x.schedule_i && x.valid);
+    output.done = x.write_done;
+    output.input_index = x.input_index;
+    return output;
+}

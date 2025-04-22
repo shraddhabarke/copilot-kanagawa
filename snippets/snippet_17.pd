@@ -1,0 +1,11 @@
+template <auto M, typename T, auto N>
+inline vector<T, M> reserve(vector<T, N> v)
+{
+    sim_assert(v.size <= M);
+    const auto Bound = M < N ? M : N;
+    vector<T, M> new;
+    new.size = v.size;
+    static for(const auto i : Bound)
+        new.data[i] = v.data[i];
+    return new;
+}

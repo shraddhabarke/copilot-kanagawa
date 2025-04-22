@@ -1,0 +1,5 @@
+inline bool isinf(float32 x)
+{
+    const auto flags = getSpecialCases<Denorm::On>(cast<float32PackedFormat>(x));
+    return flags.inf;
+}

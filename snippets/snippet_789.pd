@@ -1,0 +1,9 @@
+class Foo{
+private:
+    [[reset]] void init()  {
+        pipelined_for(32, [](index_t<32> i) {
+            mem[i] = 0;
+        });
+    }
+    memory<uint32, 32> mem;
+}

@@ -1,0 +1,20 @@
+void encode(token_t[Width] word, count_t<Width> size, bool flush)
+{
+if (_state == state_t::RESET)
+_state = state_t::UNDERWAY;
+
+bool snappedUpdatePending;
+atomic
+{
+snappedUpdatePending = _updatePending && !flush;
+if (snappedUpdatePending)
+_updatePending = false;
+} // Compute the tid on which data (if any) should be output (after header but before EOB) index_t<MaxEncodePipelineThreads> dataTid = 0;
+if (snappedUpdatePending)
+{
+    sim_assert(!flush);
+    dataTid = _preparedBufferCount;
+    sim_assert(dataTid != 0);
+}
+count_t<MaxEncodePipelineThreads> numThreads = dataTid + 1 + (flush ? 1 /* BFINAL/pad */ + 1 /* CRC32 */ + 1 /* ISIZE */ : 0);
+encode_pipeline(numThreads, word, size, dataTid, flush); // ContextSaver: 4x512bit saving 4-bit tid (bug 19392)}

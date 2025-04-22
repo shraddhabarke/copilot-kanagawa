@@ -1,0 +1,7 @@
+inline count_t<Addresses>[Banks] write_requests_per_bank
+    ( optional<Address>[Addresses] addresses            //< Input addresses, valid duplicates __not__ allowed.
+    , (Address) -> index_t<Banks> address_to_bank_index //< Map `Address` to bank index.
+    )
+{
+    return requests_per_bank<Banks>(addresses, address_to_bank_index);
+}

@@ -1,0 +1,8 @@
+template <typename T, auto N>
+inline vector<T, N> push_back(T x, vector<T, N> v)
+{
+    sim_assert(v.size < N);
+    v.data[v.size] = x;
+    v.size++;
+    return v;
+}

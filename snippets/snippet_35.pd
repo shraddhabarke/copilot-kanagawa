@@ -1,0 +1,18 @@
+template <typename L, typename R, typename T, auto N>
+inline pair<vector<L, N>, vector<R, N>> unzip_with
+    ( (T) -> P::tuple2<L, R> f
+    , vector<T, N> v
+    )
+{
+    pair<vector<L, N>, vector<R, N>> result;
+    static for(const auto i : N)
+        if (i < v.size)
+        {
+            auto p = f(v.data[i]);
+            result.first.data[i]  = p.first;
+            result.second.data[i] = p.second;
+        }
+    result.first  = resize(result.first,  v.size);
+    result.second = resize(result.second, v.size);
+    return result;
+}

@@ -1,0 +1,1 @@
+template <auto N, typename T> inline bool[N] mask_less_equal(T arg) { sim_assert(arg <= N); auto ret = mask_greater_than<N>(arg); static for(const auto i : N) ret[i] = !ret[i]; return ret; }

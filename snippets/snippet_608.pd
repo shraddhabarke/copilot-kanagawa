@@ -1,0 +1,6 @@
+void lock()
+{
+// begin_strip
+wait_for(lock_internal());
+// end_strip
+}

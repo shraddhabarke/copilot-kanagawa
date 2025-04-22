@@ -1,0 +1,12 @@
+pipelined_for(512, [](index_t<512> tid){ // begin_strip
+            // atomic block needed to synchronize access to the memory
+            atomic
+            {
+            // end_strip
+            uint32 previous = _mem4[tid % 4];
+            uint32 new = previous * 1234 + tid;
+            _mem4[tid % 4] = new;
+
+            // begin_strip
+            }
+            // end_strip }

@@ -1,0 +1,66 @@
+inline float32 log1p(float32 value)
+{
+    const auto structValueOriginal = cast<float32PackedFormat>(value);
+    const auto structValuePlusOne = cast<float32PackedFormat>(value + 1.0);
+
+    const auto binaryValue = cast<uint32>(value);
+    const specialCaseFlags flags = getSpecialCases<Denorm::On>(structValueOriginal);
+
+    const bool isUnderflow = structValueOriginal.sign == 1 && structValueOriginal.exponent != 0xFF && binaryValue > float32_constants::NEG_ONE;
+    const bool isNegative = signbit(value);
+    const bool isPosInfinity = flags.inf && !isNegative;
+    const bool isNegInfinity = flags.inf && isNegative;
+    const bool isPosZero = flags.zero && !isNegative;
+    const bool isNegZero = flags.zero && isNegative;
+    const bool isNegOne = binaryValue == float32_constants::NEG_ONE;
+    const bool isSmallValue = structValueOriginal.exponent < (127 - 23);
+
+    // calculate log2
+    // structValuePlusOne = [0.5, 2) use original precise fraction (before adding 1).
+    // Others use fixed 23-bit resolution fraction after adding 1.
+    const float32PackedFormat lookupFraction =
+        (structValuePlusOne.exponent == 126 || structValuePlusOne.exponent == 127) ? structValueOriginal : {structValuePlusOne.mantissa, 127, 0};
+
+    const auto fractionFbit = 46;
+    const auto log21pFraction = log21p_lookup<fractionFbit>(lookupFraction);
+
+    // When the exponent of structValuePlusOne equals to 126, The log21pValue doesn't need to be recovered by exponent.
+    // Because the log21pFraction is lookuped by the range structValuePlusOne = [0.5, 2).
+    const int8 exponent = (structValuePlusOne.exponent == 126 || structValuePlusOne.exponent == 127) ? 0 : (structValuePlusOne.exponent - 127);
+    const int<8 + fractionFbit> log21pValue = (exponent << fractionFbit) + log21pFraction;
+
+    // change base to log
+    const auto valueChangedBaseFBit = fractionFbit + 30;
+    const auto valueChangedBase = log21pValue * 0x2C5C85FE;
+
+    // convert to float
+    const auto sign = valueChangedBase < 0 ? 1 : 0;
+    const auto absValueFbit = valueChangedBaseFBit;
+    const auto absValue = sign ? -valueChangedBase : valueChangedBase;
+
+    const auto leadingOneIndex = highest_one<uint<(8 + 24)>>(absValue >> (absValueFbit - 24));
+    const auto shift = leadingOneIndex.value - 24;
+    int8 exponentResult = shift + 127;
+
+    sim_assert(absValueFbit + shift >= 24);
+    const auto truncatedValue = absValue >> (absValueFbit + shift - 24);
+    auto mantissaResult = (truncatedValue >> 1) + (truncatedValue & 1);
+
+    if ((mantissaResult >> 23) >= 2)
+    {
+        exponentResult += 1;
+        mantissaResult = mantissaResult >> 1;
+    }
+
+    float32PackedFormat result;
+    result.sign = (isPosInfinity || isPosZero) ? 0 :
+                  (isNegInfinity || isNegZero) ? 1 :
+                  isSmallValue ? structValueOriginal.sign : sign;
+    result.exponent = (isNegOne || flags.inf || flags.nan || isUnderflow) ? 0xFF :
+                      flags.zero ? 0x0 :
+                      isSmallValue ? structValueOriginal.exponent : exponentResult;
+    result.mantissa = (flags.nan || isNegInfinity || isUnderflow) ? 0x1 :
+                      (isNegOne || isPosInfinity || flags.zero) ? 0x0 :
+                      isSmallValue ? structValueOriginal.mantissa : cast<decltype(result.mantissa)>(mantissaResult);
+    return cast<float32>(result);
+}

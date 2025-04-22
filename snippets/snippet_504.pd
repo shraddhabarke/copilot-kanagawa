@@ -1,0 +1,88 @@
+inline optional<To> float_to_int(From input)
+{
+    const auto int_width = bitsizeof(To);
+    const auto float_width = bitsizeof(From);
+
+    using float_as_uint_t = uint<float_width>;
+    using exponent_t = uint<ExponentWidth>;
+    using mantissa_t = uint<MantissaWidth>;
+
+    struct FromStruct
+    {
+        From from;
+    }
+
+    FromStruct f = {input};
+
+    float_as_uint_t float_as_uint = cast<float_as_uint_t>(f);
+
+    bool to_is_signed = (~cast<To>(0)) < 0;
+    uint1 sign = float_as_uint >> float_width - 1;
+    exponent_t exponent = (float_as_uint >> MantissaWidth) & ~cast<exponent_t>(0);
+    mantissa_t mantissa = float_as_uint & ~cast<mantissa_t>(0);
+
+    To result;
+    bool valid = true;
+    if (to_is_signed == false && sign == 1)
+    {
+        valid = false;
+    }
+    else if (exponent == ~cast<exponent_t>(0))
+    {
+        // input is NaN or infinity
+        valid = false;
+        result = 0;
+    }
+    else if (exponent == 0)
+    {
+        // Here either the mantissa is zero meaning the float value is zero,
+        // or the mantissa is non-zero meaning the float is denormalized
+        // in which case truncating the fraction results in zero.
+        result = 0;
+    }
+    else
+    {
+        int<bitsizeof(exponent_t)> unbiased_exponent = exponent - Bias;
+        uint<MantissaWidth + 1> full_mantissa = mantissa;
+        full_mantissa |= 1 << MantissaWidth;
+
+        if (unbiased_exponent >= int_width)
+        {
+            valid = false;
+        }
+        else
+        {
+            if (!(unbiased_exponent < (int_width - 1)))
+            {
+                if (to_is_signed)
+                {
+                    if (unbiased_exponent == (int_width - 1))
+                    {
+                        if (!(mantissa == 0 && sign == 1))
+                            valid = false;
+                    }
+                }
+            }
+        }
+
+        if (unbiased_exponent > MantissaWidth)
+        {
+            auto shift = unbiased_exponent - MantissaWidth;
+            result = full_mantissa << shift;
+
+            if (result < 0)
+            {
+                result = ~result;
+            }
+        }
+        else
+        {
+            auto shift = MantissaWidth - unbiased_exponent;
+            result = cast<decltype(result)>(full_mantissa >> shift);
+        }
+        if (sign == 1)
+            result = -result;
+    }
+
+    return make_optional<To>(valid, result);
+}

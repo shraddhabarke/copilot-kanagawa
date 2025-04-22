@@ -1,0 +1,1 @@
+inline Operands read(Current current, Decoded decoded) { Operands operands; operands.op1 = register_get(current.hid, decoded.format.rs1.value); operands.rs2 = register_get(current.hid, decoded.format.rs2.value); operands.op2 = decoded.format.rs2.is_valid ? operands.rs2 : decoded.format.imm; return operands; }

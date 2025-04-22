@@ -1,0 +1,45 @@
+void lz_to_gz(tokens_t data, count_t<Width> size, bool last)
+{
+    if (!last)
+        sim_assert(size == Width);
+    else if (size == 0)
+        sim_assert(last);
+
+    index_t<TokenBufferDepth> snappedTokenBufferDepth;
+    bool tokenBufferFull;
+    count_t<TokenBufferDepth + 3> numThreads = 1;
+
+    if (_mode == compressor_mode::TRAIN_THEN_DEFLATE)
+    {
+        atomic
+        {
+            snappedTokenBufferDepth = _tokenBufferSize;
+            tokenBufferFull = (snappedTokenBufferDepth == TokenBufferDepth - 1);
+            _tokenBufferSize = (tokenBufferFull || last ? 0 : snappedTokenBufferDepth + 1);
+        }
+
+        if (tokenBufferFull || last)
+        {
+            numThreads += cast<uint1>(size != 0) + (snappedTokenBufferDepth + cast<uint1>(size != 0));
+        }
+    }
+    else
+    {
+        sim_assert(_mode == compressor_mode::DEFLATE);
+    }
+
+    count_t<TokenBufferDepth + 3> lastTid = numThreads;
+    if (tokenBufferFull || last)
+    {
+        if (size == 0 && (_mode == compressor_mode::DEFLATE || (_mode == compressor_mode::TRAIN_THEN_DEFLATE && snappedTokenBufferDepth == 0)))
+        {
+            sim_assert(numThreads == 1);
+            lastTid = 0;
+        }
+        else
+        {
+            numThreads++;
+        }
+    }
+    lz_to_gz_pipeline(numThreads, data, size, last, snappedTokenBufferDepth, lastTid);
+}

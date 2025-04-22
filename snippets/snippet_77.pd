@@ -1,0 +1,2 @@
+template<typename DividendType, typename DivisorType>
+inline DividendType divide_and_roundup(DividendType dividend, const DivisorType divisor) { return (dividend + (divisor - 1)) / divisor; }

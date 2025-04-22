@@ -1,0 +1,6 @@
+inline void subtract(ctr_t amount) {
+    atomic
+    {
+        _second = modular::add(_second, amount);
+    }
+}

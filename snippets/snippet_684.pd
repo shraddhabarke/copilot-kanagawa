@@ -1,0 +1,1 @@
+static assert(0 == (ArrayDepth & (ArrayDepth - 1)));

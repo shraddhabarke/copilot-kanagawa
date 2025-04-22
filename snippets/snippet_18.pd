@@ -1,0 +1,16 @@
+template <typename T, auto N>
+inline vector<optional<T>, N> unique_by((T, T) -> bool equality_fn, vector<T, N> v)
+{
+    auto es = A::zip_with_indices( [v](index_t<N> i, T x)
+                                   {
+                                       return make_optional(i < v.size, x);
+                                   }
+                                 , v.data
+                                 );
+auto xs = A::unique_by( [equality_fn](optional<T> x, optional<T> y)
+{
+    return Opt::equal_by(equality_fn, x, y);
+}
+, es
+);
+return {A::map(Opt::join<T>, xs), v.size};

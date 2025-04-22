@@ -1,0 +1,19 @@
+template <typename T>
+inline void async_then(() -> T task, (T) -> void then)
+{
+    using task_t = decltype(task);
+    using then_t = decltype(then);
+
+    class async
+    {
+    public:
+        [[async]] void exec(task_t task, then_t then)
+        {
+            then(task());
+        }
+    }
+
+    static async _async;
+
+    _async.exec(task, then);
+}

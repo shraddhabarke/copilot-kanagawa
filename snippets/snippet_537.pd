@@ -1,0 +1,70 @@
+template<AES_GCM_CryptoMode Mode>
+class AES_GCM_Functional
+{
+private:
+    AES_ECB _aes_ecb;
+    iv_t _iv;
+    counter_t _counter;
+    text_t _stored_hash;
+    text_t _hash_key; // H = E_k(0)
+    text_t _encrypted_iv0; // E_k(iv_0)
+    uint32 _aad_length; // bytes
+    uint32 _crypto_length; // bytes
+
+    // Concatenate counter and user supplied initialization vector to create
+    // initialization vector for encryption. Increment the counter for the next
+    // plaintext
+    inline text_t _get_and_increment_iv()
+    {
+        counter_t snapped_counter;
+        atomic
+        {
+            snapped_counter = _counter;
+            _counter++;
+        }
+
+        return concat(_iv, snapped_counter);
+    }
+
+    // Add (xor in Galois field) X and Y and then multiply by the hash key
+    inline text_t _gf_add_mult(text_t X, text_t Y)
+    {
+        text_t add = X ^ Y;
+        text_t key = _hash_key;
+        text_t mult = gf_mult(add, key);
+        return mult;
+    }
+
+    // Add the passed data to the stored hash and multiply by the hash key.
+    // Store the result back.
+    void _update_hash(text_t data)
+    {
+        // Update hash
+        atomic
+        {
+            text_t hash = _stored_hash;
+            hash = _gf_add_mult(hash, data);
+            _stored_hash = hash;
+        }
+    }
+
+public:
+    void write_key(key_t key)
+    {
+        // Calculate hash key (encrypt 0)
+        _hash_key = _aes_ecb.encrypt(cast<text_t>(0), false, true, key);
+    }
+
+    void write_iv(iv_t iv)
+    {
+        _iv = iv;
+        _aad_length = 0;
+        _crypto_length = 0;
+        _counter = 1;
+        _stored_hash = 0;
+
+        // Store encrypted starting iv
+        text_t iv_counter = _get_and_increment_iv();
+        text_t encrypted_iv = _aes_ecb.encrypt(iv_counter, false, false, 0);
+        _encrypted_iv0 = encrypted_iv;
+    }

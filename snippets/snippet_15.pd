@@ -1,0 +1,7 @@
+template <typename T, auto N>
+inline vector<T, N> append(vector<T, N> x, vector<T, N> y)
+{
+    sim_assert(x.size + y.size <= N);
+    x.data = A::copy_array(y.data, 0, x.data, x.size, y.size);
+    return resize(x, x.size + y.size);
+}

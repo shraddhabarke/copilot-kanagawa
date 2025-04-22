@@ -1,0 +1,7 @@
+inline bool read_bit(bit_addr_t addr)
+{
+    sim_assert(addr < Size);
+    auto decomposed_addr = div_mod(addr, WordWidth);
+    bool[WordWidth] word = cast<bool[WordWidth]>(_mem[decomposed_addr.first]);
+    return word[decomposed_addr.second];
+}

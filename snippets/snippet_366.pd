@@ -1,0 +1,6 @@
+inline float32 neg(float32 x)
+{
+    float32PackedFormat binary = cast<float32PackedFormat>(x);
+    binary.sign = ~binary.sign;
+    return cast<float32>(binary);
+}

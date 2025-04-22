@@ -1,0 +1,9 @@
+template<typename T /*< Variable type.*/>
+class pipelined_variable
+{
+public:
+public://| Feed in a new value and push the old value down. This should typically be called exactly once per thread.
+    inline T next(T input) {
+        return first(atomically([input](T x){return input;}));
+    }
+}

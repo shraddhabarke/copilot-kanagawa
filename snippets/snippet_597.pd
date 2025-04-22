@@ -1,0 +1,18 @@
+return second(atomically(apply_update(
+    [initial_state](state_t[StateCount] updates, state_t prev)
+    {
+        // If initial_state is valid, then ignore prev and use initial_state instead
+        prev = O::from_optional(prev, initial_state);
+        // If bit `i` is set in prev, then all bits set in `updates[i]` will be set in the result
+        return A::reduce(
+            bitwise_or<state_t>,
+            A::zip_with(
+                [](state_t new, bool prev) {
+                    return prev ? new : {};
+                },
+                updates, prev));
+    },
+    [](state_t update, state_t prev) {return update;},
+    updates
+)));
+}

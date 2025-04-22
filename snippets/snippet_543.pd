@@ -1,0 +1,51 @@
+    text_t _update_hash(text_t data, text_t hash_key, bool[4] firsts){
+ bool first4 = firsts[0] || firsts[1] || firsts[2] || firsts[3];
+ // Advance hash phase
+ index_t<4> snapped_hash_phase;
+ atomic {
+     static index_t<4> hash_phase = 0;
+     snapped_hash_phase = hash_phase;
+     hash_phase = modular::increment(hash_phase); }
+// Decompose for Karatsuba multiplication
+uint128 Y = reverse(hash_key);
+uint64[3] y0 = karatsuba_decompose<uint64>(Y);
+uint32[3][3] y1;
+static for (const auto i : 3) {
+    y1[i] = karatsuba_decompose<uint32>(y0[i]); }
+// Calculate Galois field add and multiply
+text_t prev_hash;
+text_t new_hash;
+[[schedule(4)]] {
+    static text_t[4] stored_hash;
+     // First four inputs use a previous hash value of 0, otherwise read
+     // previous hash
+     prev_hash = first4 ? 0 : stored_hash[snapped_hash_phase];
+     // Add
+     new_hash = prev_hash ^ data;
+      // Decompose for Karatsuba multiplication
+      uint128 X = reverse(new_hash);
+     uint64[3] x0= karatsuba_decompose<uint64>(X);
+      uint32[3][3] x1;
+     static for (const auto i : 3) {
+          x1[i] = karatsuba_decompose<uint32>(x0[i]);
+      }
+      // Multiplication of decomposed terms
+      uint63[3][3] z1;
+      static for (const auto i : 3) {
+          static for (const auto j : 3)
+          {
+              z1[i][j] = carryless_mult<uint63, uint32>(x1[i][j], y1[i][j]);
+          }
+      }
+            // Combine terms
+      uint127[3] z0;
+      static for (const auto i : 3)
+      {
+          z0[i] = karatsuba_combine<uint127>(z1[i]);
+      }
+      uint255 Z = karatsuba_combine<uint255>(z0);
+      // Galois field reduction
+      new_hash = reverse(gf_reduce(cast<uint256>(Z)));
+      // Writeback hash
+      stored_hash[snapped_hash_phase] = new_hash;
+  }

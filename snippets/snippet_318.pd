@@ -1,0 +1,13 @@
+template<auto F1, auto F2, auto F3>
+inline uint<1 + F3> rcp_refine(uint<1 + F1> significand, uint<1 + F2> approximation)
+{
+    const auto tempFbitCount = F1 + F2;
+    const auto temp_0 =  significand * approximation;
+    const auto temp_1 = (2 << tempFbitCount) - temp_0;
+
+    const auto refinedFbitCount = F2 + tempFbitCount;
+    const auto refinedValue = approximation * temp_1;
+
+    static assert(refinedFbitCount >= F3);
+    return refinedValue >> (refinedFbitCount - F3);
+}

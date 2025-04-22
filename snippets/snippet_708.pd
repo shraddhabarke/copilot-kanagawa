@@ -1,0 +1,8 @@
+inline DataChunk_t extract_data_chunk(Data_t data, Tid_t tid){
+    // Toeplitz processes high order bits first, so chunk
+    // number 0 is left-most. If DataWidth is not an even multiple of PipelineCycles
+    // we left shift the input data to add LSB zero padding.
+    const auto PadBits = PipelineCycles * DataChunkWidth - DataWidth;
+    const auto rShiftBits = DataWidth + PadBits - (tid+1)*DataChunkWidth;
+    const uint<DataWidth+PadBits> paddedData = data << PadBits;
+    return cast<DataChunk_t>(paddedData >> rShiftBits); }

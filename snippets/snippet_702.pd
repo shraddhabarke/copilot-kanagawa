@@ -1,0 +1,16 @@
+inline void Write
+    ( uint64 addr             //< Byte address of the DRAM word to write.
+                              // This address must be 64B aligned (lower 6 bits zero).
+    , transaction_size_t size //< Size of the write, in bytes.
+    , uint512 data
+    , bool is_last            //< Set to true on the last write of the transaction, false otherwise.
+                              // This parameter guarantees that data written from two different DRAM
+                              // transactions are not inadvertently interleaved.
+    )
+{AssertAlignment(addr, size);
+        AssertIsLast(size, is_last);
+
+        bool[64] byte_enable = replicate<64>(true);
+
+        _dram.write(addr, size, data, cast<uint64>(byte_enable), is_last);
+    }

@@ -1,0 +1,12 @@
+struct J_type {
+    Opcode  opcode;
+    Reg     rd;
+    uint8   imm_19_12;
+    uint1   imm_11;
+    uint10  imm_10_1;
+    uint1   imm_20; }
+inline int32 J_immediate(J_type j)
+{
+    const uint1 zero_0 = 0;
+    return sign_extend(concat(j.imm_20, j.imm_19_12, j.imm_11, j.imm_10_1, zero_0));
+}

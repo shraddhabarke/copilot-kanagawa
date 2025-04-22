@@ -1,0 +1,6 @@
+cache_tags<Key, LUtime, Associativity, Depth> _tags;
+
+    pipelined_memory<Value, Depth, Banks> _data;
+
+public:
+    using set_index_t = index_t<_setCount>;

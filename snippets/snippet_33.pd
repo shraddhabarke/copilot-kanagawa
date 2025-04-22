@@ -1,0 +1,12 @@
+template <typename S, auto N, typename T, auto M>
+inline auto zip_with((S, T) -> auto f, vector<S, N> s, vector<T, M> t)
+{
+    using result_t = decltype(f(s.data[0], t.data[0]));
+    const auto Min = N < M ? N : M;
+    result_t[Min] rs;
+    auto min_size = Ord::min(s.size, t.size);
+    static for(const auto i : Min)
+        if (i < min_size)
+            rs[i] = f(s.data[i], t.data[i]);
+    return resize(from_array(rs), min_size);
+}

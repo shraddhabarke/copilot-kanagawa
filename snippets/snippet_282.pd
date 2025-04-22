@@ -1,0 +1,16 @@
+ inline void write
+( addr_t addr //< Address of the element to write.
+    , T data      //< Data to write.
+    )
+{
+    auto decomposed_addr = decompose_address(addr);
+    static for (const auto i : Banks)
+    {
+        if (i == decomposed_addr.first)
+        {
+            _memories[i][decomposed_addr.second] = data;
+        }
+        // Ensure banks are accessed in unique pipeline stages
+        barrier;
+    }
+}

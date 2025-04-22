@@ -1,0 +1,5 @@
+void increment_read_addr()
+    {
+        _read_addr = modular::increment(_read_addr);
+        _write_semaphore.post();
+    }

@@ -1,0 +1,14 @@
+template <Denorm denorm_mode>
+inline uint64 add(uint64 in1, uint64 in2)
+{
+    uint64 result;
+    if (denorm_mode == Denorm::On)
+    {
+        result = float64_add(in1, in2);
+    }
+    else
+    {
+        result = float64_add_denormoff(in1, in2);
+    }
+    return result;
+}

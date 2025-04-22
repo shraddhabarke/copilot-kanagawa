@@ -1,0 +1,9 @@
+template<auto Width, auto Max, auto Bias>
+inline optional<uint<Width>> mul_exactly_internal(decimalParsedValue<Width> a, decimalParsedValue<Width> b)
+{
+    const auto sign = (a.sign == b.sign) ? 0 : 1;
+    const auto mul = a.integer * b.integer;
+    const auto exponent = a.exponent + b.exponent - Bias;
+    const auto isNormal = exponent >= 0;
+    return {(mul <= Max) && isNormal, toDecimal<Width>({mul, exponent, sign})};
+}

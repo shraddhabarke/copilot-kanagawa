@@ -1,0 +1,51 @@
+template <id_t Test, group_t Group = 0, flags_t Flags = 0, typename TestResult>
+inline void test_case((tag_t) -> TestResult fn)
+{
+    static assert(Test != 0);
+
+    const auto T = Flags << (bitsizeof id_t + bitsizeof group_t);
+    const auto A = Group << (bitsizeof id_t);
+    const auto G = Test;
+
+    const uint32 tag = T | A | G;
+
+    sim_assert(tag == concat(cast<flags_t>(Flags), cast<group_t>(Group), cast<id_t>(Test)));
+
+    static if (((tag & Params::mask) == tag) || tag == Params::tag || (Params::tag == 0 && Params::mask == 0))
+    {
+        static if (Params::verbose)
+        {
+            println("Running test case", tag);
+            barrier;
+        }
+
+        bool succeeded;
+
+        static if (TestResult == void)
+        {
+            fn({tag});
+            succeeded = true;
+        }
+        else
+        {
+            succeeded = fn({tag});
+
+            if (!succeeded)
+            {
+                print_failure({tag});
+                set_status({tag});
+            }
+        }
+
+        if (static(Params::verbose) && succeeded)
+        {
+            println("Test case", tag, "succeeded");
+        }
+    }
+    else static if (Params::verbose)
+    {
+        println("Skipping disabled test case", tag);
+    }
+
+    barrier;
+}

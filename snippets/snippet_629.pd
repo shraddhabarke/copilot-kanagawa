@@ -1,0 +1,6 @@
+inline void mmio_load_result
+( hart_index_t hid  //< Index of the hart that performed the asynchronous load
+                    // from memory mapped IO.
+, int_t value       //< Result of memory mapped IO load.
+){
+    core.mmio_load_result(hid, value);}

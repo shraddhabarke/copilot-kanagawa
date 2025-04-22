@@ -1,0 +1,43 @@
+//| Multiple instance semaphore.
+template
+    < auto N               //< Number of semaphore instances.
+    , auto M               //< Maximum semaphore value.
+    , auto I               //< Initial value for the semaphore count. Must be less than or equal to `M`.
+    , auto Blocking = true //< By default, this is true and causes the semaphore to
+                           // block when wait is called. Setting this to false should only
+                           // be used when the caller can ensure that the semaphore count is
+                           // greater than 0 when wait is called. If it is not a diagnostics
+                           // assert is raised.
+    >
+class multi_semaphore {
+public:
+    using sem_ctr_t = count_t<M>;
+    using sem_idx_t = index_t<N>;
+static assert(I <= M);
+
+private:
+
+    counter<M, I>[N] _counter;
+
+    bool wait_helper(sem_idx_t which, sem_ctr_t val, bool decrement_count)
+    {
+        bool result;
+
+        if (Blocking)
+        {
+            wait_for(test_and_decrement(which, val, decrement_count));
+            result = true;
+        }
+        else
+        {
+            bool result;
+            atomic
+            {
+                result = test_and_decrement(which, val, decrement_count);
+            }
+
+            sim_assert(result || !decrement_count);
+        }
+
+        return result;
+    }

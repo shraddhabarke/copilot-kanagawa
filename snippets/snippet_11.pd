@@ -1,0 +1,9 @@
+template <typename T, auto N>
+inline vector<T, N> insert(vector<T, N> v, index_t<N> pos, T value)
+{
+    sim_assert(pos <= v.size && v.size < N);
+    v.data = A::copy_array(v.data, pos, v.data, pos + 1, v.size - pos);
+    v.data[pos] = value;
+    v.size++;
+    return v;
+}

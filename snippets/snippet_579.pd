@@ -1,0 +1,4 @@
+[[pipelined]] void reset_memory(uint32 thread_index) {
+    packet_reorderer_metadata_entry_t invalid_metadata;
+    invalid_metadata.valid = false;
+    _metadata_mem[thread_index] = invalid_metadata;}

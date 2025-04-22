@@ -1,0 +1,15 @@
+inline read_word_t nonblocking_read(addr_t addr /*< Element address.*/)
+    {
+        auto wordAddr = addr / WordSize;
+
+        // Check that read address has not been freed
+        sim_assert(wordAddr >= _freeAddr);
+        // Check that the read address has been written
+        // (Note: this assertion only checks the word from the first byte;
+        //  unaligned accesses can spill into the next word which may not have
+        //  been written)
+        sim_assert(_writeAddr > wordAddr);
+
+        // Read value from memory
+        return _cyclicBufferMem.read(addr % TotalSize);
+    }

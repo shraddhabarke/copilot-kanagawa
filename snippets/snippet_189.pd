@@ -1,0 +1,30 @@
+inline float32 cos(float32 x)
+{
+    const auto structValue = cast<float32PackedFormat>(x);
+    float32PackedFormat result;
+
+    const specialCaseFlags flags = getSpecialCases<Denorm::On>(structValue);
+
+    const auto Fbit = 54;
+    const auto valueInPiOver2 = to_piOver2<Fbit, true>(structValue);
+
+    // table lookup
+    const auto isInternalSmallValue = valueInPiOver2.second.first;
+    const auto cosineValue = isInternalSmallValue ? valueInPiOver2.second.second : cos_lookup<Fbit>(valueInPiOver2.second.second);
+
+    // output
+    result.sign = valueInPiOver2.first;
+
+    const auto leadingOne = highest_one<uint<1 + 27>>(cosineValue >> (Fbit - 27));
+    int8 exponent = leadingOne.value - 27;
+
+    sim_assert(Fbit + exponent >= 24);
+    const auto truncatedCosineValue = cosineValue >> (Fbit + exponent - 24);
+    const auto roundedCosineValue = (truncatedCosineValue >> 1) + (truncatedCosineValue & 1);
+    exponent = exponent + (roundedCosineValue >> 24);
+
+    result.exponent = (flags.nan || flags.inf) ? 0xFF : (exponent + 127);
+    result.mantissa = (flags.nan || flags.inf) ? 0x1 : cast<decltype(result.mantissa)>(roundedCosineValue);
+
+    return cast<float32>(result);
+}

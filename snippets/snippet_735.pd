@@ -1,0 +1,4 @@
+inline uint<w> get_MT(const memory_index_t memory_index, uint1 mt_set_index, MT_t i)
+{
+return MT[memory_index][n * mt_set_index + i];
+}

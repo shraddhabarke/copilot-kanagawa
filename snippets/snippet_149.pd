@@ -1,0 +1,1 @@
+inline auto bind1st((auto, auto) -> auto f, auto x) { return apply(curry(f), x); }

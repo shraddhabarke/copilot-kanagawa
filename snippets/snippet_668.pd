@@ -1,0 +1,5 @@
+T[ArraySize] dequeue_all() {
+ T[ArraySize] result = {};
+ static for (const auto i : ArraySize) {
+    result[i] = _fifos[i].dequeue(); }
+return result;}

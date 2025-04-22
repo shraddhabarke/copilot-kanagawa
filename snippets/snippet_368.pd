@@ -1,0 +1,5 @@
+template <auto N>
+inline int32 sign_extend(uint<N> x)
+{
+    return cast<int32>(cast<int<N>>(x));
+}

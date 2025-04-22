@@ -1,0 +1,12 @@
+template<auto Channel=0>
+[[async]] void send_tor_100g
+    ( phit_100g_t phit              //< Data to send.
+    , [[last]] bool end_of_packet   //< Set to true for the last phit in a packet.
+    )
+{
+    // The end_of_packet parameter exists to enable multiple call sites to this function
+    // The information is duplicated inside of the phit
+    sim_assert(phit.end_of_packet == end_of_packet);
+
+    TOR_100G[Channel].send(phit, end_of_packet);
+}

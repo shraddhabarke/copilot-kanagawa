@@ -1,0 +1,1 @@
+template <auto N, typename T> inline T[N] replicate(T value) { T[N] result;  static for (const auto i : N) { result[i] = value; } return result;}

@@ -1,0 +1,5 @@
+template <typename T, auto N>
+inline bool all((T) -> bool predicate, vector<T, N> v)
+{
+    return and(map(predicate, v));
+}

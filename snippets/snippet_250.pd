@@ -1,0 +1,16 @@
+template<Denorm denorm_mode>
+inline uint64 dim(uint64 x, uint64 y)
+{
+    uint64 result;
+
+    if (isnan(x) || isnan(y))
+    {
+        result = float64_constants::DEFAULT_NAN;
+    }
+    else
+    {
+        result = gt<denorm_mode>(x, y) ? sub<denorm_mode>(x, y) : float64_constants::POS_ZERO;
+    }
+
+    return result;
+}

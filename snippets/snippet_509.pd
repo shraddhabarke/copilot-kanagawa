@@ -1,0 +1,6 @@
+template<auto WindowSize>
+union compressed_byte_payload
+{
+    uint8 data;
+    count_t<WindowSize> offset;
+}

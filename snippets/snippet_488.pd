@@ -1,0 +1,21 @@
+void lock(index_t<NumMutexes> index)
+    {
+        sim_assert(is_initialized);
+
+        wait([index]()
+        {
+            bool result = false;
+
+            uint1 r = _r[index];
+            uint1 w =  _w[index];
+
+            if (r == w)
+            {
+                w = modular::increment(w);
+                result = true;
+            }
+            _w[index] = w;
+
+            return result;
+        });
+    }

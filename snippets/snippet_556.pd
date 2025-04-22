@@ -1,0 +1,7 @@
+template <auto N>
+inline void stages()
+{
+    static assert(N >= 0);
+
+    static for (const auto i : N) barrier;
+}

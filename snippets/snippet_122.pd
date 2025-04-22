@@ -1,0 +1,1 @@
+template <auto N /*< Array length*/, typename T = index_t<N> /*< Element type*/> inline T[N] indices() { T[N] x;  static for(const auto i : N) { x[i] = i; } return x;}

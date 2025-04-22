@@ -1,0 +1,40 @@
+void lock(rwlock_index_t index, bool is_reader)
+    {
+        sim_assert(_is_initialized);
+
+        wait([index, is_reader]()
+        {
+            bool result = false;
+
+            auto r = _r[index];
+            auto w = _w[index];
+
+            bool no_write_locks = r.num_writers == w.num_writers;
+            count_t<MaxThreads> reader_count = w.num_readers - r.num_readers;
+
+            if (is_reader)
+            {
+                // If not write locked and read locks available
+                if (no_write_locks && (reader_count < MaxThreads))
+                {
+                    w.num_readers = modular::increment(w.num_readers);
+
+                    result = true;
+                }
+            }
+            else
+            {
+                // If not write locked and no read locks
+                if (no_write_locks && (reader_count == 0))
+                {
+                    w.num_writers = modular::increment(w.num_writers);
+
+                    result = true;
+                }
+            }
+
+            _w[index] = w;
+
+            return result;
+        });
+    }

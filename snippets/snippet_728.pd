@@ -1,0 +1,9 @@
+template
+< typename Key          //< The type of key for looking up a value in the cache.
+, typename Value        //< The type of value stored in the cache.
+, typename LUtime       //< The type to use for storing the time a cache entry was most recently used.
+// Using a wider type makes LRU eviction more accurate for a set associative
+// cache, but for a direct cache where LRU does not apply, using uint1 saves space.
+, auto Associativity    //< The number of entries to store for a given hash value.  Use 1 to create a directly mapped cache.
+, auto Depth            //< The total number of entries to cache.  Must be a multiple of `Associativity`.
+>

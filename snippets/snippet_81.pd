@@ -1,0 +1,1 @@
+template <auto N, typename T> inline bool[N] mask_greater_equal(T arg) { sim_assert(arg <= N); return reinterpret_cast<bool[N]>(static((1 << N) - 1) << arg); }

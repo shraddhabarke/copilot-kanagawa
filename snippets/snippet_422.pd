@@ -1,0 +1,5 @@
+inline bool isnan(bfloat16 x)
+{
+    const auto flags = getSpecialCases<Denorm::On>(cast<bfloat16PackedFormat>(x));
+    return flags.nan;
+}

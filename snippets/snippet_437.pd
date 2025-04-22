@@ -1,0 +1,100 @@
+inline bfloat16 invsqrt(bfloat16 val)
+{
+    const bfloat16PackedFormat in = cast<bfloat16PackedFormat>(val);
+
+    const uint14[4] C0_evenexp = { 8191, 7327, 6689, 6192 };
+    const uint10[4] C1_evenexp = { 1008, 725, 553, 439 }; // Actual C1 coefficients are negative - handled in quadratic calculation below
+    const uint8[4]  C2_evenexp = { 145, 87, 57, 39 };
+
+    const uint13[4] C0_oddexp = { 5792, 5181, 4730, 4379 };
+    const uint10[4] C1_oddexp = { 712, 512, 391, 311 };  // Actual C1 coefficients are negative - handled in quadratic calculation below
+    const uint7[4]  C2_oddexp = { 101, 61, 40, 28 };
+
+    bool sign = in.sign != 0;
+    bool even_exp = cast<uint1>(in.exponent) == 1; // Even because after you subtract the bias (127) it will be an even number
+
+    uint14 c0;
+    uint10 c1;
+    uint8 c2;
+    uint6 x;
+
+    auto flags = getSpecialCases<Denorm::Off>(in);
+
+    if (!(flags.zero || flags.nan || sign))
+    {
+        uint2 index = in.mantissa >> 5;
+        x = (in.mantissa & 0x1F) << 1;
+
+        if (even_exp)
+        {
+            c0 = C0_evenexp[index];
+            c1 = C1_evenexp[index];
+            c2 = C2_evenexp[index];
+        }
+        else
+        {
+            c0 = C0_oddexp[index];
+            c1 = C1_oddexp[index];
+            c2 = C2_oddexp[index];
+        }
+    }
+
+    bfloat16PackedFormat r_val;
+    r_val.sign = 0;
+    uint7 mantissa_bypass;
+    bool bypass = false;
+
+    // Compute _exp on the side and special cases that must be bypassed
+    if (flags.zero)
+    {
+        // 0 -> +Inf
+        bypass = true;
+        mantissa_bypass = 0;
+        r_val.exponent = 0xff;
+    }
+    else if (sign)
+    {
+        // Negative, non-zero input -> NaN
+        bypass          = true;
+        mantissa_bypass = 0x7f;
+        r_val.exponent  = 0xff;
+    }
+    else if (flags.inf)
+    {
+        // Positive, infinite input -> zero
+        bypass          = true;
+        mantissa_bypass = 0;
+        r_val.exponent  = 0;
+    }
+    else if (flags.nan)
+    {
+        // NaN -> NaN
+        bypass          = true;
+        mantissa_bypass = in.mantissa;
+        r_val.exponent  = in.exponent;
+    }
+    else
+    {
+        if (even_exp)
+        {
+            // Result exponent is -E/2 - 1
+            r_val.exponent = 127 - in.exponent/2 + 62;
+        }
+        else
+        {
+            // Result exponent is -(E+1)/2
+            r_val.exponent = 127 - in.exponent/2 + 63;
+        }
+    }
+
+    // Quadratic approximation
+    uint16 constant_term = c0 << 2;
+    uint12 linear_term = (c1 * x) >> 4;
+    uint6 x_squared = ((x * x) >> 6);
+    uint10 quadratic_term = (c2 * x_squared) >> 4;
+    uint7 mantissa = (constant_term - linear_term + quadratic_term) >> 7;
+
+    r_val.mantissa = bypass ? mantissa_bypass : mantissa;
+
+    return cast<bfloat16>(r_val);
+}

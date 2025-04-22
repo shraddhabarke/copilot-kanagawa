@@ -1,0 +1,26 @@
+inline void print_trace(auto hid, auto pc, auto instr, Decoded decoded, optional<int32> value)
+{
+    atomic
+    {
+        print(hid, "0x");
+        print_hex(cast<uint32>(pc << 2));
+        print(":\t");
+        print_hex(instr);
+        print("\t");
+        print_disasm(cast<uint32>(pc << 2), instr, decoded);
+        if (value.is_valid)
+        {
+            if (decoded.format.rd.is_valid)
+            {
+                print("\t");
+                print_reg(decoded.format.rd.value);
+                print(" <-", value.value);
+            }
+            else if (decoded.store)
+            {
+                print("\tmem <-", value.value);
+            }
+        }
+        print("\n");
+    }
+}

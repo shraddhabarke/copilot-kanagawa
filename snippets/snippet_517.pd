@@ -1,0 +1,133 @@
+template <auto Width, auto MaxLength, auto WindowSize, auto DictAssociativity>
+inline ChooseMatchCallbackOutput<Width, MaxLength, WindowSize>
+    default_choose_match_callback_log2(ChooseMatchCallbackInput<Width, MaxLength, WindowSize, DictAssociativity> input)
+{
+    using reference_t = reference<WindowSize, MaxLength>;
+
+    inline optional<reference_t> longest_reference(optional<reference_t> lhs, optional<reference_t> rhs)
+    {
+        optional<reference_t> r;
+        if (lhs.is_valid && rhs.is_valid)
+            r = (lhs.value.length >= rhs.value.length ? lhs : rhs);
+        else if (lhs.is_valid)
+            r = lhs;
+        else
+            r = rhs;
+        return r;
+    }
+
+    struct reference_chain
+    {
+        index_t<Width + MaxLength> totalLength;
+        bool[Width] newRef;
+    };
+    reference_chain[Width] referenceChains;
+
+    reference_t[Width] longest;
+    static for(const auto pos : Width)
+    {
+        // Extract the longest back reference out of all candidates at this position
+        auto l = reduce(longest_reference, input.candidates[pos]);
+        // If no back reference found, signal a literal with offset = 0 and length = 1
+        longest[pos] = (l.is_valid ? l.value : { 0 /* offset */ , 1 /* length */});
+
+        // Initialise the reference chains with this longest reference
+        referenceChains[pos].totalLength = longest[pos].length;
+        referenceChains[pos].newRef[pos] = true;
+    }
+
+    // Iteratively build up a chain of references (or literals represented by 1 byte refs)
+    // in a way that avoids data dependencies.
+    // Each pass through the outer loop combines existing references with those immediately
+    // after it until the entire word is covered.
+    // The inner loop has no loop carried dependencies.
+    const auto MinChainLength = 1;
+    static for (const auto iteration : clog2(Width))
+    {
+        auto newChains = referenceChains;
+
+        static for (const auto offset : Width)
+        {
+            auto newChain = referenceChains[offset];
+
+            auto nextOffset = offset + newChain.totalLength;
+            // References must have a non-zero length and thus those within the last
+            // (MinChainLength << iteration) bytes do not need to be considered for further chaining
+            if (static(offset < Width - (MinChainLength << iteration)) && nextOffset < Width)
+            {
+                // This chain does not yet span the entire word. Combine it with the next chain.
+
+                auto nextChain = referenceChains[nextOffset];
+                newChain.totalLength += nextChain.totalLength;
+                auto mask = mask_greater_equal<Width>(nextOffset);
+                static for(const auto i : Width)
+                {
+                    // Check that no new references started before offset, and also that no new
+                    // references exists after the end of the next chain
+                    if (static(i < offset) || mask[i])
+                        sim_assert(!newChain.newRef[i]);
+                    if (static(i >= offset + MinChainLength))
+                    {
+                        if (mask[i])
+                            newChain.newRef[i] = nextChain.newRef[i];
+                    }
+                }
+            }
+
+            newChains[offset] = newChain;
+        }
+
+        referenceChains = newChains;
+    }
+
+    index_t<MaxLength>[Width] nextMasks;
+    static for(const auto pos : Width)
+    {
+        auto totalLength = referenceChains[pos].totalLength;
+        auto nextMask = pos + totalLength - Width;
+        sim_assert(nextMask >= 0);
+        nextMasks[pos] = nextMask;
+    }
+
+    index_t<MaxLength> snappedLastMask;
+    auto last = (input.size == 0);
+    atomic
+    {
+        static index_t<MaxLength> _lastMask = 0;
+        snappedLastMask = _lastMask;
+        if (last)
+            _lastMask = 0; // Reset to zero for next time round
+        else if (_lastMask >= Width)
+            _lastMask -= Width; // A reference from a prior word has masked out this entire word
+        else
+            _lastMask = nextMasks[snappedLastMask];
+    }
+
+    auto chain = referenceChains[snappedLastMask];
+
+    using token_t = token<WindowSize, MaxLength>;
+    optional<token_t>[Width] result;
+    auto totalBytesFromStart = chain.totalLength + snappedLastMask;
+    auto mask = mask_less_than<Width>(input.size);
+    static for(const auto pos : Width)
+    {
+        // Valid reference only if not masked out by a previous word or by other references
+        // in this same word
+        result[pos].is_valid = (snappedLastMask < Width && chain.newRef[pos]);
+
+        if (longest[pos].length == 1)
+        {
+            result[pos].is_valid &&= mask[pos];
+            result[pos].value.kind = input_kind::data;
+            result[pos].value.payload.data = input.literals[pos];
+        }
+        else
+        {
+            result[pos].value.kind = input_kind::reference;
+            result[pos].value.payload.reference.offset = longest[pos].offset;
+            result[pos].value.payload.reference.length = longest[pos].length;
+        }
+    }
+
+    return result;
+}

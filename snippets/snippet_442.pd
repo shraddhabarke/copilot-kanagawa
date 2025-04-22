@@ -1,0 +1,21 @@
+template <auto N = 1>
+    inline word_t read(addr_t addr)
+    {
+        static assert((N & (N - 1)) == 0);
+        static assert((WordSize / N) * N == WordSize);
+        sim_assert((addr & (N - 1)) == 0);
+
+        word_t per_bank_value;
+
+        // read per-channel data into local array
+        static for(const auto i : WordSize)
+        {
+            const auto offset = checked_cast<element_index_t>((WordSize - i) - 1);
+
+            per_bank_value[i] = mem[i][(addr + offset) / WordSize];
+        }
+
+        // rotate
+        const auto rotate_amount = cast<index_t<WordSize / N>>(addr / N);
+        return cast<word_t>(rotate_array_right<WordSize / N>(cast<T[WordSize / N][N]>(per_bank_value), rotate_amount));
+    }

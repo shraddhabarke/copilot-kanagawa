@@ -1,0 +1,11 @@
+template <typename T, auto N /*< Maximum size.*/>
+struct vector
+{
+    T[N] data;
+    count_t<N> size;
+}
+template <typename T, auto N>
+inline vector<T, N> from_array(T[N] a)
+{
+    return {a, N};
+}

@@ -1,0 +1,11 @@
+text_t run(text_t plaintext, optional<key_t> key, iv_t iv)
+    {
+        // Get initialization vector
+        text_t initialization_vector = cast<text_t>(_get_and_increment_iv(key.is_valid, iv));
+        // Encrypt initialization vector
+        text_t encrypted_iv = _aes_ecb.encrypt(initialization_vector, false, key.is_valid, key.value);
+        // XOR with plaintext
+        text_t ciphertext = plaintext ^ encrypted_iv;
+
+        return key.is_valid ? 0 : ciphertext;
+    }

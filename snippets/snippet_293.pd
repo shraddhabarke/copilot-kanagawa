@@ -1,0 +1,9 @@
+template <typename T>
+inline T checked_cast(auto x)
+{
+    auto y = cast<T>(x);
+
+    sim_assert(y == x);
+
+    return y;
+}

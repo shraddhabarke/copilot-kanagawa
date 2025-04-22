@@ -1,0 +1,10 @@
+template<auto Width>
+class saturating_counter
+{
+public:
+    using count_t=uint<Width>;
+
+private:
+    count_t _count = 0;
+
+public:

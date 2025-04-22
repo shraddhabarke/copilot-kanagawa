@@ -1,0 +1,15 @@
+inline T read(element_index_t index)
+    {
+        // Read from all memory banks
+        T[WritePorts] read_results;
+
+        static for (const auto i : WritePorts)
+        {
+            read_results[i] = _memories[i][index];
+        }
+
+        // The value in the most recently written bank gets returned.
+        port_index_t which_port = _which_port[index];
+
+        return read_results[which_port];
+    }

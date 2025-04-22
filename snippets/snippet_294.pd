@@ -1,0 +1,9 @@
+template<typename To, typename From>
+inline optional<To> safe_cast(From input)
+{
+    To result = cast<To>(input);
+
+    bool castWasSafe = (cast<From>(result) == input);
+
+    return make_optional<To>(castWasSafe, result);
+}

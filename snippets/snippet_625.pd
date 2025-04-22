@@ -1,0 +1,11 @@
+inline void print_memory_map()
+    {
+        T::print_memory_map<
+            IMEM_LENGTH,
+            DMEM_LENGTH,
+            MMIO_LENGTH,
+            IMEM_ORIGIN,
+            DMEM_ORIGIN,
+            MMIO_ORIGIN,
+            IMEM_TCM_SIZE>();
+    }

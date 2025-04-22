@@ -1,0 +1,4 @@
+array_t dequeue()
+    {
+        return dequeue_and_discard(0);
+    }

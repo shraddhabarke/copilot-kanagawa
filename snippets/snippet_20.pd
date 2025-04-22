@@ -1,0 +1,5 @@
+template <typename T, auto N>
+inline vector<optional<T>, N> unique(vector<T, N> v)
+{
+    return unique_by(Ord::equal, v);
+}

@@ -1,0 +1,4 @@
+inline count_t<Size> count(fifo_idx_t which)
+    {
+        return _readSemaphore.count(which);
+    }

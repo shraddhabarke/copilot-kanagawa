@@ -1,0 +1,1 @@
+template <typename S, typename T, auto N> inline auto zip_with((S, T) -> auto f, S[N] x, T[N] y) { using result_t = decltype(f(x[0], y[0]));  result_t[N] r;  static for(const auto i : N) { r[i] = f(x[i], y[i]); }     return r;}

@@ -1,0 +1,27 @@
+template <typename R, typename T, auto N>
+inline vector<R, N> inclusive_scan(vector<T, N> input, (R, R) -> R AssociativeFn)
+{
+    R[2][N] results;
+    static for (const auto i : N)
+    {
+        results[0][i] = cast<R>(input.data[i]);
+    }
+    static for (const auto j : clog2(N))
+    {
+        const uint1 prev_index = j % 2;
+        const uint1 next_index = (j + 1) % 2;
+        static for (const auto i : N)
+            if (i < input.size)
+            {
+                const auto shifted_by_j = 1 << j;
+                if (i < shifted_by_j)
+                    results[next_index][i] = results[prev_index][i];
+                else
+                {
+                    const auto idx = i - shifted_by_j;
+                    results[next_index][i] = AssociativeFn(results[prev_index][i], results[prev_index][idx]);
+                }
+            }
+    }
+    return {results[clog2(N) % 2], input.size};
+}

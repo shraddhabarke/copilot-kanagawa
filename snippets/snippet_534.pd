@@ -1,0 +1,33 @@
+template<typename T>
+    T decrypt(T ciphertext, bool use_new_key, bool store_key, key_t new_key)
+    {
+        static assert(bitsizeof(T) >= bitsizeof(text_t));
+        static assert(bitsizeof(T) % bitsizeof(text_t) == 0);
+        const auto N = bitsizeof(T) / bitsizeof(text_t);
+
+        key_t snapped_key = new_key;
+        atomic
+        {
+            static key_t key;
+            if (store_key)
+            {
+                key = new_key;
+            }
+            if (!use_new_key && !store_key)
+            {
+                // Use stored key
+                snapped_key = key;
+            }
+        }
+
+        // Generate new round keys
+        auto expanded_keys = _expand_keys(snapped_key);
+        // Perform decryption
+        text_t[N] ciphertext_array = cast<text_t[N]>(ciphertext);
+        text_t[N] plaintext;
+        static for (const auto i : N)
+        {
+            plaintext[i] = _decrypt_with_expanded_keys(ciphertext_array[i], expanded_keys);
+        }
+        return cast<T>(plaintext);
+    }

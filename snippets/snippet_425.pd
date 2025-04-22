@@ -1,0 +1,5 @@
+template<Denorm denorm_mode>
+inline bfloat16 min(bfloat16 x, bfloat16 y)
+{
+    return (isnan(y) || lt<denorm_mode>(x, y)) ? x : y;
+}

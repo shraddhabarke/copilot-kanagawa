@@ -1,0 +1,11 @@
+uint32 numIter;
+pipelined_for(numIter, [](uint32 tid) {
+    uint32 x = tid;
+    if ((tid & 1) == 1) {
+        x++;
+        x = x * 5;
+        // many more operators on x
+    }
+    x = x - tid;
+    println(x);
+});

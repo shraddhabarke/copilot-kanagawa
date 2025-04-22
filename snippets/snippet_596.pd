@@ -1,0 +1,36 @@
+
+state_t[StateCount] updates = speculate_updates([input, table_elements](index_t<StateCount> vertex_id)
+        {
+            // Determine how the inputs will affect state
+            // if the NFA state before processing those inputs
+            // has `vertex_id` enabled.
+           state_t curr_state = binary_to_one_hot<StateCount>(vertex_id);
+           static for (const auto input_element_index : InputWidth)
+           {
+               if (input_element_index < input.size) {
+                state_t updated_state = {};
+                table_element_t table_element = table_elements[input_element_index];
+                static for (const auto src_vertex : StateCount)
+                {
+                    if (curr_state[src_vertex]) 
+                    { 
+                        out_edges_t out_edges = table_element[src_vertex];
+                        static for (const auto dst_vertex : StateCount)
+                        {
+                            // Reduce resource consumption by only checking 
+                            // updates which are deemed possible by the MaxBackwardJump and MaxForwardJump parameters 
+                            if (static((dst_vertex == src_vertex) || 
+                                       ((dst_vertex < src_vertex) && ((src_vertex - dst_vertex) <= (MaxBackwardJump * (input_element_index + 1)))) || 
+                                       ((dst_vertex > src_vertex) && ((dst_vertex - src_vertex) <= (MaxForwardJump * (input_element_index + 1)))))) 
+                            { 
+                                static for (const auto out_edge_index : MaxOutDegree) 
+                                { 
+                                    if (out_edge_index < out_edges.size) 
+                                    { 
+                                        vertex_t out_vertex = out_edges.data[out_edge_index];
+                                        if (out_vertex == dst_vertex) {
+                                            updated_state[dst_vertex] = true;  
+                                        } } } } } } }  
+                curr_state = updated_state; } }
+        return curr_state;    },
+    {});

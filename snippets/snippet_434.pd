@@ -1,0 +1,69 @@
+inline bfloat16 rcp(bfloat16 val)
+{
+    const bfloat16PackedFormat in = cast<bfloat16PackedFormat>(val);
+
+    const uint13[4] C0 = {8189, 6552, 5461, 4681};
+    const uint12[4]  C1 = {1999, 1289, 899, 662}; // C1 is actually (always) negative, but this is handled below in calculation of linear_term
+    const uint9[4]  C2 = {366, 199, 120, 77};
+
+    bool sign = in.sign != 0;
+
+    bfloat16PackedFormat r_val;
+    r_val.sign = in.sign;
+
+    // Get coefficients for quadratic calculation below
+
+    uint6 x;
+    uint13 c0;
+    uint12 c1;
+    uint9 c2;
+
+    auto flags = getSpecialCases<Denorm::Off>(in);
+
+    if (!(flags.zero || flags.nan))
+    {
+        uint2 index = in.mantissa >> 5;
+        x = (in.mantissa & 0x1F) << 1;
+
+        c0 = C0[index];
+        c1 = C1[index];
+        c2 = C2[index];
+    }
+
+    // Handle special cases and compute the exponent
+    bool bypass = in.mantissa == 0 || in.exponent >= 253;
+
+    uint7 mantissa_bypass = 0;
+
+    r_val.exponent = (in.exponent > 253 || (in.exponent == 253 && in.mantissa != 0)) ? 0 : ((in.mantissa == 0 ? 254 : 253) - in.exponent);
+
+    if (flags.zero)
+    {
+        r_val.exponent = 0xff;
+        mantissa_bypass = 0x00;
+        bypass          = true;
+    }
+    else if (flags.nan)
+    {
+        r_val.exponent = in.exponent;
+        mantissa_bypass = in.mantissa;
+        bypass          = true;
+    }
+    else if (flags.inf)
+    {
+        r_val.exponent      = 0x00;
+        mantissa_bypass = 0x00;
+        bypass          = true;
+    }
+
+    int15 constant_term = (c0 << 2);
+    int15 linear_term = -((c1 * x) >> 4);
+    uint6 x_squared = ((x * x) >> 6);
+    int15 quadratic_term = (c2 * x_squared) >> 4;
+
+    uint7 mantissa = (constant_term + linear_term + quadratic_term) >> 7;
+
+    r_val.mantissa = bypass ? mantissa_bypass : mantissa;
+
+    return cast<bfloat16>(r_val);
+}

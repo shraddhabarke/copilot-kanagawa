@@ -1,0 +1,27 @@
+inline float32 logb(float32 x)
+{
+    const auto s = cast<float32PackedFormat>(x);
+    const specialCaseFlags flags = getSpecialCases<Denorm::On>(s);
+    const bool isDenorm = (s.exponent == 0) && !flags.zero;
+    const auto leadingOne = highest_one<uint23>(s.mantissa);
+    const int9 value = isDenorm ? (leadingOne.value - 149) : (s.exponent - 127);
+
+    float32 result;
+    if(flags.zero)
+    {
+        result = cast<float32>(float32_constants::NEG_INFINITY);
+    }
+    else if(flags.inf)
+    {
+        result = cast<float32>(cast<uint32>(float32_constants::POS_INFINITY));
+    }
+    else if(flags.nan)
+    {
+        result = x;
+    }
+    else
+    {
+        result = int_to_float<int9, float32, _mantissa_width, _exponent_width, _exponent_bias>(value);
+    }
+    return result;
+}

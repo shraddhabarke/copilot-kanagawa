@@ -1,0 +1,7 @@
+template
+    < typename A                    // Type of a.  Must be unsigned.
+    , auto M = (1 << bitsizeof(A))  // Modulus value.
+    >inline auto increment_if(A a, bool b)
+{
+    return add<A, uint1, M>(a, cast<uint1>(b));
+}

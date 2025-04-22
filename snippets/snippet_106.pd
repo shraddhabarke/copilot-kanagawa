@@ -1,0 +1,2 @@
+inline T[M] shift_array_right(T[N] data, U amount) { // Require U be unsigned
+ static assert(cast<U>(-1) > 0);  T[M] out; const auto Size = 1 << bitsizeof(U); static for(const auto i : M) { T[Size] data_i; static for(const auto j : Size) if (i + j < N) data_i[j] = data[i + j]; out[i] = data_i[amount]; } return out;}

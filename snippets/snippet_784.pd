@@ -1,0 +1,8 @@
+// This variable is shared among threads
+static uint32 res = 0;
+// Only 1 thread allowed in this block at a time
+[[schedule(1)]] {
+    // Read-modify-write the shared variable
+    uint32 sum = res + 2;s
+    res = sum * 6;
+}

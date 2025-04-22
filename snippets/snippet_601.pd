@@ -1,0 +1,26 @@
+    void write
+    ( Key key                           //< Key to lookup.
+    , set_index_t set_index             //< Hashed value of `key`.
+    , optional<Word>[WordCount] words   //< Values to store.
+    ) {
+    // Tag lookup
+    auto tag_result = _tags.get(key, set_index, true);
+    auto data_index = get_data_index(set_index, tag_result.idx);
+    bool hit = tag_result.hit;
+    // Data read-modify-write
+    auto prev = first(_data.atomically(data_index,
+        [words, hit](optional<Word>[WordCount] prev) {
+            return zip_with(
+               [hit](optional<Word> prev, optional<Word> word)
+               {
+                    return make_optional(word.is_valid || (prev.is_valid && hit), word.is_valid ? word.value : prev.value);
+               },
+                prev,
+                 words);
+        }));
+     // Write out evicted cache line
+     if (tag_result.key_to_write.is_valid)
+     {
+          store(tag_result.key_to_write.value, prev);
+     }
+ }

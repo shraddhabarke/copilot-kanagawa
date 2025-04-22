@@ -1,0 +1,10 @@
+struct I_type {
+    Opcode  opcode;
+    Reg     rd;
+    Funct3  funct3;
+    Reg     rs1;
+    uint12  imm_11_0;
+}inline int32 I_immediate(I_type i)
+{
+    return sign_extend(i.imm_11_0);
+}

@@ -1,0 +1,6 @@
+inline bid64_t abs(bid64_t x)
+{
+    auto s = cast<decimal64PackedFormat_t>(x);
+    s.sign = 0;
+    return cast<bid64_t>(s);
+}

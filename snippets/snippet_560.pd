@@ -1,0 +1,8 @@
+template<(tokens_t, count_t<Width>, bool)->void LzToGzCallback,
+         (PrioritizeDictCallbackInput_t) -> PrioritizeDictCallbackOutput_t PrioritizeDictCallback,
+         (ChooseMatchCallbackInput_t) -> ChooseMatchCallbackOutput_t ChooseMatchCallback>
+void push(uint8[Width] word, count_t<Width> size, [[last]] bool last)
+{
+    _crc32 = _crc.compute(0, word, size, false);
+    _lzcomp.push<LzToGzCallback, PrioritizeDictCallback, ChooseMatchCallback>(word, size, last);
+}

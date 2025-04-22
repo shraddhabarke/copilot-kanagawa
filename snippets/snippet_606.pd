@@ -1,0 +1,41 @@
+bool fork() {
+   _finished_count = 0;
+    // begin_strip
+   _finished_count1 = 0;
+    _finished_count2 = 0;
+    // end_strip
+    // Launch fork_outer_thread_count threads
+    pipelined_for(fork_outer_thread_count, [](index_t<fork_outer_thread_count> tid)
+    {
+        // Launch 2 threads
+        async_exec([]()
+        {
+            atomic
+            {
+                _finished_count++;
+                // begin_strip
+                _finished_count1++;
+                // end_strip
+            }
+        });
+        async_exec([]() {
+            atomic {
+                _finished_count++;
+                // begin_strip
+                _finished_count2++;
+                // end_strip
+            } }); });
+    // Wait for all threads calls to complete
+    // A timeout is used to ensure the program doesn't hang, even if there
+    // is a bug
+    bool result = wait_with_timeout(1000, []() { 
+        bool result = _finished_count == (fork_outer_thread_count * 2);
+       // begin_strip
+        // There is a data race when threads write to _finished_count
+        // Instead, use separate variables to be written by each call to async_exec
+        result = (_finished_count1 + _finished_count2) == (fork_outer_thread_count * 2);
+        // end_strip
+        return result;
+    });
+    return result;
+}

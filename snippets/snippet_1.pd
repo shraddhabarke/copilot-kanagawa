@@ -1,0 +1,12 @@
+template <typename T, auto N /*< Maximum size.*/>
+struct vector
+{
+    T[N] data;
+    count_t<N> size;
+}
+
+template <typename T>
+inline vector<T, 1> from_optional(optional<T> o)
+{
+    return {{o.value}, o.is_valid ? 1 : 0};
+}

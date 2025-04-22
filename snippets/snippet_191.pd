@@ -1,0 +1,4 @@
+inline float32 max(float32 x, float32 y)
+{
+    return (isnan(y) || gt<denorm_mode>(x, y)) ? x : y;
+}

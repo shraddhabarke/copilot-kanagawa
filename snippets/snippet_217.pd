@@ -1,0 +1,12 @@
+inline Hash toeplitz_hash(Key key)
+{
+    static toeplitz
+        < 1
+        , bitsizeof Hash
+        , bitsizeof Key
+        , bitsizeof Hash
+        , 0x6D5A1BA6540E36AE7384C94779710E89BAB5778362E9B302C3A2CF202B5615A9DD5E8EF2E2EF40444F7C23BBB76A508BF48BE900D8A33DAE8829FB3C643771A6
+        > _toeplitz;
+
+    return _toeplitz.calc_hash(key);
+}

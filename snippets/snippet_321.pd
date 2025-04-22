@@ -1,0 +1,17 @@
+void record_transition(coverage_row_index_t from_state, coverage_columns_index_t to_state)
+    {
+        if (ENABLE_COVERAGE)
+        {
+            index_t<BRAM_WORD_SIZE> bit_index = to_state;
+            auto word_index = ONE_BRAM_WORD_ROW_PER_ROW 
+                ? from_state 
+                : concat(from_state, cast<bram_word_index_t>(to_state >> BRAM_WORD_SIZE_LOG_2));
+                //_detected_transitions[concat(from_state, biu.indices.word_index)].bits[bit_index] = 1;
+            atomic
+            {
+                bram_word w = _detected_transitions[word_index];
+                w.bits[bit_index] = 1;
+                _detected_transitions[word_index] = w;
+            }
+        }
+    }

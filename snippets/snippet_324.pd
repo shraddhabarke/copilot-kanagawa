@@ -1,0 +1,4 @@
+inline bool is_stack_empty(result_t parse_result)
+    {
+        return parse_result.parser_state.stack.depth == 0;
+    }

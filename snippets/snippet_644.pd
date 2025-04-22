@@ -1,0 +1,7 @@
+inline void store(Current current, Decoded decoded, Operands in, Results results) { if (decoded.store && !results.mmio) {
+    sim_assert(!decoded.illegal);
+    sim_assert(addr_in_range<DMEM_ORIGIN, DMEM_LENGTH>(results.addr));
+    const auto bytes = checked_cast<dmem_t::byte_count_t>(1 << decoded.instr.mem.size);
+    dmem_write(current.hid, cast<dmem_addr_t>(results.addr), in.rs2, bytes);
+}
+}

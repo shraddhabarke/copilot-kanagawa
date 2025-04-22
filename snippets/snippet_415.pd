@@ -1,0 +1,5 @@
+template <Denorm denorm_mode>
+inline bfloat16 sub(bfloat16 in1, bfloat16 in2)
+{
+    return add<denorm_mode>(in1, neg(in2));
+}

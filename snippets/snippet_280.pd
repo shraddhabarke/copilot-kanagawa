@@ -1,0 +1,63 @@
+inline pair<T, T>[N] atomically_vec
+        ( optional<addr_t>[N] addresses    //< Addresses of the element to access.
+        , (T, index_t<N>)->T modify        //< Function that accepts the value of an element read from the memory
+                                           //  and an index of an element of the addresses array.
+                                           //  This function returns a value to write into the memory at the same address.
+        )
+    {
+        // Determine the number of request for each bank.
+        // Banks parameter explicitly specified to support the case where Banks = 1.
+        // In this case, the number of banks cannoted be deduced from the return type of address_to_bank_index.
+        auto per_bank_request_count = write_requests_per_bank<Banks>(addresses, address_to_bank_index);
+
+        // Determine the maximum number of reads for any single bank
+        count_t<N> thread_count = maximum(per_bank_request_count);
+
+        return pipelined_last(thread_count, [modify, addresses](index_t<N> tid) -> pair<T, T>[N]
+        {
+            // Determine addresses and banks to access on this iteration
+            auto schedule = schedule_write_requests(
+                addresses,
+                address_to_bank_index,
+                tid);
+
+            optional<pair<T, T>>[N] this_iteration_result;
+
+            static for (const auto i : Banks)
+            {
+                optional<index_t<N>> schedule_entry = schedule[i];
+
+                if (schedule_entry.is_valid)
+                {
+                    index_t<N> address_index = schedule_entry.value;
+
+                    sim_assert(addresses[address_index].is_valid);
+
+                    addr_t addr = addresses[address_index].value;
+
+                    auto decomposed_addr = decompose_address(addr);
+
+                    sim_assert(decomposed_addr.first == i);
+
+                    pair<T, T> this_bank_result;
+
+                    [[schedule(BankUpdateRate)]]
+                    {
+                        this_bank_result.first = _memories[i][decomposed_addr.second];
+
+                        this_bank_result.second = modify(this_bank_result.first, address_index);
+
+                        _memories[i][decomposed_addr.second] = this_bank_result.second;
+                    }
+
+                    this_iteration_result[address_index] = make_optional(true, this_bank_result);
+                }
+            }
+
+            // Combine results across iterations
+            return second(sync::atomically([this_iteration_result](pair<T, T>[N] prev)
+            {
+                return zip_with(from_optional<pair<T, T>>, prev, this_iteration_result);
+            }));
+        });
+    }

@@ -1,0 +1,4 @@
+void lock()
+    {
+        wait_for(test_set());
+    }

@@ -1,0 +1,18 @@
+template
+    < auto StateCount                                   //< The number of pre-computed state updates.
+    , typename State                                    //< A type that represent the current state.
+    , typename SpeculativeUpdate                        //< A type that represents a pre-computed update to apply to the state.
+    , typename AggregatedUpdate = SpeculativeUpdate     //< A type that represents an aggregated update to apply to the state.
+    >
+inline auto apply_update
+    ( (SpeculativeUpdate[StateCount], State) -> AggregatedUpdate aggregate  //< Function which computes a final state update to apply,
+                                                                            // based on the current state and an array of pre-computed states updates.
+    , (AggregatedUpdate, State) -> State apply                              //< Function which applies a state update.
+    , SpeculativeUpdate[StateCount] updates                                 //< The array of speculatively pre-computed updates.
+    )
+{
+    return [updates, apply, aggregate](State prev)
+        {
+            return apply(aggregate(updates, prev), prev);
+        };
+}

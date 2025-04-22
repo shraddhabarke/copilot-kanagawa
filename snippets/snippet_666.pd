@@ -1,0 +1,7 @@
+void enqueue_all
+( T[ArraySize] values //< Array of values to store.
+) {
+static for (const auto i : ArraySize) {
+    _fifos[i].enqueue(values[i]);
+}
+}

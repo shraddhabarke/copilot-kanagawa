@@ -1,0 +1,8 @@
+template<auto I, auto F>
+inline fixed<I, F> trunc(fixed<I, F> x)
+{
+    const auto value = x.value;
+    const int<I> i = value >> F;
+    const uint<F> f = value;
+    return { (i + ((i < 0 && f > 0) ? 1 : 0)) << F };
+}

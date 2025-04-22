@@ -1,0 +1,1 @@
+inline bool even(auto a) {    return a % 2 == 0;}

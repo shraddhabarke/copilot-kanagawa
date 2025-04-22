@@ -1,0 +1,14 @@
+inline void write_bit(bit_addr_t addr, bool val)
+{
+    sim_assert(addr < Size);
+    auto decomposed_addr = div_mod(addr, WordWidth);
+    bool[WordWidth] and_mask = replicate<WordWidth>(true);
+    bool[WordWidth] or_mask = replicate<WordWidth>(false);
+    and_mask[decomposed_addr.second] = val;
+    or_mask[decomposed_addr.second] = val;
+    atomic
+    {
+        word_t prev = _mem[decomposed_addr.first];
+        _mem[decomposed_addr.first] = (prev & cast<word_t>(and_mask)) | cast<word_t>(or_mask);
+    }
+}

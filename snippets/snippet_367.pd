@@ -1,0 +1,4 @@
+inline float32 float32_sub_denormoff(float32 in1, float32 in2)
+{
+    return float32_add_denormoff(in1, neg(in2));
+}

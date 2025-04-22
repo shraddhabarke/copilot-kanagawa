@@ -1,0 +1,17 @@
+uint32 sum_pipelined_last()
+{
+    uint32 result = 0;
+    result = pipelined_last(Depth, [](element_index_t i)
+    {
+        const uint32 input = _input_data[i];
+        uint32 result;
+        atomic
+        {
+            static uint32 _sum = 0;
+            _sum += input;
+            result = _sum;
+        }
+        return result;
+    });
+    return result;
+}

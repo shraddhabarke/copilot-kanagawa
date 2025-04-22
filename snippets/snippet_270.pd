@@ -1,0 +1,17 @@
+template <typename T>
+inline auto atomic_wait(() -> T fn)
+{
+    static if (T == bool)
+    {
+        atomic do {} while (!fn())
+    }
+    else
+    {
+        T result;
+        atomic do
+        {
+            result = fn();
+        } while (!result.is_valid)
+        return result.value;
+    }
+}

@@ -1,0 +1,17 @@
+template
+< typename T                                    //< Element type.
+, auto Size                                     //< Number of elements.
+, template <typename, auto> typename Container  //< Template used to store elements.
+, bool ResetWithInitialValues                   //< Reset the container with initial values.
+                                                // If false, then the container will be reset with a `[[reset]]` function.
+>
+class ContainerWrapper {
+private:
+static if (ResetWithInitialValues) {
+    Container<T, Size> _container = {}; }
+else {
+Container<T, Size> _container;
+[[reset]] void reset() {
+pipelined_for (Size, [](index_t<Size> i) {
+    _container[i] = {}; 
+});    }}}}

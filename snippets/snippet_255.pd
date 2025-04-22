@@ -1,0 +1,8 @@
+template <typename T, auto N>
+inline void pipelined_for_each(T[N] arr, (index_t<N>, T) -> void body)
+{
+    pipelined_for(N, [arr, body](index_t<N> i)
+    {
+        body(i, arr[i]);
+    });
+}

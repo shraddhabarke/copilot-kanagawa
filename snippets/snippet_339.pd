@@ -1,0 +1,9 @@
+template< auto Banks, typename Address, auto Addresses   //< Number of addresses processed per call.
+>inline optional<index_t<Addresses>>[Banks] schedule_write_requests
+    ( optional<Address>[Addresses] addresses            //< Input addresses, valid duplicates __not__ allowed.
+    , (Address) -> index_t<Banks> address_to_bank_index //< Map `Address` to bank index.
+    , index_t<Addresses> iteration                      //< Index of bank requests to retrieve from schedule.
+    )
+{
+    return schedule_requests(addresses, address_to_bank_index, iteration);
+}

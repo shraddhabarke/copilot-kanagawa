@@ -1,0 +1,32 @@
+template<auto Width, auto Max>
+inline optional<uint<Width>> add_exactly_internal(decimalParsedValue<Width> a, decimalParsedValue<Width> b)
+{
+    // normalize exponent
+    const auto params = get_normalized_params<Width, decimal<Width>::normalized_width, decimal<Width>::max_valid_exp_diff>(a, b);
+    const auto isLargerA = params.integerA > params.integerB;
+
+    decimalParsedValue<Width> result;
+    uint<decimal<Width>::normalized_width> sum;
+    if(a.sign == b.sign)
+    {
+        sum = params.integerA + params.integerB;
+        result.sign = a.sign;
+    }
+    else
+    {
+        if(isLargerA)
+        {
+            sum = params.integerA - params.integerB;
+            result.sign = (a.sign == 1) ? 1 : 0;
+        }
+        else
+        {
+            sum = params.integerB - params.integerA;
+            result.sign = (b.sign == 1) ? 1 : 0;
+        }
+    }
+    result.integer = cast<decltype(result.integer)>(sum); // sum <= Max check below handles the overflow case
+    result.exponent = params.isMinusOrder ? a.exponent : b.exponent;
+
+    return {(sum <= Max) && params.isLessMaxValidExpDiff, toDecimal<Width>(result)};
+}

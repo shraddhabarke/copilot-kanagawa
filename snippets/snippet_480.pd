@@ -1,0 +1,12 @@
+void post_multiple(sem_idx_t which, sem_ctr_t amount)
+    {
+        // static for needed due to compiler limitation (Task #6239)
+        static for(const auto i : N)
+        {
+            if (i == which)
+            {
+                sim_assert((cast<sem_ctr_t>(_counter[i].count()) + amount) <= M);
+                _counter[i].add(amount);
+            }
+        }
+    }

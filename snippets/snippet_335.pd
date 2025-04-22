@@ -1,0 +1,57 @@
+template<auto Width, auto Max, auto Zero, auto Nan, auto PosInf, auto NegInf>
+inline optional<uint<Width>> dim_exactly_internal(uint<Width> x, uint<Width> y)
+{
+    const auto a = parseDecimalValue<Width>(x);
+    auto b = parseDecimalValue<Width>(y);
+    const auto a_flags = getSpecialCases_internal<Width>(x);
+    const auto b_flags = getSpecialCases_internal<Width>(y);
+
+    optional<uint<Width>> result;
+    if(a_flags.nan || b_flags.nan)
+    {
+        result.is_valid = true;
+        result.value = Nan;
+    }
+    else
+    {
+        if(gt_internal<Width>(x, y))
+        {
+            // substract
+            if (a_flags.inf || b_flags.inf)
+            {
+                result.is_valid = true;
+                if(a_flags.inf && b_flags.inf)
+                {
+                    result.value = (a.sign == b.sign) ? Nan :
+                            (a.sign == 0) ? PosInf : NegInf;
+                }
+                else
+                {
+                    result.value =
+                        ((a.sign == 1 && !b_flags.inf) || (b.sign == 0 && !a_flags.inf)) ? NegInf : PosInf;
+                }
+            }
+            else if(a_flags.zero)
+            {
+                // negate y
+                result.is_valid = true;
+                result.value = y ^ (1 << (Width - 1));
+            }
+            else if(b_flags.zero)
+            {
+                result.is_valid = true;
+                result.value = x;
+            }
+            else
+            {
+                b.sign = ~b.sign;
+                result = add_exactly_internal<Width, Max>(a, b);
+            }
+        }
+        else
+        {
+            result = {true, Zero};
+        }
+    }
+    return result;
+}

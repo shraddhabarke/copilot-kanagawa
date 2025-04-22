@@ -1,0 +1,5 @@
+template<Denorm denorm_mode>
+inline uint64 max(uint64 x, uint64 y)
+{
+    return (isnan(y) || gt<denorm_mode>(x, y)) ? x : y;
+}

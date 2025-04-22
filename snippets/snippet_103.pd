@@ -1,0 +1,32 @@
+template <typename T, auto N>
+inline P::pair<T[N],count_t<N>> gather(bool[N] valids, T[N] data)
+{
+    // Prefix sum to number each valid entry
+    auto valids_prefix_sum = prefix_sum<count_t<N>>(cast<uint1[N]>(valids));
+    // Gather into results array
+    T[N] result;
+    static for (const auto i : N)
+    {
+        // Mark data entries that could be the i-th valid
+        optional<T>[N] finds;
+        static for (const auto j : N)
+        {
+            // Only consider entries that are after i since the (i-1)th
+            // entry of a prefix_sum of a uint1 array cannot exceed i
+            if (j >= i)
+            {
+                // Examine valids_prefix_sum[j-1] for efficiency, with
+                // exception for j == 0
+                if (j == 0)
+                    finds[j] = Opt::make_optional(0 == i, data[j]);
+                else
+                    finds[j] = Opt::make_optional(valids_prefix_sum[j-1] == i, data[j]);
+            }
+        }
+        // Select the last one, since this entry (position i-1) is the one
+        // that causes the next entry (position i) to increment
+        auto find = last_valid<T>(finds);
+        result[i] = find.value;
+    }
+    return P::make_pair(result, valids_prefix_sum[N-1]);
+}

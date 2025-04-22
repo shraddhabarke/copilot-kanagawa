@@ -1,0 +1,1 @@
+inline auto not2((auto, auto) -> bool f) { return compose2(operator_not, f); }

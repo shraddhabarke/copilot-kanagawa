@@ -1,0 +1,5 @@
+template <typename T, auto N, auto M>
+inline bool equal_by((T, T) -> bool equality_fn, vector<T, N> x, vector<T, M> y)
+{
+    return x.size == y.size && and(zip_with(equality_fn, x, y));
+}

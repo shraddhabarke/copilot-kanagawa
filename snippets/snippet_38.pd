@@ -1,0 +1,5 @@
+template <typename R, typename T, auto N>
+inline vector<R, N> prefix_sum(vector<T, N> v)
+{
+    return inclusive_scan(v, add<R, R>);
+}

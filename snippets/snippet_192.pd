@@ -1,0 +1,4 @@
+inline float32 ceil(float32 x)
+{
+    return ceil_internal<float32, _mantissa_width, _exponent_width, _exponent_bias, denorm_mode>(x);
+}

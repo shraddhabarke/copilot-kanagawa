@@ -1,0 +1,51 @@
+inline void write
+(T value                   //< The value to write.
+, bool flush_now           //< If true, the callback will be invoked
+// for any buffered values, even if there
+// are fewer than `BurstSize` values buffered.
+, ( T value                //< The value to write in the callback.
+, burst_count_t index    //< The index of this callback within the burst.
+// Between 0 and `BurstSize` - 1 inclusive.
+, bool is_last           //< True if this is the last value within this
+// burst, false otherwise.
+) -> void write_callback //< The function to call when `BurstSize`
+// entires have been written.
+)
+{
+// Block until the buffer is no longer full.
+_write_semaphore.wait();
+
+pointer_t snapped_producer_index;
+pointer_t snapped_consumer_index;
+count_t<BurstSize> callback_count = 0;
+
+// Get the values of the read and write pointers, increment the write pointer.
+atomic
+{
+snapped_consumer_index = _consumer_index;
+snapped_producer_index = _producer_index;
+_producer_index = modular::increment(_producer_index);
+
+// Note that entries_before_this is deliberately too small to hold a count.  When
+// the producer index wraps around 0 before the consumer index, we rely on this
+// calculation overflowing to produce the correct result.
+pointer_t entries_before_this = snapped_producer_index - snapped_consumer_index;
+
+if (flush_now || (entries_before_this == (BurstSize - 1)))
+{
+// Adding 1 to reflect what the count will be after writing the current value.
+callback_count = entries_before_this + 1;
+
+// By setting the consumer index to the producer index, this thread is
+// "reserving" these values to pass to the callback.  Note that the space
+// is not available in the buffer yet, because the code below has not yet
+// passed the value(s) to the callback.  The _write_semaphore tracks how
+// much room is available in the buffer, and it will be updated after the
+// callback is invoked.
+_consumer_index = _producer_index;
+}
+}
+ // Store the value into the memory.
+ _data[snapped_producer_index] = value;
+ // Invoke the callback if necessary.
+ invoke_callback(callback_count, snapped_consumer_index, callback_count, write_callback);}

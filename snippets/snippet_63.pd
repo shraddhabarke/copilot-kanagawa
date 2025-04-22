@@ -1,0 +1,5 @@
+inline void write_word(word_addr_t addr, word_t word)
+{
+sim_assert(addr < WordCount);
+_mem[addr] = word;
+}

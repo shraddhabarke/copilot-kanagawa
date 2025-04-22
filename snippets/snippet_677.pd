@@ -1,0 +1,13 @@
+inline treeNode_t merge_leaf_leaf() {
+    sim_assert(_leaf[0].is_valid && _leaf[0].value.freq != InvalidLeafFreq);
+    sim_assert(_leaf[1].is_valid && _leaf[1].value.freq != InvalidLeafFreq);
+    sim_assert(_leaf[0].value.freq + _leaf[1].value.freq <= MaxTreeNodeFreq);
+    treeNode_t t;
+    t.left = _leaf[0].value.ptr;
+    t.leftIsLeaf = true;
+    t.right = _leaf[1].value.ptr;
+    t.rightIsLeaf = true;
+    t.freq = _leaf[0].value.freq + _leaf[1].value.freq;
+    _leaf[0].is_valid = false;
+    _leaf[1].is_valid = false;
+    return t;}

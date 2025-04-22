@@ -1,0 +1,18 @@
+inline pair<T, comp_metadata> min_with_metadata
+    ( T a //< The first operand for min
+    , T b //< The second operand for min
+    , comp_metadata prev_metadata //< The incoming metadata
+    )
+{
+    
+    T ret_word = prev_metadata.all_previous_words_eq ?
+                    a < b ? a : b
+                 :  prev_metadata.select_a_words_on_prevnoteq ? a : b;
+    comp_metadata ret_metadata;
+    bool eq_a_b = a == b;
+    ret_metadata.all_previous_words_eq = prev_metadata.all_previous_words_eq && eq_a_b;
+    ret_metadata.select_a_words_on_prevnoteq = !prev_metadata.all_previous_words_eq ?
+                                                     prev_metadata.select_a_words_on_prevnoteq
+                                                :    !eq_a_b ? a < b : prev_metadata.select_a_words_on_prevnoteq;
+    return make_pair(ret_word, ret_metadata);
+}

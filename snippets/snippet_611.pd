@@ -1,0 +1,22 @@
+// Create 512 threads
+pipelined_for(512, [](index_t<512> id) {
+    static mutex _mutex;
+    _mutex.lock();
+    // This counter is used for testing, verifies that 
+    // only 1 thread is between lock/unlock
+    // The counter is initialized to 0
+    static counter<512, 0> _counter;
+    // Increment the counter to 1
+    _counter.increment();
+    // Extend the pipeline depth to enable many threads
+    // in between lock/unlock if there is a bug in the mutex
+    stages<10>();
+    // There should only be 1 thread in between lock/unlock
+    if (1 != _counter.count()) {
+        atomic {
+            _errorCount++;
+        }
+    }
+    _counter.decrement();
+    _mutex.unlock();
+});

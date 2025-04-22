@@ -1,0 +1,29 @@
+template <auto N = 1>
+    inline void write(addr_t addr, word_t value, element_count_t size)
+    {
+        static assert((N & (N - 1)) == 0);
+        static assert((WordSize / N)*N == WordSize);
+        sim_assert((addr & (N - 1)) == 0);
+        sim_assert((size & (N - 1)) == 0);
+
+        // Attach write mask to data elements
+        auto mask = mask_less_than<WordSize / N>(size / N);
+        auto data_with_mask = zip_with(make_optional<T[N]>, mask, cast<T[WordSize / N][N]>(value));
+
+        // Rotate both mask and data
+        const auto rotate_amount = cast<index_t<WordSize / N>>(addr / N);
+        const auto per_bank_data_with_mask = rotate_array_left<WordSize / N>(data_with_mask, rotate_amount);
+
+        static for(const auto i : WordSize / N)
+        {
+            if (per_bank_data_with_mask[i].is_valid)
+            {
+                const auto offset = checked_cast<element_index_t>((WordSize - i * N) - 1);
+
+                static for(const auto j : N)
+                {
+                    mem[i * N + j][(addr + offset) / WordSize] = per_bank_data_with_mask[i].value[j];
+                }
+            }
+        }
+    }

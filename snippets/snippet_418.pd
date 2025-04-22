@@ -1,0 +1,13 @@
+template <auto N /*< Signed integer width*/>
+inline optional<int<N>> to_int(bfloat16 value)
+{
+    auto result = float_to_int<bfloat16, int<N+1>, _mantissa_width, _exponent_width, _exponent_bias>(value);
+    if (result.is_valid)
+    {
+        auto limits = get_limits<int<N>>();
+        if ((result.value < limits.first) || (result.value > limits.second))
+            result.is_valid = false;
+    }
+
+    return make_optional<int<N>>(result.is_valid, cast<int<N>>(result.value));
+}

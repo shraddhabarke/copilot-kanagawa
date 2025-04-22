@@ -1,0 +1,100 @@
+inline void print_disasm(uint32 addr, uint32 binary, Decoded decoded)
+{
+    const auto instr = disasm(decoded);
+    const auto format = disasm_format(instr);
+
+    if (instr != Instruction::UNKNOWN)
+    {
+        print_instr(instr);
+        print("\t");
+    }
+    else
+    {
+        print("0x");
+        print_hex(binary);
+    }
+
+    switch (format)
+    {
+        case DisasmFormat::rd:
+            print_reg(decoded.format.rd.value);
+            break;
+        case DisasmFormat::rd_imm:
+            print_reg(decoded.format.rd.value);
+            print(",");
+            print_imm(decoded.format.imm);
+            break;
+        case DisasmFormat::rd_csr:
+            print_reg(decoded.format.rd.value);
+            print(",");
+            switch (cast<uint12>(decoded.format.imm))
+            {
+                case 0xF14:
+                    print("mhartid");
+                    break;
+
+                default:
+                    print_imm(cast<uint12>(decoded.format.imm));
+                    break;
+            }
+            break;
+        case DisasmFormat::rd_upper_imm:
+            print_reg(decoded.format.rd.value);
+            print(",");
+            print_imm(decoded.format.imm >> 12);
+            break;
+        case DisasmFormat::rd_imm_pc:
+            print_reg(decoded.format.rd.value);
+            print(",");
+            print(addr + decoded.format.imm);
+            break;
+        case DisasmFormat::imm_pc:
+            print(addr + decoded.format.imm);
+            break;
+        case DisasmFormat::rd_rs1_rs2:
+            print_reg(decoded.format.rd.value);
+            print(",");
+            print_reg(decoded.format.rs1.value);
+            print(",");
+            print_reg(decoded.format.rs2.value);
+            break;
+        case DisasmFormat::rd_rs1:
+            print_reg(decoded.format.rd.value);
+            print(",");
+            print_reg(decoded.format.rs1.value);
+            break;
+        case DisasmFormat::rd_rs1_imm:
+            print_reg(decoded.format.rd.value);
+            print(",");
+            print_reg(decoded.format.rs1.value);
+            print(",");
+            print_imm(decoded.format.imm);
+            break;
+        case DisasmFormat::rd_imm_rs1:
+            print_reg(decoded.format.rd.value);
+            print(",");
+            print_imm(decoded.format.imm);
+            print("(");
+            print_reg(decoded.format.rs1.value);
+            print(")");
+            break;
+        case DisasmFormat::rs1:
+            print_reg(decoded.format.rs1.value);
+            break;
+        case DisasmFormat::rs1_rs2_imm:
+            print_reg(decoded.format.rs1.value);
+            print(",");
+            print_reg(decoded.format.rs2.value);
+            print(",");
+            print(addr + decoded.format.imm);
+            break;
+        case DisasmFormat::rs2_imm_rs1:
+            print_reg(decoded.format.rs2.value);
+            print(",");
+            print_imm(decoded.format.imm);
+            print("(");
+            print_reg(decoded.format.rs1.value);
+            print(")");
+            break;
+    }
+}

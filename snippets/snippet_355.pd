@@ -1,0 +1,20 @@
+template<auto I, auto F>
+inline optional<fixed<I, F>> exp(fixed<I, F> x)
+{
+    const auto value = x.value;
+
+    const auto log2eFbit = 38;
+    const auto log2e = 0x5C551D94AE;
+
+    static assert(F + log2eFbit > 19);
+    const auto expFbit = F + log2eFbit - 19;
+    const auto exp = (value * log2e) >> 19;
+
+    const int<I> exponent = exp >> expFbit;
+    const uint<expFbit> fraction = exp;
+
+    const auto fractionExpBit = I + F;
+    const uint<1 + fractionExpBit> fractionExp = exp2_lookup<expFbit, fractionExpBit>(fraction);
+
+    return to_fixed<I, fractionExpBit, F>(exponent, fractionExp);
+}

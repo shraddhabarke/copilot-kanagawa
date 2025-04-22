@@ -1,0 +1,1 @@
+template <typename T, auto N> inline optional<T>[N] unique(T[N] xs) { return unique_by(Ord::equal, xs); }

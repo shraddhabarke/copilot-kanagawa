@@ -1,0 +1,22 @@
+void unlock(rwlock_index_t index, bool is_reader)
+    {
+        sim_assert(_is_initialized);
+
+        atomic
+        {
+            auto r =  _r[index];
+
+            if (is_reader)
+            {
+                // Decrement read lock ptr (by incrementing unlock side ptr) and leave write-lock ptr alone
+                r.num_readers = modular::increment(r.num_readers);
+            }
+            else
+            {
+                // Decrement write lock ptr (by incrementing unlock side ptr) and leave read-lock ptr alone
+                r.num_writers = modular::increment(r.num_writers);
+            }
+
+            _r[index] = r;
+        }
+    }

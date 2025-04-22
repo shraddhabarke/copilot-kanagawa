@@ -1,0 +1,5 @@
+inline bool isinf(bid32_t x)
+{
+    const auto flags = getSpecialCases(x);
+    return flags.inf;
+}

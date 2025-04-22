@@ -1,0 +1,24 @@
+template<auto N>
+uint32 sum_unrolled()
+{
+    static_assert(0 == (Depth % N));
+    uint32 result = 0;
+    result = pipelined_last(Depth / N, [](element_index_t i)
+    {
+        uint32[N] input;
+        static for (const auto j : N)
+        {
+            input[j] = _input_data[i * N + j];
+        }
+        uint32 local_sum = sum<uint32>(input);
+        uint32 result;
+        atomic
+        {
+            static uint32 _sum = 0;
+            _sum += local_sum;
+            result = _sum;
+        }
+        return result;
+    });
+    return result;
+}

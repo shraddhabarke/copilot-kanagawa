@@ -1,0 +1,17 @@
+static assert(KeyWidth >= HashWidth);
+    static assert(PipelineCycles > 0);
+
+private:
+    const auto DataChunkWidth = (DataWidth + PipelineCycles-1) / PipelineCycles; // Width of input data handled per "thread" in [[pipelined]] function _CalcHash
+    const auto TidWidth = (PipelineCycles < 2) ? 1 : clog2(PipelineCycles);
+
+    using Tid_t=uint<TidWidth>;
+    using DataChunk_t=uint<DataChunkWidth>;
+
+    inline Key_t rotate_key_left(Key_t key)
+    {
+        uint1 msb = key >> (KeyWidth-1);
+        uint<KeyWidth-1> lsbs = cast<uint<KeyWidth-1>>(key);
+
+        return concat(lsbs, msb);
+    }

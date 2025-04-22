@@ -1,0 +1,32 @@
+template <typename R, typename T, auto N>
+inline R[N] inclusive_scan(T[N] input, (R, R) -> R AssociativeFn)
+{
+    // Two sets of results are kept - one set from the previous iteration and the other
+    // set is the values to use on the next iteration.  Each pass through the outer for
+    // loop below switches back and forth between which set is for the next versus
+    // previous iteration.  This avoids copying between two arrays after each iteration.
+    R[2][N] results;
+    static for (const auto i : N)
+    {
+        results[0][i] = cast<R>(input[i]);
+    }
+    static for (const auto j : clog2(N))
+    {
+        const uint1 prev_index = j % 2;
+        const uint1 next_index = (j + 1) % 2;
+        static for (const auto i : N)
+        {
+            const auto shifted_by_j = 1 << j;
+            if (i < shifted_by_j)
+            {
+                results[next_index][i] = results[prev_index][i];
+            }
+            else
+            {
+                const auto idx = i - shifted_by_j;
+                results[next_index][i] = AssociativeFn(results[prev_index][i], results[prev_index][idx]);
+            }
+        }
+    }
+    return results[clog2(N) % 2];
+}

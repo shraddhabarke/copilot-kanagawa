@@ -1,0 +1,6 @@
+inline void write_word( word_addr_t address //< Address of word to write.
+, word_t value        //< Value to write.
+)
+{ 
+    write_words<1>({{{address, value}}, 1});
+}

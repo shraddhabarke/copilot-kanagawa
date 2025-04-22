@@ -1,0 +1,47 @@
+inline void insert_header_concurrent(
+    uint8[bytes_per_cycle] input_data, 
+    count_t<bytes_per_cycle> valid_count,
+    optional<header> head,
+    bool end_of_packet,
+    (uint8[bytes_per_cycle], count_t<bytes_per_cycle>, bool)->void output_cb)
+{
+    const auto max_bytes_per_call = bytes_per_cycle + bytesizeof(header);
+    count_t<max_bytes_per_call> total_bytes = valid_count;
+    if (head.is_valid)
+    {
+        total_bytes += bytesizeof(header);
+    }
+    const auto max_threads_per_call = (max_bytes_per_call + max_bytes_per_call - 1) / bytes_per_cycle;
+    count_t<max_threads_per_call> num_threads = (total_bytes + bytes_per_cycle - 1) / bytes_per_cycle;
+
+    pipelined_for(num_threads, [input_data, valid_count, head, end_of_packet, output_cb](index_t<max_threads_per_call> tid)
+    {
+        uint8[bytes_per_cycle] data_to_send;
+        count_t<bytes_per_cycle> byte_count_to_send;
+        bool eop;
+
+        if (head.is_valid && (tid < 2))
+        {
+            switch (tid)
+            {
+            case 0:
+                data_to_send = reinterpret_cast<uint8[bytes_per_cycle]>(head.value.ip);
+                byte_count_to_send = bytesizeof(head.value.ip);
+                break;
+
+            case 1:
+                data_to_send = reinterpret_cast<uint8[bytes_per_cycle]>(head.value.port);
+                byte_count_to_send = bytesizeof(head.value.port);
+                break;
+            }
+            eop = false;
+        }
+        else
+        {
+            data_to_send = input_data;
+            byte_count_to_send = valid_count;
+            eop = end_of_packet;
+        }
+        output_cb(data_to_send, byte_count_to_send, eop);
+    });
+}

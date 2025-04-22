@@ -1,0 +1,7 @@
+template <typename T, auto N>
+inline vector<T, N> pop_back(vector<T, N> v)
+{
+    sim_assert(v.size > 0);
+    v.size--;
+    return v;
+}

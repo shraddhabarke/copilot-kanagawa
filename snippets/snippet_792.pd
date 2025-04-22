@@ -1,0 +1,9 @@
+const auto numIter = 256;pipelined_for(numIter, [numIter](uint32 thread_id) {
+    bool is_first = (thread_id == 0);
+    bool is_last = (thread_id == (numIter - 1));
+    // a bunch of code
+    // is_first and is_last are still valid
+    if (is_last) {
+        println("last thread done");
+    }
+});

@@ -1,0 +1,22 @@
+count_t increment(count_t inc_amount, bool clear_before_inc)
+    {
+        uint<Width+1> new_value;
+        count_t result;
+
+        atomic
+        {
+            result = _count;
+            if (clear_before_inc)
+            {
+                new_value = inc_amount;
+            }
+            else
+            {
+                new_value = min(_count + inc_amount, limits<uint<Width>>::max);
+            }
+
+            _count = cast<count_t>(new_value);
+        }
+
+        return result;
+    }

@@ -1,0 +1,5 @@
+template <typename T, auto N>
+inline vector<T, N> clear(vector<T, N> v)
+{
+    return resize(v, 0);
+}

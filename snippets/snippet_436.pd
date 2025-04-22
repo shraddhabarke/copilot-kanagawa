@@ -1,0 +1,154 @@
+inline bfloat16 log2(bfloat16 val)
+{
+    const bfloat16PackedFormat in = cast<bfloat16PackedFormat>(val);
+    const bool sign = in.sign != 0;
+
+    const uint13[4] C0_nonzero = {0, 1319, 2396, 3307};
+    const int12[4]  C1_nonzero = {1464, 1175, 980, 841};
+    const int9[4]   C2_nonzero = {-147, -98, -69, -52};
+    const uint13[2] C0_zero    = {5907, 4791};
+    const int12[2]  C1_zero    = {-709, -416};
+    const int9[2]   C2_zero    = {76, 34};
+
+    uint13 c0;
+    int12  c1;
+    int9   c2;
+    bool bypass = false;
+    bool zero_postprocess = false;
+    uint8 integer_part = 0;
+    uint7 mantissa_bypass = 0;
+    uint7 x = 0;
+
+    bfloat16PackedFormat r_val;
+    r_val.sign = 0;
+
+    auto flags = getSpecialCases<Denorm::Off>(in);
+
+    if (flags.zero)
+    {
+        // log2(0) = -inf
+        r_val.sign      = 1;
+        bypass          = true;
+        integer_part    = 0xff;
+        mantissa_bypass = 0;
+    }
+    else if (sign)
+    {
+        // log2(-x) = NaN
+        r_val.sign = in.sign;
+        bypass = true;
+        integer_part = 0xff;
+        mantissa_bypass = 0x7f;
+    }
+    else if (flags.inf || flags.nan)
+    {
+        // propagate infinity and NaNs through
+        r_val.sign = in.sign;
+        bypass = true;
+        integer_part = in.exponent;
+        mantissa_bypass = in.mantissa;
+    }
+    else
+    {
+        if (in.exponent >= 127)
+        {
+            integer_part = in.exponent - 127;
+            r_val.sign = 0;
+        }
+        else
+        {
+            integer_part = 127 - in.exponent;
+            r_val.sign = 1;
+        }
+
+        if (in.exponent == 127)
+        {
+            const uint1 index = cast<uint1>(in.mantissa >> 6);
+            c0 = C0_zero[index];
+            c1 = C1_zero[index];
+            c2 = C2_zero[index];
+            x = (in.mantissa & 0x3f) << 1;
+            zero_postprocess = true;
+        }
+        else
+        {
+            const uint2 index = cast<uint2>(in.mantissa >> 5);
+            c0 = C0_nonzero[index];
+            c1 = C1_nonzero[index];
+            c2 = C2_nonzero[index];
+            x = (in.mantissa & 0x1f) << 1;
+        }
+    }
+
+    // Quadratic approximation
+    uint15 accum = c0 << 2;
+
+    uint15 linear_term = ((c1 < 0 ? -c1 : c1) * x) >> 4;
+    accum = (c1 < 0) ? (accum - linear_term) : (accum + linear_term);
+
+    uint10 x_squared_shifted = ((x * x) >> 6);
+    uint15 quadratic_term = ((c2 < 0 ? -c2 : c2) * x_squared_shifted) >> 4;
+
+    accum = (c2 < 0) ? (accum - quadratic_term) : (accum + quadratic_term);
+
+    if (bypass)
+    {
+        r_val.mantissa = mantissa_bypass;
+        r_val.exponent = cast<uint8>(integer_part);
+    }
+    else
+    {
+        uint22 res = 0;
+
+        if (zero_postprocess)
+        {
+            res = (cast<uint9>((accum | 0x4000) >> 6) * in.mantissa) >> 1;
+        }
+        else
+        {
+            if (r_val.sign != 0)
+            {
+                res = (integer_part << 14) - accum;
+            }
+            else
+            {
+                res = (integer_part << 14) + accum;
+            }
+        }
+
+        int8 exp = 0;
+
+        if (res != 0)
+        {
+            auto ho_upper = highest_one(cast<uint8>(res >> 14));
+
+            if (ho_upper.is_valid)
+            {
+                auto rhs = ho_upper.value;
+                exp += rhs;
+                res = res >> rhs;
+            }
+            else
+            {
+                auto ho_lower = highest_one(cast<uint14>(res));
+                if (ho_lower.is_valid)
+                {
+                    uint4 lhs = 14 - ho_lower.value;
+
+                    exp -= lhs;
+                    res = res << lhs;
+                }
+            }
+
+            r_val.mantissa = cast<uint7>(res >> 7);
+            r_val.exponent = 127 + exp;
+        }
+        else
+        {
+            r_val.mantissa = 0;
+            r_val.exponent = 0;
+        }
+    }
+
+    return cast<bfloat16>(r_val);
+}

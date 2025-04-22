@@ -1,0 +1,9 @@
+template <typename T, auto N>
+using memory_ecc_norep = [[memory, non_replicated, ecc(make_ecc<T>)]] T[N];
+
+template <typename T>
+inline optional<T> make_optional_from_ecc_error(bool error, bool valid, T value)
+{
+    sim_assert(valid || error);
+    return make_optional(!error, value);
+}

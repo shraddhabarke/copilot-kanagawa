@@ -1,0 +1,5 @@
+inline T nonblocking_read(addr_t addr /*< Element address.*/)
+    {
+        auto value = _cyclicBuffer.nonblocking_read(addr);
+        return value[0];
+    }

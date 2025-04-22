@@ -1,0 +1,19 @@
+template<Denorm denorm_mode>
+inline float32ExpandedFormat unpackFloat32(float32PackedFormat a)
+{
+    float32ExpandedFormat a_PostUnpack;
+    a_PostUnpack.sign = a.sign;
+
+    if (denorm_mode == Denorm::Off)
+    {
+        a_PostUnpack.exponent = cast<int9>(a.exponent) - 127;
+        a_PostUnpack.mantissa = a.mantissa | 1 << 23;
+    }
+    else
+    {
+        a_PostUnpack.exponent = (a.exponent == 0) ? -126 : cast<int9>(a.exponent) - 127;
+        a_PostUnpack.mantissa = (a.exponent == 0) ? a.mantissa : a.mantissa | (1 << 23);
+    }
+
+    return a_PostUnpack;
+}

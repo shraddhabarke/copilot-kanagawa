@@ -1,0 +1,18 @@
+template <auto MantissaWidth, auto ExponentWidth, Denorm denorm_mode>
+inline specialCaseFlags getSpecialCases_internal(floatPackedFormat<MantissaWidth, ExponentWidth> a)
+{
+    specialCaseFlags flags;
+    auto nonfinite_value = static(cast<uint<ExponentWidth>>((1 << ExponentWidth) - 1));
+    flags.nan = a.exponent == nonfinite_value && a.mantissa != 0;
+    flags.inf = a.exponent == nonfinite_value && a.mantissa == 0;
+    flags.finite = a.exponent != nonfinite_value;
+    if (denorm_mode == Denorm::On)
+    {
+        flags.zero = a.exponent == 0 && a.mantissa == 0;
+    }
+    else
+    {
+        flags.zero = a.exponent == 0;
+    }
+    return flags;
+}

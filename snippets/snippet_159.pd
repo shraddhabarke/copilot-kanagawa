@@ -1,0 +1,11 @@
+template<typename T>
+inline T endian_change(T input)
+{
+    uint8[bytesizeof(T)] inputAsArray = cast<uint8[bytesizeof(T)]>(input);
+    uint8[bytesizeof(T)] result;
+    static for (const auto i : bytesizeof(T))
+    {
+        result[i] = inputAsArray[static(bytesizeof(T) - i - 1)];
+    }
+    return cast<T>(result);
+}

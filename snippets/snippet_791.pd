@@ -1,0 +1,5 @@
+auto numIter = 4;
+// prints: 0, 1, 2, 3
+pipelined_for(numIter, [](uint2 thread_id) {
+    println(thread_id);
+});

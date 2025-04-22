@@ -1,0 +1,8 @@
+inline void dmem_write
+( hart_index_t hid  //< Hart index.
+, uint_t addr       //< DMEM byte address to write to.
+, int_t value       //< Value to write.
+, count_t<4> size   //< Number of bytes of `value` to write.
+) {
+    core.dmem_write(hid, checked_cast<dmem_addr_t>(addr), value, size);
+}

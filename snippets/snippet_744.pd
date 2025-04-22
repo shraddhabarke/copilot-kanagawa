@@ -1,0 +1,57 @@
+template <typename From, typename To>
+inline gearbox_context<From, To> gearbox_with_context
+    ( gearbox_context<From, To> context //< Current state of the conversion.
+    , From input                        //< The value to be converted.
+    , bool start                        //< When `true` indicates that this call
+                                        // is the first of possibly several
+                                        // calls performing the conversion.
+    , bool last                         //< When `true` indicates that this call
+                                        // is processing the last portion of
+                                        // the input.
+    )
+{
+    static assert((bitsizeof To % 8 == 0) && (bitsizeof From % 8 == 0));
+
+    // Ensure a new context on first call
+    gearbox_context<From, To> empty_context = {};
+    context = start ? empty_context : context;
+
+    // Ensure we're not being called too many times.
+    const auto input_buffer_width = bitsizeof(context.u.input_buff) / bitsizeof(From);
+    sim_assert(context.num_input_elements < input_buffer_width);
+
+    if (bitsizeof From > bitsizeof To)
+    {
+        // gearbox_with_context is called a single time,
+        context.u.input_buff[0] = input;
+        context.num_input_elements = 1;
+        context.num_output_elements = bitsizeof(From) / bitsizeof(To);
+        context.num_bytes = bytesizeof(To);
+        context.valid = true;
+    }
+    else if (bitsizeof To > bitsizeof From)
+    {
+        // gearbox_with_context is called multiple times,
+        // once for each of the smaller values
+        context.u.input_buff[context.num_input_elements] = input;
+        ++context.num_input_elements;
+        context.num_bytes += bytesizeof(From);
+        if (context.num_input_elements == input_buffer_width || last == true)
+        {
+            context.num_output_elements = 1;
+            context.valid = true;
+        }
+    }
+    else
+    {
+        // Pass-through
+        // gearbox_with_context is called a single time
+        context.u.output_buff[0] = input;
+        context.num_input_elements = 1;
+        context.num_output_elements = 1;
+        context.num_bytes = bytesizeof(To);
+        context.valid = true;
+    }
+
+    return context;
+}

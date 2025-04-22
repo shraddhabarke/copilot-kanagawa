@@ -1,0 +1,32 @@
+void histogram_vectorized()
+{
+    clear_histogram();
+    pipelined_for(bucket_count, [](sample_t i)
+    {
+        static for (const auto j : 4)
+        {
+            _partial_histograms[j][i] = 0;
+        }
+    });
+    pipelined_for(batch_count, [](vector_index_t i)
+    {
+        batch_t batch = _batches[i];
+        atomic
+        {
+            static for (const auto j : 4)
+            {
+                auto sample = batch[j];
+                _partial_histograms[j][sample] = _partial_histograms[j][sample] + 1;
+            }
+        }
+    });
+    pipelined_for(bucket_count, [](sample_t i)
+    {
+        uint32 sum = 0;
+        static for (const auto j : 4)
+        {
+            sum += _partial_histograms[j][i];
+        }
+        _histogram[i] = sum;
+    });
+}

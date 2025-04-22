@@ -1,0 +1,5 @@
+inline bool isinf(bfloat16 x)
+{
+    const auto flags = getSpecialCases<Denorm::On>(cast<bfloat16PackedFormat>(x));
+    return flags.inf;
+}

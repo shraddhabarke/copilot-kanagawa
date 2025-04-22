@@ -1,0 +1,14 @@
+template <typename Type, auto MantissaWidth, auto ExponentWidth, auto Bias, Denorm DenormMode>
+inline Type trunc_internal(Type x)
+{
+    auto binary = cast<floatPackedFormat<MantissaWidth, ExponentWidth>>(x);
+    const auto sign = binary.sign;
+
+    binary.sign = 0;
+    x = floor_internal<Type, MantissaWidth, ExponentWidth, Bias, DenormMode>(cast<Type>(binary));
+
+    binary = cast<floatPackedFormat<MantissaWidth, ExponentWidth>>(x);
+    binary.sign = sign;
+
+    return cast<Type>(binary);
+}

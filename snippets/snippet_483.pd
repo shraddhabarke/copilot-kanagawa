@@ -1,0 +1,4 @@
+inline bool wait(sem_idx_t which, bool decrement_count)
+    {
+        return wait_helper(which, 1, decrement_count);
+    }

@@ -1,0 +1,5 @@
+template <Denorm denorm_mode>
+inline uint64 sub(uint64 in1, uint64 in2)
+{
+    return add<denorm_mode>(in1, neg(in2));
+}

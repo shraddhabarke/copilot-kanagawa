@@ -1,0 +1,1 @@
+inline auto high_order_bit(auto x) { return cast<uint1>(x >> (bitsizeof x - 1)); }

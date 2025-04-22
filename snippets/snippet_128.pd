@@ -1,0 +1,24 @@
+template <typename T, auto N>
+inline optional<T>[N] unique_by
+    ( (T, T) -> bool equality_fn //< Equality predicate.
+    , T[N] xs
+    )
+{
+    template <auto I>
+    inline optional<T>[N] remove_dups((T, T) -> bool eq_fn, optional<T>[N] ys)
+    {
+        static assert(I < N);
+        static if (I != 0)
+        {
+            bool[I] dups;
+            static for(const auto j : I)
+                dups[j] = eq_fn(ys[j].value, ys[I].value);
+            ys[I].is_valid = !or(dups);
+            return remove_dups<I - 1>(eq_fn, ys);
+        }
+        else
+        {
+            return ys;
+        }
+    }
+    return remove_dups<N - 1>(equality_fn, map(Opt::just, xs)); }

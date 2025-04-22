@@ -1,0 +1,6 @@
+Memory<T, Depth>[WritePorts] _memories;
+    // Track which bank has the most recently written value for each address
+    port_index_t[Depth] _which_port;
+
+public:
+    using element_index_t = index_t<Depth>;

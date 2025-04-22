@@ -1,0 +1,4 @@
+inline bool full()
+    {
+        return _earlyCounter.count() == Size;
+    }

@@ -1,0 +1,8 @@
+inline map_result_t reduce_fn(map_result_t x, map_result_t y){
+    map_result_t output;
+    // Propagate the input_index and done flag based on where the match is found
+    output.done = x.found ? x.done : y.done;
+    output.input_index = x.found ? x.input_index : y.input_index;
+    output.found = x.found || y.found;
+    return output;
+}

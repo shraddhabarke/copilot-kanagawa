@@ -1,0 +1,4 @@
+inline bid64_t max(bid64_t x, bid64_t y)
+{
+    return max_internal<_width, decimal64_constants::DEFAULT_NAN>(x, y);
+}

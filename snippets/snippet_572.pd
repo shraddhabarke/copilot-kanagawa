@@ -1,0 +1,28 @@
+inline void print_memory_map()
+{
+    const auto IMEM_ORIGIN = IMEM_ORIGIN_WORDS << 2;
+    const auto IMEM_LENGTH = IMEM_LENGTH_WORDS << 2;
+    const auto IMEM_TCM_SIZE = IMEM_TCM_SIZE_WORDS << 2;
+
+    sort<IMEM_ORIGIN, DMEM_ORIGIN, MMIO_ORIGIN>(
+        [](optional<uint32> next)
+        {
+            static if (IMEM_TCM_SIZE != IMEM_LENGTH)
+            {
+                box(IMEM_ORIGIN, IMEM_TCM_SIZE, {true, IMEM_ORIGIN + IMEM_TCM_SIZE}, "IMEM TCM");
+                box(IMEM_ORIGIN + IMEM_TCM_SIZE, IMEM_LENGTH - IMEM_TCM_SIZE, next, "IMEM EXT");
+            }
+            else
+            {
+                box(IMEM_ORIGIN, IMEM_LENGTH, next, "  IMEM  ");
+            }
+        },
+        [](optional<uint32> next)
+        {
+            box(DMEM_ORIGIN, DMEM_LENGTH, next, "  DMEM  ");
+        },
+        [](optional<uint32> next)
+        {
+            box(MMIO_ORIGIN, MMIO_LENGTH, next, "  MMIO  ");
+        });
+}

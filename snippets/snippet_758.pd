@@ -1,0 +1,15 @@
+inline extra_bits get_extra_bits_length(index_t<MaxHLIT> symbol){
+    extra_bits result;
+    if (symbol < EndOfBlockSymbol) {
+        result.addend = 0;
+        result.count = 0;
+    }
+    else {
+        sim_assert(symbol < MaxHLIT);
+        auto value = extra_bits_length_table[symbol % 256];
+        result.addend = value.first;
+        result.count = value.second;
+        result.distance_follows = (symbol != EndOfBlockSymbol);  // A distance will follow this length.
+    }
+    return result;
+}

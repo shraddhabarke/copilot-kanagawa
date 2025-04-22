@@ -1,0 +1,62 @@
+inline float32 float32_mul_denormoff(float32 in1, float32 in2)
+{
+    // Unpack input
+    float32PackedFormat a;
+    float32PackedFormat b;
+    a = cast<float32PackedFormat> (in1);
+    b = cast<float32PackedFormat> (in2);
+    float32ExpandedFormat a_PostUnpack = unpackFloat32<Denorm::Off>(a);
+    float32ExpandedFormat b_PostUnpack = unpackFloat32<Denorm::Off>(b);
+
+    //Multiplication
+    float32StickyFormat z_postMultiply;
+    z_postMultiply.sign = a_PostUnpack.sign ^ b_PostUnpack.sign;
+    z_postMultiply.exponent = a_PostUnpack.exponent + b_PostUnpack.exponent + 1;
+
+    uint50 productTemp = cast<uint50>((a_PostUnpack.mantissa * b_PostUnpack.mantissa) << 2);
+    productFormat product;
+    product = cast<productFormat> (productTemp);
+
+    z_postMultiply.mantissaGuardRound = cast<uint26> (product.product << 2);
+    z_postMultiply.mantissaGuardRound |= product.guard << 1;
+    z_postMultiply.mantissaGuardRound |= product.round;
+    z_postMultiply.sticky = cast<uint1> (product.sticky != 0);
+
+    //Output Normalization
+    bool z_denorm = z_postMultiply.exponent < -126 ||
+                    (z_postMultiply.exponent == -126 && ((z_postMultiply.mantissaGuardRound >> 25) & 1) == 0);
+    float32StickyFormat z_postNormalize2 = z_denorm ? normalizeOutput2Zero(z_postMultiply) : multNormalizeOutput1(z_postMultiply);
+
+    //Rounding
+    float32ExpandedFormat z_postRounding;
+
+    bool guard = ((z_postNormalize2.mantissaGuardRound >> 1) & 1) == 1;
+    bool round = (z_postNormalize2.mantissaGuardRound & 1) == 1;
+    bool m0 = ((z_postNormalize2.mantissaGuardRound >> 2) & 1) == 1;
+    bool sticky = z_postNormalize2.sticky == 1;
+
+    bool roundUp = guard && (round || sticky || m0);
+    z_postRounding.mantissa = (z_postNormalize2.mantissaGuardRound >> 2) + cast<uint1>(roundUp);
+    uint1 exp_inc = roundUp && (z_postNormalize2.mantissaGuardRound >> 2 == 0xffffff) ? 1 : 0;
+    z_postRounding.exponent = z_postNormalize2.exponent + exp_inc;
+    z_postRounding.sign = z_postNormalize2.sign;
+
+    //Packing
+    float32PackedFormat zOutput;
+    //Handle special cases
+    specialCaseFlags a_flags = getSpecialCases<Denorm::Off>(a);
+    specialCaseFlags b_flags = getSpecialCases<Denorm::Off>(b);
+
+    bool specialCaseNaN = a_flags.nan || b_flags.nan || (a_flags.inf && b_flags.zero) || (a_flags.zero && b_flags.inf);
+    bool specialCaseZero = a_flags.zero || b_flags.zero;
+    bool specialCaseInf = (a_flags.inf && !b_flags.zero) || (!a_flags.zero && b_flags.inf);
+
+    zOutput.mantissa = specialCaseNaN ? 1 << 22 :
+                        (specialCaseZero || specialCaseInf || (z_postRounding.exponent > 127) ? 0 : z_postRounding.mantissa);
+    zOutput.exponent = (specialCaseNaN || specialCaseInf || (z_postRounding.exponent > 127)) ? 255 :
+                        (specialCaseZero) ? 0 :
+                        z_postRounding.exponent + 127;
+    zOutput.sign = z_postRounding.sign;
+
+    return cast<float32> (zOutput);
+}

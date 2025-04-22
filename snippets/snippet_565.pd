@@ -1,0 +1,7 @@
+tag_t update_status(optional<tag_t> new) {
+    return second(atomically([new](tag_t old) {
+        sim_assert(!(new.is_valid && new.value.unwrap == 0));
+        return new.is_valid ? new.value : old;}));}inline auto status()
+{
+    return unwrap_newtype(update_status({}));
+}

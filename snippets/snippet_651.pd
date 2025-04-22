@@ -1,0 +1,13 @@
+bool _locked = false; // true means locked
+inline bool test_set()
+    {
+        bool result = false;
+
+        if (!_locked)
+        {
+            _locked = true;
+            result = true;
+        }
+
+        return result;
+    }

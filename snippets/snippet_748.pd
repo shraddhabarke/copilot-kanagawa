@@ -1,0 +1,28 @@
+template
+< typename T                  //< Type of each entry of the buffer
+, auto BufferSize             //< Number of elements to buffer.  Must be a
+// power of 2.
+, auto BurstSize = BufferSize //< Number of elements to store before
+// invoking the `write_callbck`.  Must be a
+// power of 2 and `BurstSize` <= `BufferSize`.
+>
+class burst_write_buffer
+{
+public:
+static assert(0 == (BufferSize & (BufferSize - 1))); //< `BufferSize` must be a power of 2.
+static assert(0 == (BurstSize & (BurstSize - 1)));   //< `BurstSize` must be a power of 2.
+static assert(BurstSize <= BufferSize);
+
+using buffer_count_t = count_t<BufferSize>;
+using burst_count_t = count_t<BurstSize>;
+
+private:
+using pointer_t = index_t<BufferSize>;
+pointer_t _producer_index = 0;
+pointer_t _consumer_index = 0;
+
+// Memory that holds the values waiting to be written back
+memory<T, BufferSize> _data;
+
+// Used to block writes while the buffer is full
+semaphore<BufferSize, BufferSize, true> _write_semaphore;

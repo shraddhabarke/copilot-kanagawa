@@ -1,0 +1,4 @@
+inline void write_unlock(rwlock_index_t index)
+    {
+        unlock(index, false);
+    }

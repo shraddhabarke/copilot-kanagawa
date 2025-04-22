@@ -1,0 +1,18 @@
+void free(addr_t addr /*< Element address.*/)
+    {
+        auto wordAddr = addr / WordSize;
+
+        count_t<TotalSize> count;
+        atomic
+        {
+            // Ensure not freeing past written entries
+            sim_assert(wordAddr <= _writeAddr);
+            // Ensure free pointer is not already past requested address
+            sim_assert(wordAddr >= _freeAddr);
+
+            // Determine number of entries to free
+            count = wordAddr - _freeAddr;
+            _freeAddr += count;
+        }
+        _freeCounter.add(count);
+    }

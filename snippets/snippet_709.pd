@@ -1,0 +1,42 @@
+inline Key_t offset_key(Tid_t tid) {
+    const uint<KeyWidth*2> DoubledKey = concat(cast<uint<KeyWidth>>(Key),cast<uint<KeyWidth>>(Key));
+    return cast<Key_t>( DoubledKey >> ((2*KeyWidth - ((DataChunkWidth*tid)%KeyWidth))%KeyWidth) );inline bool bit_at(DataChunk_t data, index_t<DataChunkWidth> pos){
+    return ((data >> pos) & 0x1) != 0; }
+[[pipelined]] Hash_t calc_hash_chunk(Tid_t tid, Data_t data) {
+    // Figure out the starting offset within the key for all threads,
+    // and then select the offset for this thread using the thread id
+    // as an index. We do it this way so that the key is actually
+    // "baked into the LUTs" rather than being implemented as a
+    // separate large register and associated logic.
+    Key_t[PipelineCycles] offsetKeys;
+    static for(const auto i : PipelineCycles) {
+        offsetKeys[i] = offset_key(i);
+    }
+    Key_t offsetKey = offsetKeys[tid];
+    // Extract the portion of the input data we process in this thread
+    // Toeplitz processes high order bits first, so we start with
+    // leftmost bits of data word in tid=0, and move rightwards
+    DataChunk_t dataChunk = extract_data_chunk(data, tid);
+    // Array is rounded up to power of two because of the reduction loop below
+    const auto PartialHashesLength = (1 << clog2(DataChunkWidth));
+    Hash_t[PartialHashesLength] partialHashes;
+    // Use the input data to calculate intermediate values. A one bit in the
+    // input data means we XOR the result (which starts out as zero) with the
+    // left-most bits of the key, a zero value means we do nothing.
+    static for(const auto i : DataChunkWidth)  {
+        if (bit_at(dataChunk, DataChunkWidth-i-1))  {
+            partialHashes[i] = hash_align_and_truncate_key(offsetKey);  }
+        offsetKey = rotate_key_left(offsetKey);
+    }
+    // Now combine the intermediate hash results by XOR-ing them together
+    const auto ReductionTreeDepth = clog2(DataChunkWidth);
+    static for(const auto i : ReductionTreeDepth) {
+        static for(const auto j : PartialHashesLength / 2) {
+            // Binary reduction tree. The hope is the compiler should
+            // convert this to quatenary for us since the FPGA LUTs
+            // support that.
+            partialHashes[j] = partialHashes[2*j] ^ partialHashes[2*j+1];
+        }
+    }
+    return partialHashes[0];
+}

@@ -1,0 +1,2 @@
+template <typename T, auto N>
+using memory_ecc = [[memory, ecc(make_ecc<T>)]] T[N];

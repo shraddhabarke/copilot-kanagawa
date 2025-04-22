@@ -1,0 +1,1 @@
+inline auto bind2nd((auto, auto) -> auto f, auto y) { return apply(curry(flip(f)), y); }

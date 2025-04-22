@@ -1,0 +1,60 @@
+inline complex <NativeDataType> [OutputWordWidth] return_values(thread_addr_t thread_num, primary_output_addr_t address)
+    {
+        sim_assert(thread_num < NumThreads);
+
+        const auto output_word_width_log2 = clog2(OutputWordWidth);
+        complex <NativeDataType> [OutputWordWidth] temp;
+
+        //The processor number and the address are interleaved
+        //There 4 regions of bits:
+        // 1) the lowest _num_proc_log2-output_word_width_log2 bits
+        // 2) the next (_fft_size_log2 - 1 - _num_proc_log2) bits
+        // 3) the next 1 bit
+        // 4) the topmost bits
+        //The base processor number is concat(3, 1) << 2
+        // part1_mask works correctly (i.e. the topmost bits of input_id are removed) because we negate before shifting
+        auto part3_mask = NumProcs >> output_word_width_log2;
+        auto part1_mask = (NumProcs-1) >> output_word_width_log2;
+        auto base_processor_number = (((address >> (_fft_size_log2 - 1 - _num_proc_log2)) & part3_mask) | (address & part1_mask)) << output_word_width_log2;
+        //The address is concat(4, 2)
+        //part4_mask works correctly (i.e. the topmost bits of address are retained) because the cast for _fft_size
+        // makes the mask wide.
+        auto part4_mask = ~((cast<uint32>(_fft_size) >> (_num_proc_log2 + 1))-1);
+        auto part2_mask = ((_fft_size >> (_num_proc_log2 + 1))-1);
+        auto local_address = ((address >> (_num_proc_log2 - 1)) & part4_mask) | ((address >> (_num_proc_log2 - 2)) & part2_mask);
+
+        sim_assert(local_address < _mem_depth);
+
+        //Don't continue until the FFT has completed processing
+        wait_for(_completed_thread[thread_num] == (_num_threads_launched - 1));
+
+        static for (const auto k: NumThreads)
+        {
+            static for (const auto i: NumProcs * 2)
+            {
+                static for (const auto j: OutputWordWidth)
+                {
+                    if(i == base_processor_number + j && k == thread_num)
+                    {
+                        temp[j] =_data_memory[k][i][cast<mem_addr_t>(local_address)];
+                    }
+                    barrier;
+                }
+            }
+        }
+
+        atomic
+        {
+            if(_received_output_transfers[thread_num] == _expected_output_transfers)
+            {
+                _received_output_transfers[thread_num] = 0;
+                _completed_thread[thread_num] = -2;
+            }
+            else
+            {
+                _received_output_transfers[thread_num]++;
+            }
+        }
+
+        return temp;
+    }

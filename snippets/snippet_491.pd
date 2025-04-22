@@ -1,0 +1,15 @@
+inline sem_ctr_t count(sem_idx_t which)
+    {
+        sem_ctr_t result;
+
+        // static for needed due to compiler limitation (Task #6239)
+        static for(const auto i : N)
+        {
+            if (i == which)
+            {
+                result = _counter[i].count();
+            }
+        }
+
+        return result;
+    }

@@ -1,0 +1,5 @@
+template <typename R, typename T, auto N>
+inline R sum(vector<T, N> v)
+{
+    return map_reduce(static_cast<R>, add<R, R>, v);
+}

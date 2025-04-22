@@ -1,0 +1,21 @@
+inline void init_stack_pointers
+     ( uint_t stack_start //< Start address of the stack. Must be 16 byte aligned.
+                          // Since the stack grows down, the starting address usually
+                           // is set to `DMEM_ORIGIN + DMEM_LENGTH - 0x10`
+      , uint_t stack_size  //< Size of the stack for each hart.
+       ) {
+     sim_assert(running == false);
+      static for(const auto hid : HARTS) {
+          // By ABI calling convention stack pointer should be 16 bytes aligned.
+          sim_assert((stack_start & 0xf) == 0);
+          // Don't generate invalid stack pointers
+          sim_assert(stack_start - stack_size >= DMEM_ORIGIN && stack_start < DMEM_ORIGIN + DMEM_LENGTH ||
+                     stack_start - stack_size >= MMIO_ORIGIN && stack_start < MMIO_ORIGIN + MMIO_LENGTH);
+           core.register_set(hid, ABI::sp, cast<int_t>(stack_start));
+           static if ((CONFIG & Option::HartsShareDMEM) == Option::HartsShareDMEM)
+           {
+               // Set a different stack pointer for each hart.
+               stack_start -= stack_size;
+           }
+       }
+    }

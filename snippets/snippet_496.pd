@@ -1,0 +1,5 @@
+template<auto Channel=0>
+phit_100g_t recv_tor_100g()
+{
+    return TOR_100G[Channel].recv();
+}

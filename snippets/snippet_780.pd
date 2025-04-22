@@ -1,0 +1,10 @@
+inline reference_t get_minimum_reference(input_t input) {
+    reference_t sentinal_value = cast<reference_t>(-1);
+    reference_t[Width] references;
+    // "-i" term ensures the result is the offset from the start of the current word
+    static for (const auto i : Width)
+    {
+        references[i] = (input_kind::reference == input[i].kind) ? (input[i].payload.offset - i) : sentinal_value;
+    }
+    return minimum<reference_t, Width>(references);
+}

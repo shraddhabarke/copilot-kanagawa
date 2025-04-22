@@ -1,0 +1,18 @@
+toeplitz<PipelineCycles, Width, Width, KeyWidth, Key> _hash;
+uint<Width> _counter = 1;
+uint<Width> next
+        ( bool set_seed    //< If true, the random number will be seeded with the specified seed.
+        , uint<Width> seed //< The number to seed the random number generator. Ignored if `set_seed` is false.
+        )
+    {
+        uint<Width> counter;
+
+        atomic
+        {
+            counter = set_seed ? seed : _counter;
+
+            _counter = modular::increment(counter);
+        }
+
+        return _hash.calc_hash(counter);
+    }

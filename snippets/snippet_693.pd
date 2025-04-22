@@ -1,0 +1,6 @@
+template<typename T> 
+struct complex
+{
+	T real_part;
+	T imag_part;
+}

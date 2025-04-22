@@ -1,0 +1,35 @@
+count_t<Size> enqueue(T value, bool releaseDeferredDequeues)
+    {
+        // Block until the FIFO is no longer full
+        _writeSemaphore.wait();
+
+        // Get the value of the write pointer then increment the write pointer
+        auto producer_index = first(atomically<pointer_t>(increment));
+
+        // Store the value into the memory
+        _dataMem[producer_index] = value;
+
+        count_t<Size> snappedDeferredDequeueCount;
+        atomic
+        {
+            if (releaseDeferredDequeues)
+            {
+                // Add one to the deferred dequeue count for the value being enqueued now.
+                snappedDeferredDequeueCount = _deferredDequeueCount + 1;
+                _deferredDequeueCount = 0;
+            }
+            else
+            {
+                // Ensure that the increment of _deferredDequeueCount below won't overflow.
+                sim_assert(_deferredDequeueCount < (1 << bitsizeof(count_t<Size>)) - 1);
+
+                snappedDeferredDequeueCount = 0;
+                _deferredDequeueCount++;
+            }
+        }
+
+        // Allow 0 or more threads to to get a value out
+        _readSemaphore.post_multiple(snappedDeferredDequeueCount);
+
+        return snappedDeferredDequeueCount;
+    }

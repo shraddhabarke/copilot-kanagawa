@@ -1,0 +1,5 @@
+template<Denorm denorm_mode>
+inline uint64 floor(uint64 x)
+{
+    return floor_internal<uint64, _mantissa_width, _exponent_width, _exponent_bias, denorm_mode>(x);
+}

@@ -1,0 +1,9 @@
+inline void start
+ ( (Request[N])->Response[N] process_fn   //< Function that processes requests to generate responses.
+ )
+{
+    if (!_once.check())
+    {
+        async_exec([process_fn](){process(process_fn);});
+    }
+}

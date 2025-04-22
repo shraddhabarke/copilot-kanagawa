@@ -1,0 +1,20 @@
+inline void write_aligned(addr_t addr, word_t value)
+    {
+        sim_assert((addr & (WordSize - 1)) == 0);
+
+        auto per_bank_value = cast<T[NumVerticalBanks][BankWordSize]>(value);
+
+        auto word_addr = addr / WordSize;
+        auto mask = reinterpret_cast<bool[NumHorizontalBanks]>(1 << cast<index_t<NumHorizontalBanks>>(word_addr));
+
+        static for(const auto h : NumHorizontalBanks)
+        {
+            if (NumHorizontalBanks == 1 || mask[h])
+            {
+                static for(const auto v : NumVerticalBanks)
+                {
+                    mem[h][v][word_addr / NumHorizontalBanks] = per_bank_value[v];
+                }
+            }
+        }
+    }

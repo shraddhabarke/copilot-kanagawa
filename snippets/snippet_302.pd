@@ -1,0 +1,12 @@
+template<auto Offset = 0>
+inline auto mod(auto numerator, auto denominator)
+{
+    static if(Offset == 0)
+    {
+        return numerator % denominator;
+    }
+    else
+    {
+        return (cast<decltype(numerator)>(numerator - Offset) % denominator) + Offset;
+    }
+}

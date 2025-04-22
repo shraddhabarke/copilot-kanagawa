@@ -1,0 +1,1 @@
+template <typename T> inline T from_optional(T default_value, optional<T> x) { return x.is_valid ? x.value : default_value; }

@@ -1,0 +1,5 @@
+template<auto I, auto F>
+inline optional<fixed<I, F>> log10(fixed<I, F> x)
+{
+    return make_optional(x.value > 0, logbase_calc<1262611>(x));
+}
