@@ -1,3 +1,75 @@
+import .options as opt
+import control.async
+import data.array
+import data.counter
+import data.fifo
+import type.stdtype
+
+//| Spawn `count` threads executing `body`, which can be a lambda or a function
+// taking one argument specifying the thread index from the range [0, `count`).
+//
+// #### __Examples__
+//
+//     pipelined_for(x, [](uint4 i)
+//     {
+//         // ...
+//     });
+//
+//     void foo(uint8 i)
+//     {
+//     }
+//
+//     pipelined_for(256, foo);
+//
+// #### __Hardware__
+//
+// Each call to `pipelined_for` inserts a record into a FIFO. This FIFO holds
+// the thread count and the values of captured variables. A finite state
+// machine translates each FIFO record into `thread_count` calls to the inner
+// function. A separate finite state machine unblocks the calling thread after
+// `thread_count` threads have completed. Unblocking is achieved with a
+// zero-width fifo.
+//
+//     void F(uint32 x, uint32 y)
+//     {
+//         uint32 thread_count = x + 1;
+//
+//         pipelined_for(thread_count, [y](uint32 tid)
+//         {
+//         });
+//     }
+//
+// @@
+//        Entry FIFO
+//   +-------------------+
+//   |                   |
+//   +-------------------+
+//   | "thread_count, y" |
+//   +-------------------+
+//   |                   |
+//   +---------+---------+
+//             |
+// +-----------+-----------+
+// | Thread Generation FSM |
+// +-----------+-----------+
+//             |
+//    +--------+--------+
+//    |  body Pipeline  |
+//    +--------+--------+
+//             |
+// +-----------+-----------+
+// | Thread Collection FSM |
+// +-----------+-----------+
+//             |
+//      +------+------+
+//      |             |
+//      +-------------+
+//      | "width = 0" |
+//      +-------------+
+//      |             |
+//      +-------------+
+//         Exit FIFO
+// @@
 template <typename I>
 inline void pipelined_for(auto count, (I) -> void body)
 {

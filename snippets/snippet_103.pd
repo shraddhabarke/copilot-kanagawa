@@ -1,3 +1,12 @@
+import data.function
+import data.optional as Opt
+import data.order    as Ord
+import data.tuple    as P
+import numeric.int.operator
+import type.coerce
+import type.stdtype
+using array = T[N];
+
 template <typename T, auto N>
 inline P::pair<T[N],count_t<N>> gather(bool[N] valids, T[N] data)
 {

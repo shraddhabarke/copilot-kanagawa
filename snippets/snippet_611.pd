@@ -1,3 +1,13 @@
+class tutorial
+{
+private:
+    uint32 _errorCount;
+
+private:
+    uint32 test_mutex()
+    {
+        _errorCount = 0;
+
 // Create 512 threads
 pipelined_for(512, [](index_t<512> id) {
     static mutex _mutex;
@@ -20,3 +30,5 @@ pipelined_for(512, [](index_t<512> id) {
     _counter.decrement();
     _mutex.unlock();
 });
+}
+}

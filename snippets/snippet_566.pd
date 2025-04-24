@@ -1,3 +1,17 @@
+import data.optional
+import sync.atomic
+import type.newtype
+
+using tag_t = newtype<uint32>;
+tag_t update_status(optional<tag_t> new)
+{
+    return second(atomically([new](tag_t old)
+    {
+        sim_assert(!(new.is_valid && new.value.unwrap == 0));
+        return new.is_valid ? new.value : old;
+    }));
+}
+
 inline void set_status(tag_t tag)
 {
     update_status({true, tag});

@@ -1,3 +1,20 @@
+union Instr
+{
+    R_type r;
+    I_type i;
+    S_type s;
+    B_type b;
+    U_type u;
+    J_type j;
+}
+
+static assert(bitsizeof(Instr) == 32);
+
+enum Format : uint3
+{
+    R, I, S, B, U, J, Invalid
+}
+
 template <Base ISA>
 inline auto decode_format
     ( Instr instr   //< Instruction word

@@ -1,5 +1,3 @@
-memory_norep<codeLengthFreq_t, MaxCodeLength + 1> _codeLengthFreq;
-memory<codeBits_t, MaxCodeLength + 1> _nextCode;
 [[pipelined]] void compute_next_code_and_assign(index_t<MaxCodeLength + NumSymbols> tid, codeLength_t maxCodeLength) {
     auto nextCodeLength = tid + 1;
     auto nextCodeLengthFreq = _codeLengthFreq[tid];

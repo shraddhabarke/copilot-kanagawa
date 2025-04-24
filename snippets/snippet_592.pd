@@ -1,6 +1,29 @@
-cache_tags<Key, LUtime, Associativity, Depth> _tags;
+import data.cache.internal
+import data.memory.pipelined
+
+//| Read-only cache.
+template
+    < typename Key          //< The type of key for looking up a value in the cache.
+    , typename Value        //< The type of value stored in the cache.
+    , typename LUtime       //< The type to use for storing the time a cache entry was most recently used.
+                            // Using a wider type makes LRU eviction more accurate for a set associative
+                            // cache, but for a direct cache where LRU does not apply, using uint1 saves space.
+    , auto Associativity    //< The number of entries to store for a given hash value.  Use 1 to create a directly mapped cache.
+    , auto Depth            //< The total number of entries to cache.  Must be a multiple of `Associativity`.
+    , auto Banks = 1        //< The number of memories used to implement the data store.  Higher values makes of large caches placement easier.
+    >
+class cache
+{
+private:
+    //| The callback function to invoke when a `get` call causes a cache miss.
+    (Key) -> Value load;
+
+    const auto _setCount = Depth / Associativity;
+
+    cache_tags<Key, LUtime, Associativity, Depth> _tags;
 
     pipelined_memory<Value, Depth, Banks> _data;
 
 public:
     using set_index_t = index_t<_setCount>;
+}

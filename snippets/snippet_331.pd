@@ -1,3 +1,16 @@
+//| If `a * b` cannot be represented exactly return invalid.
+
+template<auto Width>
+inline uint<Width> fieldsToDecimal(auto integer, auto exponent, uint1 sign)
+{
+    return toDecimal<Width>(
+    {
+        .integer = cast<decimal<Width>::parsed_integer_t>(integer),
+        .exponent = cast<decimal<Width>::parsed_exponent_t>(integer),
+        .sign = sign
+    });
+}
+
 template<auto Width, auto Max, auto Bias>
 inline optional<uint<Width>> mul_exactly_internal(decimalParsedValue<Width> a, decimalParsedValue<Width> b)
 {

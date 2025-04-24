@@ -1,3 +1,17 @@
+import data.bits
+import data.optional
+import numeric.fixed.internal as internal
+import numeric.int.operator as intop
+
+//| Round half up.
+//
+// #### __Examples__
+//
+//     >>> round(-23.5)
+//     -23
+//
+//     >>> round(23.5)
+//     24
 template<auto I, auto F>
 inline optional<fixed<I, F>> round(fixed<I, F> x)
 {

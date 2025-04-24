@@ -1,2 +1,46 @@
+import data.function
+import data.optional as Opt
+import data.order    as Ord
+import data.tuple    as P
+import numeric.int.operator
+import type.coerce
+import type.stdtype
+
+// #### __Examples__
+//
+// Shift 5 left by 0:
+//
+//     >>> uint32[5] a = shift_array_left({0, 1, 2, 3, 4}, 0);
+//     {0, 1, 2, 3, 4}
+//
+// Shift 5 left by 2 and return 4:
+//
+//     >>> uint32[4] a = shift_array_left({0, 1, 2, 3, 4}, 2);
+//     {0, 0, 0, 1}
+//
+// Shift 5 left by 10 and return 4:
+//
+//     >>> uint32[4] a = shift_array_left({0, 1, 2, 3, 4}, 10);
+//     {0, 0, 0, 0}
+template
+    < auto M     //< Number of output elements.
+    , typename U //< Data type for shift amount. Must be unsigned. Care should
+                 //  be taken to minimize the bitwidth of U where possible
+                 //  since it affects the size of the multiplexers and hence
+                 //  area.
+    , typename T //< Data type of input array.
+    , auto N     //< Number of input elements.
+    >
+
 inline T[M] shift_array_left(T[N] data, U amount) { // Require U be unsigned
- static assert(cast<U>(-1) > 0);  T[M] out; const auto Size = 1 << bitsizeof(U); static for(const auto i : M) { T[Size] data_i; static for(const auto j : Size) { const auto i_minus_j = i - j; if (i_minus_j >= 0 && i_minus_j < N) data_i[j] = data[i_minus_j]; } out[i] = data_i[amount]; } return out; }
+    static assert(cast<U>(-1) > 0);  
+    T[M] out; 
+    const auto Size = 1 << bitsizeof(U); 
+    static for(const auto i : M) { 
+        T[Size] data_i; 
+        static for(const auto j : Size) { 
+           const auto i_minus_j = i - j; 
+           if (i_minus_j >= 0 && i_minus_j < N) 
+           data_i[j] = data[i_minus_j]; } 
+        out[i] = data_i[amount]; } 
+      return out; }

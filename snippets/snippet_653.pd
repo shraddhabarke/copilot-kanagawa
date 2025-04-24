@@ -1,3 +1,31 @@
+import type.stdtype
+import data.counter
+
+//| Mutex: mutually exclusive lock. Call `lock` to acquire the mutex and `unlock` to release it.
+// You would typically use this class in instances where you have code that implements a read-modify-write
+// pattern on some variable(s) which takes multiple cycles to complete. In cases where this
+// operation could be completed within a single clock cycle, you may consider instead putting the code in
+// a function which internally uses the `atomic` keyword to encapsulate the read-modify-write.
+class mutex
+{
+private:
+    bool _locked = false; // true means locked
+
+    inline bool test_set()
+    {
+        bool result = false;
+
+        if (!_locked)
+        {
+            _locked = true;
+            result = true;
+        }
+
+        return result;
+    }
+
+public:
+
 void unlock()
     {
         sim_assert(_locked);
@@ -6,3 +34,4 @@ void unlock()
             _locked = false;
         }
     }
+}

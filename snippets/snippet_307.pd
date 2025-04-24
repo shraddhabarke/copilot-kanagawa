@@ -1,4 +1,16 @@
-inline auto add(A a, B b)
+import data.tuple
+import numeric.int.limits
+import type.stdtype
+
+//| Returns `(a + b) mod M`.
+// `a` and `b` must be less than `M`.
+template
+    < typename T                    //< Type of the first operand.  Must be unsigned.
+    , typename U                    //< Type of the second operand.  Must be unsigned.
+    , auto M = (1 << bitsizeof(T))  //< Modulus value.
+    >
+
+inline auto add(T a, U b)
 {
     static assert(!limits<A>::is_signed);
     static assert(!limits<B>::is_signed);

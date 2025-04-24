@@ -1,3 +1,4 @@
+
 template <auto N /*< Width of the unsigned integer.*/>
 inline optional<uint<N>> to_uint(float32 value)
 {

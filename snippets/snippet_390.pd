@@ -1,3 +1,39 @@
+import numeric.decimal.internal
+
+const auto _width = 64;
+const auto _bias = 398;
+const auto _max_integer = 9999999999999999;
+
+using bid64_t = uint<_width>;
+using decimal64PackedFormat_t = decimalPackedFormat<_width>;
+
+enum decimal64_constants: uint64
+{
+    POS_MAX       = 0x77FB86F26FC0FFFF,
+    NEG_MAX       = 0xF7FB86F26FC0FFFF,
+    POS_ZERO      = 0x31C0000000000000,
+    NEG_ZERO      = 0xB1C0000000000000,
+    POS_ONE       = 0x31C0000000000001,
+    NEG_ONE       = 0xB1C0000000000001,
+    POS_INFINITY  = 0x7800000000000000,
+    NEG_INFINITY  = 0xF800000000000000,
+    DEFAULT_NAN   = 0x7C00000000000000
+}
+
+// Function: getSpecialCases
+//
+// Check if nan, zero, inf, or finite
+inline specialCaseFlags getSpecialCases(bid64_t a)
+{
+    return getSpecialCases_internal<_width>(a);
+}
+
+template
+    < auto UnrollingFactor //< Chunks of numerator bits of this size are processed in parallel,
+                           //  meaning the outer loop only has to execute
+                           //  `bitsizeof(uint<normalizedIntegerWidth>)/UnrollingFactor` iterations.
+                           //  The `UnrollingFactor` value can be 1, 2, 79, or 158.
+    >
 inline optional<bid64_t[2]> div_exactly(bid64_t in1, bid64_t in2)
 {
     const auto a = parseDecimalValue<_width>(in1);

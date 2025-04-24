@@ -1,3 +1,21 @@
+template<typename NativeDataType, auto MaxTwiddleFactors>
+class processor
+{
+private:
+    using twiddle_addr_t = index_t<MaxTwiddleFactors>;
+    memory_norep<sin_cos_t<NativeDataType>, MaxTwiddleFactors> _twiddle_factors;
+
+public:
+    inline sin_cos_t<NativeDataType> read_twiddle_factors(twiddle_addr_t read_address)
+    {
+        return (_twiddle_factors[read_address]);
+    }
+    inline void write_twiddle_factors(twiddle_addr_t write_address, sin_cos_t<NativeDataType> input_data)
+    {
+        _twiddle_factors[write_address] = input_data;
+    }
+}
+
 inline void load_twiddle_factors(proc_addr_t processor_id, twiddle_addr_t address, sin_cos_t<NativeDataType> input_data)
     {
         static for (const auto i: NumProcs)

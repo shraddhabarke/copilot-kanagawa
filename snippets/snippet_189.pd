@@ -1,3 +1,4 @@
+
 inline float32 cos(float32 x)
 {
     const auto structValue = cast<float32PackedFormat>(x);

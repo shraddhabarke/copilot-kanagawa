@@ -1,3 +1,12 @@
+//| For each iteration, calculate the pair:
+//
+//  1. The optional address indices for each bank.
+//  2. The optional bank index for each address.
+template
+    < auto Banks
+    , typename Address
+    , auto Addresses   //< Number of addresses processed per call.
+    >
 inline pair<optional<index_t<Addresses>>[Banks], optional<index_t<Banks>>[Addresses]> schedule_read_requests
     ( Address[Addresses] addresses                      //< Input addresses, duplicates allowed.
     , (Address) -> index_t<Banks> address_to_bank_index //< Map `Address` to bank index.

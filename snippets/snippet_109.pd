@@ -1,1 +1,93 @@
-inline T[M] rotate_array_right(T[N] data, U amount) { // Workaround bug 30568 // sim_assert(amount < N);  return rotate_array<M, T, N, U, true>(data, amount); }
+import data.function
+import data.optional as Opt
+import data.order    as Ord
+import data.tuple    as P
+import numeric.int.operator
+import type.coerce
+import type.stdtype
+template <auto M, typename T, auto N, typename U, bool RotateRight>
+inline T[M] rotate_array(T[N] data, U amount)
+{
+    static if (N > 1)
+    {
+        static assert(bitsizeof(U) <= clog2(N));
+        // Require U be unsigned
+        static assert(cast<U>(-1) > 0);
+        // Workaround bug 13575
+        const auto N_min_2 = (N >= 2) ? N : 2;
+
+        // Convert U to an array of uint2
+        const auto U_Width_2 = (bitsizeof(U) + 1) / 2;
+        uint2[U_Width_2] U_uint2 = reinterpret_cast<uint2[U_Width_2]>(concat(0_u1, amount));
+        static assert(bitsizeof(U_uint2) == bitsizeof(amount) || bitsizeof(U_uint2) == bitsizeof(amount) + 1);
+
+        // Each iteration, use 2 bits of U to shift
+        static for (const auto i : U_Width_2)
+        {
+            // Constant shifts of last round by 0, 1 << i, 2 << i, and 3 << i.
+            T[4][N] rotated_data;
+            static for (const auto j : 4)
+            {
+                const auto Shift = j << (2 * i);
+                if (RotateRight)
+                {
+                    static for (const auto k : N)
+                    {
+                        rotated_data[j][k] = data[static((k + Shift) % N_min_2)];
+                    }
+                }
+                else
+                {
+                    // Bias is Shift round up to the nearest multiple N - used to ensure that array index cannot be negative
+                    const auto Bias = ((Shift + N) / N) * N;
+                    const auto Offset = cast<index_t<N>>((Bias - Shift) % N_min_2);
+                    static for (const auto k : N)
+                    {
+                        rotated_data[j][k] = data[static((k + Offset) % N_min_2)];
+                    }
+                }
+            }
+
+            // Select between possible rotations depending on actual value of U
+            static for (const auto k : N)
+            {
+                data[k] = mux(U_uint2[i], rotated_data[0][k], rotated_data[1][k], rotated_data[2][k], rotated_data[3][k]);
+            }
+        }
+    }
+
+    // Construct output
+    T[M] out;
+    static for (const auto i : M)
+    {
+        out[i] = data[i];
+    }
+    return out;
+}
+
+// #### __Examples__
+//
+// Rotate 5 right by 0:
+//
+//     >>> uint32[5] a = rotate_array_right({0, 1, 2, 3, 4}, 0);
+//     {0, 1, 2, 3, 4}
+//
+// Rotate 5 right by 2 returning 4:
+//
+//     >>> uint32[4] a = rotate_array_right({0, 1, 2, 3, 4}, 2);
+//     { 2, 3, 4, 0}
+template
+    < auto M     //< Number of output elements.
+    , typename T //< Data type of input array
+    , auto N     //< Number of input elements.
+    , typename U //< Data type for rotate amount. Must be unsigned. Bitwidth
+                 // for this type must be no more than `clog2(N)`. Care should
+                 // be taken to minimize this bitwidth where possible since it
+                 // affects the size of the multiplexers and hence area.
+    >
+
+inline T[M] rotate_array_right(T[N] data, U amount) { 
+    // Workaround bug 30568 // 
+    sim_assert(amount < N);  
+    return rotate_array<M, T, N, U, true>(data, amount); 
+}

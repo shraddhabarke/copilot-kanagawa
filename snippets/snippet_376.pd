@@ -1,3 +1,9 @@
+    //| Set the size of FFT you would like to process, which must be a power of 2.
+    // To assist the hardware, also provide `log2(FFT size)`
+    // and `log2(FFT size / 2 / NumProcs) - 1`.
+    // This function should be called once for a given FFT size.
+    // When using multiple threads, all threads need to use the same parameters.
+    // `fft_size_in` must be a power of 2, between `NumProcs * 16` and `MaxFFTSize`, inclusive.
 void set_parameters(fft_size_t fft_size_in, fft_size_log2_addr_t fft_size_log2_in, num_iterations_per_processor_log2_addr_t num_iterations_per_processor_log2_minus1_in)
     {
         _fft_size = fft_size_in;

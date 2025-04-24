@@ -1,3 +1,4 @@
+//| Return the absolute value of `x`: $|x|$
 template<Denorm denorm_mode>
 inline float32 abs(float32 x)
 {

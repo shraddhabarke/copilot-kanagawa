@@ -1,3 +1,14 @@
+import data.tuple
+import type.stdtype
+
+//| Atomically apply user specified function to internal state of type `T`,
+// returning both old and new state value. Note that a state is maintained
+// per each call site of this inline function.
+template
+    < typename T            //< Type of the internal state
+    , T InitialValue = {}   //< Initial value
+    >
+
 inline pair<T, T> atomically((T) -> T modify)
 {
     pair<T, T> result;

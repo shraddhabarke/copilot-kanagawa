@@ -1,2 +1,29 @@
+import data.optional
+
+template <typename T, auto N>
+using memory = [[memory]] T[N];
+
+template <typename T, auto N>
+using memory_norep = [[memory, non_replicated]] T[N];
+
+//| Type returned by reads from `memory_ecc` of type `T`
+template <typename T>
+struct ecc
+{
+    //| True when an ECC error was detected, regardless of whether it was
+    // corrected or not.
+    bool error;
+
+    //| Value read from the memory, valid if there was no ECC error, or an
+    // error was corrected.
+    optional<T> data;
+}
+
+template <typename T>
+inline ecc<T> make_ecc(bool error, bool valid, T value)
+{
+    return {error, make_optional(valid, value)};
+}
+
 template <typename T, auto N>
 using memory_ecc = [[memory, ecc(make_ecc<T>)]] T[N];

@@ -1,4 +1,22 @@
-static assert(KeyWidth >= HashWidth);
+template
+    < auto PipelineCycles //< The hash computation will be pipelined such that it can
+                          // calculate a new result every `DataWidth` cycles. Increasing
+                          // this lowers the area consumed to implement the hash at the
+                          // expense of throughput.
+    , auto HashWidth      //< The width of the output hash value.
+    , auto DataWidth      //< The width of the input data.
+    , auto KeyWidth
+    , uint<KeyWidth> Key  //< Key value used for hash computation. This value must be at
+                          // least `HashWidth` bits wide.
+    >
+class toeplitz
+{
+public:
+    using Hash_t=uint<HashWidth>;
+    using Data_t=uint<DataWidth>;
+    using  Key_t=uint<KeyWidth>;
+
+    static assert(KeyWidth >= HashWidth);
     static assert(PipelineCycles > 0);
 
 private:
@@ -15,3 +33,151 @@ private:
 
         return concat(lsbs, msb);
     }
+
+    inline Hash_t hash_align_and_truncate_key(Key_t key)
+    {
+        return cast<Hash_t>(key >> (KeyWidth - HashWidth)); // Leftmost bits
+    }
+
+    // Extracts chunk of input data to process for the specified pipeline thread
+    // Data is extracted MSB first, per Toeplitz algorithm description.
+    //
+    // Example calculation:
+    //      DataWidth = 25
+    //      PipelineCycles = 3
+    //      DataChunkWidth = 9
+    //
+    //             ------- Input Data ------
+    //             1111111110000000000000000xx
+    //             876543210FEDCBA9876543210xx
+    //       tid   ---Aligned Input Data----    <rshift><lshift>
+    //        0    xxxxxxxxx                      16        0
+    //        1             xxxxxxxxx              7        0
+    //        2                      xxxxxxx00     0        2
+    //
+    //      rshift = DataWidth - (tid+1)*DataChunkWidth
+    //      lshift = (tid == PipelineCycles-1) ? (DataChunkWidth - DataWidth/PipelineCycles) : 0;
+    inline DataChunk_t extract_data_chunk(Data_t data, Tid_t tid)
+    {
+        // Toeplitz processes high order bits first, so chunk
+        // number 0 is left-most. If DataWidth is not an even multiple of PipelineCycles
+        // we left shift the input data to add LSB zero padding.
+        const auto PadBits = PipelineCycles * DataChunkWidth - DataWidth;
+        const auto rShiftBits = DataWidth + PadBits - (tid+1)*DataChunkWidth;
+
+        const uint<DataWidth+PadBits> paddedData = data << PadBits;
+        return cast<DataChunk_t>(paddedData >> rShiftBits);
+    }
+
+    // Calculates a key rotated to account for the chunk offset within the input data.
+    // Rotation is accomplished by shifting a doubly large key
+    // Example calculation:
+    //    DataChunkWidth = 9
+    //    KeyWidth = 16
+    //    HashWidth = 12
+    //
+    //          ----------Doubled Key-----------
+    //          FEDCBA9876543210FEDCBA9876543210
+    //
+    //    tid   -----Aligned Key for Hash------- <shift>
+    //     0                    xxxxxxxxxxxxxxxx    0
+    //     1             xxxxxxxxxxxxxxxx           7
+    //     2      xxxxxxxxxxxxxxxx                 14
+    //     3               xxxxxxxxxxxxxxxx         5
+    //
+    //    shift = (2*KeyWidth - ((DataChunkWidth*tid)%KeyWidth))%KeyWidth
+    inline Key_t offset_key(Tid_t tid)
+    {
+        const uint<KeyWidth*2> DoubledKey = concat(cast<uint<KeyWidth>>(Key),cast<uint<KeyWidth>>(Key));
+
+        return cast<Key_t>( DoubledKey >> ((2*KeyWidth - ((DataChunkWidth*tid)%KeyWidth))%KeyWidth) );
+    }
+
+    inline bool bit_at(DataChunk_t data, index_t<DataChunkWidth> pos)
+    {
+        return ((data >> pos) & 0x1) != 0;
+    }
+
+    [[pipelined]] Hash_t calc_hash_chunk(Tid_t tid, Data_t data)
+    {
+        // Figure out the starting offset within the key for all threads,
+        // and then select the offset for this thread using the thread id
+        // as an index. We do it this way so that the key is actually
+        // "baked into the LUTs" rather than being implemented as a
+        // separate large register and associated logic.
+        Key_t[PipelineCycles] offsetKeys;
+        static for(const auto i : PipelineCycles)
+        {
+            offsetKeys[i] = offset_key(i);
+        }
+
+        Key_t offsetKey = offsetKeys[tid];
+
+        // Extract the portion of the input data we process in this thread
+        // Toeplitz processes high order bits first, so we start with
+        // leftmost bits of data word in tid=0, and move rightwards
+        DataChunk_t dataChunk = extract_data_chunk(data, tid);
+
+        // Array is rounded up to power of two because of the reduction loop below
+        const auto PartialHashesLength = (1 << clog2(DataChunkWidth));
+        Hash_t[PartialHashesLength] partialHashes;
+
+        // Use the input data to calculate intermediate values. A one bit in the
+        // input data means we XOR the result (which starts out as zero) with the
+        // left-most bits of the key, a zero value means we do nothing.
+        static for(const auto i : DataChunkWidth)
+        {
+            if (bit_at(dataChunk, static_cast(DataChunkWidth-i-1)))
+            {
+                partialHashes[i] = hash_align_and_truncate_key(offsetKey);
+            }
+            offsetKey = rotate_key_left(offsetKey);
+        }
+
+        // Now combine the intermediate hash results by XOR-ing them together
+        const auto ReductionTreeDepth = clog2(DataChunkWidth);
+
+        static for(const auto i : ReductionTreeDepth)
+        {
+            static for(const auto j : PartialHashesLength / 2)
+            {
+                // Binary reduction tree. The hope is the compiler should
+                // convert this to quatenary for us since the FPGA LUTs
+                // support that.
+                partialHashes[j] = partialHashes[2*j] ^ partialHashes[2*j+1];
+            }
+        }
+
+        return partialHashes[0];
+    }
+
+public:
+    //| Calculate the Toeplitz hash of the supplied data.
+    Hash_t calc_hash(Data_t data)
+    {
+        // Call a "pipelined" function to calculate the hash of an portion of the input data.
+        // This lowers the issue rate (to 1:PipelineCycles), but should help with the size
+        // of the implementation.
+        Hash_t[PipelineCycles] hashChunks;
+        hashChunks = calc_hash_chunk(PipelineCycles, data);
+
+        const auto PartialHashesLength = 1 << clog2(PipelineCycles);
+        Hash_t[PartialHashesLength] partialHashes;
+
+        static for(const auto i : PipelineCycles)
+        {
+            partialHashes[i] = hashChunks[i];
+        }
+
+        const auto ReductionTreeDepth = clog2(PipelineCycles);
+        static for(const auto i : ReductionTreeDepth)
+        {
+            static for(const auto j : PartialHashesLength / 2)
+            {
+                partialHashes[j] = partialHashes[2*j] ^ partialHashes[2*j+1];
+            }
+        }
+
+        return partialHashes[0];
+    }
+}

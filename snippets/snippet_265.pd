@@ -1,3 +1,7 @@
+import data.array
+import data.counter
+import data.fifo
+
 template
     < typename T          //< Type returned by lambda argument to `async`.
     , auto ReturnDepth    //< Depth of return value FIFO (maximum number of `fork<i>` results that can

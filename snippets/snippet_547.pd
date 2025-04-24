@@ -1,3 +1,53 @@
+import harness
+import sync.lock
+
+// Number of histogram buckets
+const auto bucket_count = 16;
+
+// A single input element
+using sample_t = index_t<bucket_count>;
+
+// Number of elements in each input vector
+const auto vector_width = 4;
+
+// An array of input elements
+using batch_t = sample_t[vector_width];
+
+// Number of input vectors
+const auto batch_count = 64;
+
+// An integer wide enough to represent an index into _batches
+using vector_index_t = index_t<batch_count>;
+
+class tutorial
+{
+private:
+    memory<batch_t, batch_count> _batches;
+
+    memory<uint32, bucket_count> _histogram;
+
+    // histogram_vectorized may require you to add member variables here
+    // that hold temporary information during the computation
+    // begin_strip
+    memory<uint32, bucket_count>[vector_width] _partial_histograms;
+    // end_strip
+
+    // Sets all elements of the histogram to 0
+    void clear_histogram()
+    {
+        pipelined_for(bucket_count, [](sample_t i)
+        {
+            _histogram[i] = 0;
+        });
+    }
+
+public:
+    // Computes a histogram (stored in the variable: _histogram)
+    // _histogram is a memory with 16 elemenets
+    // _histogram[i] is defined to be set to the number of input elements with value = i
+    // Input elements are stored as 4-wide vectors, but this first example does not
+    // do computation with vectors
+
 void histogram_vectorized()
 {
     clear_histogram();
@@ -29,4 +79,5 @@ void histogram_vectorized()
         }
         _histogram[i] = sum;
     });
+}
 }

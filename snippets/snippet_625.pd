@@ -1,3 +1,57 @@
+import processor.risc_v.internal.core
+import processor.risc_v.isa
+import processor.risc_v.trace as T
+
+template <
+    //| Number of hardware threads (harts), must be a power of 2.
+    auto HARTS,
+    //| Length of instruction memory address space in 32-bit words.
+    auto IMEM_LENGTH,
+    //| Length of data memory in bytes. By default the value specifies length
+    // of per-hart data memory. If `Option::HartsShareDMEM` bit of `CONFIG`
+    // parameter is set, the value specifies total length of data memory shared
+    // by all harts. In multi-hart configuration `DMEM_LENGTH` must be a power
+    // of 2 unless shared DMEM is used.
+    auto DMEM_LENGTH,
+    //| Length of Memory Mapped IO address space in bytes. The default value is
+    // `0` which disables MMIO support.
+    auto MMIO_LENGTH = 0,
+    //| Start address of address space mapped to instruction memory in 32-bit
+    // words.
+    auto IMEM_ORIGIN = 0,
+    //| Start address of address space mapped to data memory. By default data
+    // memory starts right after instruction memory.
+    auto DMEM_ORIGIN = ((IMEM_ORIGIN + IMEM_LENGTH) << 2),
+    //| Beginning address of Memory Mapped IO address space. By default memory
+    // mapped IO starts right after data memory.
+    auto MMIO_ORIGIN = DMEM_ORIGIN + DMEM_LENGTH,
+    //| Size in 32-bit words of tightly coupled instruction memory (TCM)
+    // instantiated by the core. The default value is equal to `IMEM_LENGTH`,
+    // which means that all of the instruction address space is mapped to the
+    // internal TCM. If the specified value is less than the `IMEM_LENGTH`, the
+    // reminder of instruction memory address space is handled by `external_fetch`
+    // callback.
+    auto IMEM_TCM_SIZE = IMEM_LENGTH,
+    //| Type alias template providing underlying implementation of data memory.
+    // The default is `mmemory_norep`.
+    template <typename, auto> typename Memory = memory_norep,
+    //|  ISA extensions implemented by the core. The default is
+    // `Extension::None`. The only other valid value is `Extension::M`
+    auto EXTENSIONS = Extension::None,
+    //| Configuration flags. The default is `Optimize::Area`. Possible
+    // optimization flags are `Optimize::Area`, `Optimize::Fmax` (mutually
+    // exclusive). Other supported flags are defined by the `Option` enum.
+    auto CONFIG = Optimize::Area,
+    //| Specifies the base ISA. The default and the only supported value at
+    // this time is `Base::RV32I`
+    Base ISA = Base::RV32I,
+    //| Number of entries in Branch Target Buffer. The default of 1024 is
+    // usually a good value for BTB realized as block RAM. If using block RAM
+    // is undesirable, a small BTB, for example with 8 entries, can give good
+    // results. When BTB_SIZE is less than 1024, the BTB is implemented as an
+    // array. The value must be a power of 2.
+    auto BTB_SIZE = 1024>
+
 inline void print_memory_map()
     {
         T::print_memory_map<

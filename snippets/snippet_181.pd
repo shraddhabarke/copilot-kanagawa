@@ -1,3 +1,211 @@
+import data.bits
+import data.optional
+import data.tuple
+import numeric.fixed.internal as fixed_internal
+import numeric.float32.internal
+import numeric.float32.internal.operator
+import numeric.float.internal
+import numeric.float32
+
+// input: [1, 2) without the implicit leading one
+// output: [0, 1]
+// This implementation only provides precision up to 24-bit mantissa, less
+// precise than the requirement in pow.
+template<auto F1, auto F2>
+inline uint<1 + F2> log2_23_lookup(uint<F1> fraction)
+{
+    const auto packedFraction_bit2 = cast<log2_23_paramPacked<F1, 2>>(fraction);
+    const auto packedFraction_bit3 = cast<log2_23_paramPacked<F1, 3>>(fraction);
+    const auto packedFraction_bit4 = cast<log2_23_paramPacked<F1, 4>>(fraction);
+    const auto packedFraction_bit5 = cast<log2_23_paramPacked<F1, 5>>(fraction);
+    const auto packedFraction_bit6 = cast<log2_23_paramPacked<F1, 6>>(fraction);
+    const auto packedFraction_bit7 = cast<log2_23_paramPacked<F1, 7>>(fraction);
+    const auto packedFraction_bit8 = cast<log2_23_paramPacked<F1, 8>>(fraction);
+    const auto packedFraction_bit10 = cast<log2_23_paramPacked<F1, 10>>(fraction);
+    const uint2 fraction_msbit_0_1 = static_cast(packedFraction_bit2.msbits);
+    const uint1 fraction_msbit_2 = static_cast(packedFraction_bit3.msbits);
+    const uint1 fraction_msbit_3 = static_cast(packedFraction_bit4.msbits);
+    const uint1 fraction_msbit_4 = static_cast(packedFraction_bit5.msbits);
+    const uint1 fraction_msbit_5 = static_cast(packedFraction_bit6.msbits);
+    const uint1 fraction_msbit_6 = static_cast(packedFraction_bit7.msbits);
+
+    // In the range 1.11xxxx, the precision requirement is much higher when the mantissa is close to 2.
+    // The selector is used to identify these sub-ranges.
+    const uint2 near_two_selector =
+        (packedFraction_bit8.msbits == 0xFF) ? mux(cast<uint2>(packedFraction_bit10.msbits), 0, 0, 2, 3) : 0;
+
+    const bool isLast2Interval = near_two_selector != 0;
+
+    // extract the residual and the table index
+    const log2_residual_and_index<F1, 7> ir_000000x = { packedFraction_bit7.residual, packedFraction_bit7.index};
+
+    const log2_residual_and_index<F1, 6> ir_00000xx = mux(fraction_msbit_5,
+        { ir_000000x.residual, ir_000000x.index},
+        { packedFraction_bit6.residual, packedFraction_bit6.index});
+
+    const log2_residual_and_index<F1, 5> ir_0000xxx = mux(fraction_msbit_4,
+        { ir_00000xx.residual, ir_00000xx.index},
+        { packedFraction_bit5.residual, packedFraction_bit5.index});
+
+    const log2_residual_and_index<F1, 4> ir_000xxxx = mux(fraction_msbit_3,
+        { ir_0000xxx.residual, ir_0000xxx.index},
+        { packedFraction_bit4.residual, packedFraction_bit4.index});
+
+    const log2_residual_and_index<F1, 3> ir_00xxxxx = mux(fraction_msbit_2,
+        { ir_000xxxx.residual, ir_000xxxx.index},
+        { packedFraction_bit3.residual, packedFraction_bit3.index});
+
+    const log2_residual_and_index<F1, 3> ir_111xxxx = mux(isLast2Interval ? 1 : 0,
+        { packedFraction_bit3.residual, packedFraction_bit3.index},
+        { packedFraction_bit5.residual, 0});
+
+    const log2_residual_and_index<F1, 3> ir_11xxxxx = mux(fraction_msbit_2,
+        { packedFraction_bit3.residual, packedFraction_bit3.index},
+        { ir_111xxxx.residual, ir_111xxxx.index });
+
+    const log2_residual_and_index<F1, 2> ir = mux(fraction_msbit_0_1,
+        { ir_00xxxxx.residual, ir_00xxxxx.index },
+        { packedFraction_bit2.residual, packedFraction_bit2.index},
+        { packedFraction_bit2.residual, packedFraction_bit2.index},
+        { ir_11xxxxx.residual, ir_11xxxxx.index }
+    );
+
+    const auto index = ir.index;
+
+    // For the section close to 2, a negative residual is used to reduce the width.
+    const int<F1 - LOG2_23_TABLE_LG_SIZE - 1> residual = static_cast((near_two_selector == 3) ? fraction : ir.residual);
+
+    // extract coefficient
+    const auto row = log2_23_coefficient_table[index];
+
+    const log2_coefficients coefficient_000000 = {
+        mux(fraction_msbit_6, row.coeff_0000000.c0, row.coeff_0000001.c0),
+        mux(fraction_msbit_6, row.coeff_0000000.c1, row.coeff_0000001.c1),
+        mux(fraction_msbit_6, row.coeff_0000000.c2, row.coeff_0000001.c2),
+        mux(fraction_msbit_6, 12011297, 11918880),
+        mux(fraction_msbit_6, 2909, 2865) };
+
+    const log2_coefficients coefficient_00000x = {
+        mux(fraction_msbit_5, coefficient_000000.c0, row.coeff_000001.c0),
+        mux(fraction_msbit_5, coefficient_000000.c1, row.coeff_000001.c1),
+        mux(fraction_msbit_5, coefficient_000000.c2, row.coeff_000001.c2),
+        mux(fraction_msbit_5, coefficient_000000.c1_base, 11741028),
+        mux(fraction_msbit_5, coefficient_000000.c2_base, 2779) };
+
+    const log2_coefficients coefficient_0000xx= {
+        mux(fraction_msbit_4, coefficient_00000x.c0, row.coeff_00001.c0),
+        mux(fraction_msbit_4, coefficient_00000x.c1, row.coeff_00001.c1),
+        mux(fraction_msbit_4, coefficient_00000x.c2, row.coeff_00001.c2),
+        mux(fraction_msbit_4, coefficient_00000x.c1_base, 11400786),
+        mux(fraction_msbit_4, coefficient_00000x.c2_base, 2620) };
+
+    const log2_coefficients coefficient_000xxx = {
+        mux(fraction_msbit_3, coefficient_0000xx.c0, row.coeff_0001.c0),
+        mux(fraction_msbit_3, coefficient_0000xx.c1, row.coeff_0001.c1),
+        mux(fraction_msbit_3, coefficient_0000xx.c2, row.coeff_0001.c2),
+        mux(fraction_msbit_3, coefficient_0000xx.c1_base, 10776217),
+        mux(fraction_msbit_3, coefficient_0000xx.c2_base, 2339) };
+
+    const log2_coefficients coefficient_00xxxx = {
+        mux(fraction_msbit_2, coefficient_000xxx.c0, row.coeff_001.c0),
+        mux(fraction_msbit_2, coefficient_000xxx.c1, row.coeff_001.c1),
+        mux(fraction_msbit_2, coefficient_000xxx.c2, row.coeff_001.c2),
+        mux(fraction_msbit_2, coefficient_000xxx.c1_base, 9712095),
+        mux(fraction_msbit_2, coefficient_000xxx.c2_base, 1897) };
+
+    const log2_coefficients coefficient_111xxx = {
+        mux(near_two_selector, row.coeff_111.c0, row.coeff_111.c0, 68622611811, 68719476736),
+        mux(near_two_selector, row.coeff_111.c1, row.coeff_111.c1, 12114032, 12102203),
+        mux(near_two_selector, row.coeff_111.c2, row.coeff_111.c2, 740, 739),
+        mux(near_two_selector, 6062942, 6062942, 0, 0),
+        mux(near_two_selector, 741, 741, 0, 0) };
+
+    const log2_coefficients coefficient_11xxxx = {
+        mux(fraction_msbit_2, row.coeff_110.c0, coefficient_111xxx.c0),
+        mux(fraction_msbit_2, row.coeff_110.c1, coefficient_111xxx.c1),
+        mux(fraction_msbit_2, row.coeff_110.c2, coefficient_111xxx.c2),
+        mux(fraction_msbit_2, 6467978, coefficient_111xxx.c1_base),
+        mux(fraction_msbit_2, 842, coefficient_111xxx.c2_base) };
+
+    const log2_coefficients coefficient = {
+        mux(fraction_msbit_0_1, coefficient_00xxxx.c0, row.coeff_01.c0, row.coeff_10.c0, coefficient_11xxxx.c0),
+        mux(fraction_msbit_0_1, coefficient_00xxxx.c1, row.coeff_01.c1, row.coeff_10.c1, coefficient_11xxxx.c1),
+        mux(fraction_msbit_0_1, coefficient_00xxxx.c2, row.coeff_01.c2, row.coeff_10.c2, coefficient_11xxxx.c2),
+        mux(fraction_msbit_0_1, coefficient_00xxxx.c1_base, 8110336, 6946530, coefficient_11xxxx.c1_base),
+        mux(fraction_msbit_0_1, coefficient_00xxxx.c2_base, 1320, 969, coefficient_11xxxx.c2_base) };
+
+    const auto alignC2Fbit = isLast2Interval ? 0 : (LOG2_23_LAST2_C2_FBIT - LOG2_23_C2_FBIT);
+    const auto alignC1Fbit = isLast2Interval ? 0 : (LOG2_23_LAST2_C1_FBIT - LOG2_23_C1_FBIT);
+    const auto alignC0Fbit = isLast2Interval ? 0 : (LOG2_23_LAST2_C0_FBIT - LOG2_23_C0_FBIT);
+
+    const auto c0 = coefficient.c0 << alignC0Fbit;
+    const auto c1 = (coefficient.c1 + coefficient.c1_base) << alignC1Fbit;
+    const auto c2 = -(coefficient.c2 + coefficient.c2_base) << alignC2Fbit;
+
+    // compute look-up result
+    const auto value2Fbit = F1 + LOG2_23_LAST2_C2_FBIT;
+    const int<1 + value2Fbit> value2 = residual * c2;
+
+    const auto value1Fbit = F1 + value2Fbit;
+    const auto value1 = (value2 + (c1 << (value2Fbit - LOG2_23_LAST2_C1_FBIT))) * residual;
+
+    static assert(value1Fbit >= (F2 + 1));
+    const auto value0 = (value1 + (c0 << (value1Fbit - LOG2_23_LAST2_C0_FBIT))) >> (value1Fbit - (F2 + 1));
+
+    return (value0 >> 1) + (value0 & 1);
+}
+
+template<auto Base, auto BaseFbit>
+inline float32 log2_internal(float32 x)
+{
+    auto binary32 = cast<float32PackedFormat>(x);
+    specialCaseFlags flags = getSpecialCases<Denorm::Off>(binary32);
+
+    const bool isNegative = signbit(x);
+    const bool isPosOne = cast<uint32>(x) == float32_constants::POS_ONE;
+    const bool isNegInf = flags.inf && isNegative;
+    const bool isPosInf = flags.inf && !isNegative;
+
+    // calculate
+    const int8 signedExponent = decodeExponent(binary32.exponent);
+    const auto fractionFbit = 48;
+    const auto fraction = log2_23_lookup<23, fractionFbit>(binary32.mantissa);
+    const int<8 + fractionFbit> log2Value = static_cast((signedExponent << fractionFbit) + fraction);
+
+    const auto valueChangedBaseFBit = fractionFbit + BaseFbit;
+    const auto valueChangedBase = log2Value * Base;
+
+    binary32.sign = valueChangedBase < 0 ? 1 : 0;
+    const auto absValue = binary32.sign ? -valueChangedBase : valueChangedBase;
+
+    const auto leadingOneIndex = highest_one<uint<8 + valueChangedBaseFBit - 24>>(static_cast(absValue >> 24));
+    const auto shift = leadingOneIndex.value + 24;
+    binary32.exponent = shift - valueChangedBaseFBit + 127;
+
+    sim_assert(shift >= 24);
+    const auto truncatedValue = absValue >> (shift - 24);
+    auto roundedValue = (truncatedValue >> 1) + (truncatedValue & 1);
+
+    if((roundedValue >> 23) >= 2)
+    {
+        binary32.exponent += 1;
+        roundedValue = roundedValue >> 1;
+    }
+
+    binary32.mantissa = cast<decltype(binary32.mantissa)>(roundedValue);
+
+    // output
+    float32PackedFormat result;
+    result.sign = (isPosOne || isPosInf) ? 0 :
+                    flags.zero ? 1 : binary32.sign;
+    result.exponent = isPosOne ? 0 :
+                        (flags.zero || flags.inf || flags.nan || isNegative) ? 0xFF : binary32.exponent;
+    result.mantissa = (isPosOne || isPosInf || flags.zero) ? 0 :
+                        (isNegInf || flags.nan || isNegative) ? 1 : binary32.mantissa;
+
+    return cast<float32>(result);
+}
+
 inline float32 log2(float32 x)
 {
     return log2_internal<1, 0>(x);

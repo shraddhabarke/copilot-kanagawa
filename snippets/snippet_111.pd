@@ -1,1 +1,29 @@
-template <typename T, auto N> inline auto map((T) -> auto f, T[N] x) { using result_t = decltype(f(x[0]));  result_t[N] r;  static for(const auto i : N) { r[i] = f(x[i]); }     return r; }
+//| Map array of input values to result values.
+//
+// @@
+//  x[0]  x[1]
+//
+//   |     |
+// +-+-+ +-+-+
+// | f | | f | . . .
+// +-+-+ +-+-+
+//   |     |
+//
+//  r[0]  r[1]
+// @@
+//
+// #### __Examples__
+//
+//     >>> map([](bool b){ return !b; }, {true, false, false});
+//     {false, true, true}
+//
+//     >>> map([](uint32 a){ return a + 1; }, {1, 2, 3});
+//     {2, 3, 4}
+
+template <typename T, auto N> 
+inline auto map((T) -> auto f, T[N] x) { 
+    using result_t = decltype(f(x[0]));  
+    result_t[N] r;  
+    static for(const auto i : N) { 
+      r[i] = f(x[i]); }     
+    return r; }

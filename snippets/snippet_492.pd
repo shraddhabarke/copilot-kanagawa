@@ -1,3 +1,27 @@
+// An array of independent reader/writer locks.
+template
+    < auto MaxThreads //< The maximum number of threads that might be manipulating the lock. This determines
+                      // the maximum number of read-locks that can be outstanding for a single lock. Typically 512 is
+                      // a sensible value to use here.
+    , auto NumLocks   //< The number of independent rwlocks to create. If we think of this class as implementing a
+                      // vector of rwlock, then this value represents the vector size.
+    >
+class multi_rwlock
+{
+private:
+    struct rwlock_state
+    {
+        uint1 num_writers;
+        count_t<MaxThreads> num_readers;
+    };
+
+    using rwlock_index_t=index_t<NumLocks>;
+    memory<rwlock_state, NumLocks> _w;
+    memory<rwlock_state, NumLocks> _r;
+    bool _is_initialized = false;
+
+public:
+
 void unlock(rwlock_index_t index, bool is_reader)
     {
         sim_assert(_is_initialized);
@@ -20,3 +44,4 @@ void unlock(rwlock_index_t index, bool is_reader)
             _r[index] = r;
         }
     }
+}

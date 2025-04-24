@@ -1,3 +1,93 @@
+//| General-purpose ISA major opcodes
+enum RVG : uint5
+{
+// inst[4:2]   000         001         010          011        100         101         110         111
+// inst[6:5]
+/*   00   */   LOAD,       LOAD_FP,    custom_0,   MISC_MEM,   OP_IMM,     AUIPC,      OP_IMM_32,  long0,
+
+/*   01   */   STORE,      STORE_FP,   custom_1,   AMO,        OP,         LUI,        OP_32,      long1,
+
+/*   10   */   MADD,       MSUB,       NMSUB,      NMADD,      OP_FP,      reserved0,  custom_2,   long2,
+
+/*   11   */   BRANCH,     JALR,       reserved1,  JAL,        SYSTEM,     reserved2,  custom_3,   long3
+}
+
+struct Opcode
+{
+    uint2   inst_1_0;
+    RVG     opcode;
+}
+
+// Funct3 (minor opcode)
+using Funct3 = uint3;
+
+//| OP/OP_IMM minor opcodes
+enum Op : Funct3
+{
+    ADD          = 0b_000,
+    SLL          = 0b_001,
+    SLT          = 0b_010,
+    SLTU         = 0b_011,
+    XOR          = 0b_100,
+    SR           = 0b_101,
+    OR           = 0b_110,
+    AND          = 0b_111
+}
+
+//| "M" standard extension minor opcodes
+enum MulDiv : Funct3
+{
+    MUL          = 0b_000,
+    MULH         = 0b_001,
+    MULHSU       = 0b_010,
+    MULHU        = 0b_011,
+    DIV          = 0b_100,
+    DIVU         = 0b_101,
+    REM          = 0b_110,
+    REMU         = 0b_111
+}
+
+//| BRANCH minor opcodes
+enum Branch : Funct3
+{
+    BEQ          = 0b_000,
+    BNE          = 0b_001,
+    BLT          = 0b_100,
+    BGE          = 0b_101,
+    BLTU         = 0b_110,
+    BGEU         = 0b_111
+}
+
+//| LOAD/STORE minor opcodes
+enum LoadStore : Funct3
+{
+    B            = 0b_000,
+    H            = 0b_001,
+    W            = 0b_010,
+    BU           = 0b_100,
+    HU           = 0b_101
+}
+
+//| SYSTEM minor opcodes
+enum System : Funct3
+{
+    PRIV         = 0b_000,
+    CSRRW        = 0b_001,
+    CSRRS        = 0b_010,
+    CSRRC        = 0b_011,
+    CSRRWI       = 0b_101,
+    CSRRSI       = 0b_110,
+    CSRRCI       = 0b_111
+}
+
+//| MISC_MEM mino opcodes
+enum MiscMem : Funct3
+{
+    FENCE        = 0b_000
+}
+
+using Reg = uint5;
+
 struct I_type {
     Opcode  opcode;
     Reg     rd;

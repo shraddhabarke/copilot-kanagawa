@@ -1,3 +1,19 @@
+import numeric.int.multi_word.internal
+
+//| Returns the metadata to be passed to the first call to `min_with_metadata` and `max_with_metadata`.
+inline comp_metadata get_initial_comp_metadata()
+{
+    return {true, true};
+}
+
+//| This function is used while computing min of two multi-word variables a_words and b_words, to which a and b belong.
+//  It selects `a` if a_words < b_words, or `b` if b_words < a_words. It also returns the metadata to be used as incoming
+//  metadata for the next call to this function.
+//  Expected iteration order while calling this over multiple words: Most significant to least significant
+template
+    < typename T //< Type of the words
+    >
+
 inline pair<T, comp_metadata> min_with_metadata
     ( T a //< The first operand for min
     , T b //< The second operand for min

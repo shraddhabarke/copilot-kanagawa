@@ -1,3 +1,4 @@
+import data.optional
 template <typename T /*< Output*/>
 inline T reinterpret_cast(auto x)
 {

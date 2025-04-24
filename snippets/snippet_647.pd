@@ -1,3 +1,16 @@
+import test.internal.params as param
+import test.internal.assert as unit
+import test.internal.assert
+
+using id_t = uint12;
+using group_t = uint4;
+using flags_t = uint16;
+
+template
+    < auto Test         //< Test id
+    , auto Group = 0    //< Optional test group id, by default 0
+    , auto Flags = 0    //< Optional test flags, by default 0
+    >
 inline void test((tag_t) -> void fn /*< Test case function */)
 {
     static assert(Test == cast<id_t>(Test));

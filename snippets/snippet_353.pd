@@ -1,3 +1,17 @@
+import data.bits
+import data.optional
+import numeric.fixed.internal as internal
+import numeric.int.operator as intop
+
+//| Fixed-point representation.
+template<auto I /*< Integer bit-width.*/, auto F /*< Fractional bit-width.*/>
+struct fixed
+{
+    int<I + F> value;
+}
+
+//| Convert from radian to pi-radian
+
 template<auto I, auto F1, auto F2>
 inline int<I + F2> to_pirad(int<I + F1> value)
 {

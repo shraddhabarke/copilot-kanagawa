@@ -1,3 +1,6 @@
+import numeric.int.limits
+import type.stdtype
+
 template
     < typename A                    // Type of a.  Must be unsigned.
     , auto M = (1 << bitsizeof(A))  // Modulus value.

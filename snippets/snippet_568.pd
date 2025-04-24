@@ -1,3 +1,67 @@
+import processor.risc_v.internal.decoder
+//| RV32i assembly instruction mnemonics (including pseudo instructions)
+
+enum Instruction : uint6
+{
+    UNKNOWN,
+    LUI,
+    AUIPC,
+    JAL,
+    JALR,
+    BEQ,
+    BNE,
+    BLT,
+    BGE,
+    BLTU,
+    BGEU,
+    LB,
+    LH,
+    LW,
+    LBU,
+    LHU,
+    SB,
+    SH,
+    SW,
+    ADDI,
+    SLTI,
+    SLTIU,
+    XORI,
+    ORI,
+    ANDI,
+    SLLI,
+    SRLI,
+    SRAI,
+    ADD,
+    SUB,
+    SLL,
+    SLT,
+    SLTU,
+    XOR,
+    SRL,
+    SRA,
+    OR,
+    AND,
+    FENCE,
+    ECALL,
+    EBREAK,
+    MUL,
+    MULH,
+    MULHSU,
+    MULHU,
+    CSRR,
+    RDCYCLE,
+    RDCYCLEH,
+    RDTIME,
+    RDTIMEH,
+    RDINSTRET,
+    RET,
+    J,
+    JR,
+    LI,
+    NOP,
+    MV
+}
+
 inline void print_instr( Instruction instr //< Disassembled instruction mnemonic, usually returned by `disasm`){switch (instr)
     {
         case Instruction::LUI:       print("lui"); break;
@@ -58,3 +122,4 @@ inline void print_instr( Instruction instr //< Disassembled instruction mnemonic
         case Instruction::MV:        print("mv"); break;
         case Instruction::UNKNOWN:   print("unknown"); break;
     }
+}

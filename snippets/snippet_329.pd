@@ -1,3 +1,56 @@
+//| Check if NaN, zero, infinite, or finite.
+
+struct specialCaseFlags
+{
+    bool nan;
+    bool zero;
+    bool inf;
+    bool finite;
+}
+
+template<auto Width>
+struct decimalPackedFormat
+{
+    decimal<Width>::trailing_t trailing;
+    uint<Width / 16 + 9> combination;
+    uint1 sign;
+}
+
+template<auto Width>
+struct decimalParsedValue
+{
+    decimal<Width>::parsed_integer_t integer;
+    decimal<Width>::parsed_exponent_t exponent;
+    uint1 sign;
+}
+
+template<auto Width>
+inline decimalParsedValue<Width> parseDecimalValue(uint<Width> a)
+{
+    const uint2 first2CombinationBits = (a >> (Width - 3)) & 3;
+    const auto formatTransform = (first2CombinationBits == 3);
+    const auto trailingWidth = decimal<Width>::trailing_width;
+
+    decimalParsedValue<Width> result;
+    result.sign = a >> (Width - 1);
+
+    if(formatTransform)
+    {
+        const auto mantissaWidth = trailingWidth + 1;
+        const auto trailing = cast<uint<mantissaWidth>>(a);
+        result.exponent = cast<decltype(result.exponent)>(a >> mantissaWidth);
+        result.integer = (4 << mantissaWidth) + trailing;
+    }
+    else
+    {
+        const auto mantissaWidth = trailingWidth + 3;
+        const auto trailing = cast<uint<mantissaWidth>>(a);
+        result.exponent = cast<decltype(result.exponent)>(a >> mantissaWidth);
+        result.integer = trailing;
+    }
+    return result;
+}
+
 template
     < auto Width //< Width in bits of the decimal. This must be 32 for decimal32 or 64 for decimal64.
     >inline specialCaseFlags getSpecialCases_internal(uint<Width> a)

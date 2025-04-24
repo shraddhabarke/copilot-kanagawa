@@ -1,40 +1,13 @@
-template<auto MaxCount>
+    template<auto MaxCount>
     inline vec::vector<word_t, MaxCount> read_words
         ( vec::vector<word_addr_t, MaxCount> addresses //< Addresses of words to read.
         )
     {
-        // Broadcast addresses to all banks
-        auto results = parallel_map<Banks>(Banks, [addresses](index_t<Banks> bank_index) -> optional<word_t>[MaxCount]
-        {
-            // Determine which addresses map to this bank
-            bool[MaxCount] valid = map_indices<MaxCount>([bank_index, addresses](index_t<MaxCount> i)
+        return vec::sharded_map<Banks>(
+            [](index_t<Banks> bank_index, word_addr_t addr)
             {
-                return (i < addresses.size) && (is_word_in_bank(addresses.data[i], bank_index));
-            });
-
-            // Map all addresses to bank addresses
-            bank_t::word_addr_t[MaxCount] addresses_in_bank = map(to_bank_word_addr, addresses.data);
-
-            return _banks[bank_index].read_words(valid, addresses_in_bank);
-        });
-
-        vec::vector<word_t, MaxCount> result;
-
-        result.size = addresses.size;
-
-        optional<word_t>[MaxCount][Banks] transposed_result = transpose(results);
-
-        result.data = map_indices<MaxCount>([transposed_result, result](index_t<MaxCount> i)
-        {
-            optional<word_t>[Banks] src_row = transposed_result[i];
-
-            optional<word_t> selected_bank = first_valid(src_row);
-
-            // if (i < result.size), then exactly one element in src_row will be valid
-            sim_assert(selected_bank.is_valid || (i >= result.size));
-
-            return selected_bank.value;
-        });
-
-        return result;
+                return _banks[bank_index].read_word(to_bank_word_addr(addr));
+            },
+            get_word_bank_index,
+            addresses);
     }

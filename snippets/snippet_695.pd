@@ -1,3 +1,29 @@
+//| Memory with multiple write ports that can support concurrent writes to
+// different addresses. The caller must synchronize to ensure there are not
+// concurrent writes to the same address. This differs from memories generated
+// by the compiler, which can support concurrent reads but not concurrent writes,
+// i.e. if concurrent writes are attempted, even to different addresses, all
+// but one is dropped.
+template
+    < typename T      //< The type of data stored in this memory.
+    , auto Depth      //< Number of rows in this memory.
+    , auto WritePorts //< Number of concurrent write ports available.
+    , template <typename, auto> typename Memory = memory
+                      //< Template implementing the underlying memory blocks.
+    >
+class multi_port_memory
+{
+private:
+    using port_index_t = index_t<WritePorts>;
+
+    // There are WritePorts number of memory banks
+    Memory<T, Depth>[WritePorts] _memories;
+    // Track which bank has the most recently written value for each address
+    port_index_t[Depth] _which_port;
+
+public:
+    using element_index_t = index_t<Depth>;
+
 template<port_index_t port_index>
     inline void write(element_index_t index, T data)
     {
@@ -6,3 +32,4 @@ template<port_index_t port_index>
         _memories[port_index][index] = data;
         _which_port[index] = port_index;
     }
+}

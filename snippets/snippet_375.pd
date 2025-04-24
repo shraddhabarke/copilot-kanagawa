@@ -3,12 +3,15 @@ struct sin_cos_t
 {
     NativeDataType sin;
     NativeDataType cos;
-}template<typename NativeDataType, auto MaxTwiddleFactors>
+}
+
+template<typename NativeDataType, auto MaxTwiddleFactors>
 class processor
 {
 private:
     using twiddle_addr_t = index_t<MaxTwiddleFactors>;
     memory_norep<sin_cos_t<NativeDataType>, MaxTwiddleFactors> _twiddle_factors;
+
 public:
     inline sin_cos_t<NativeDataType> read_twiddle_factors(twiddle_addr_t read_address)
     {
@@ -17,4 +20,6 @@ public:
     inline void write_twiddle_factors(twiddle_addr_t write_address, sin_cos_t<NativeDataType> input_data)
     {
         _twiddle_factors[write_address] = input_data;
-    }}
+    }
+}
+

@@ -1,3 +1,25 @@
+import data.fifo
+    
+
+//| An array of FIFOs.  
+template
+    < typename T                                             //< Datatype stored in each FIFO.
+    , auto Depth                                             //< Number of elements stored in each FIFO.
+    , auto ArraySize                                         //< The number of FIFOs.
+    , template <typename, auto> typename FifoType = FIFO     //< Type of FIFO to use.
+    >
+class fifo_array
+{
+public:
+    //| Index that identifies one FIFO.
+    using fifo_index_t = index_t<ArraySize>;
+
+private:
+    FifoType<T, Depth>[ArraySize] _fifos;
+
+public:
+    //| Enqueue a value into specified FIFO.
+
 template
 < fifo_index_t FifoIndex //< The index of the FIFO to store into.
 >
@@ -7,4 +29,5 @@ void enqueue_one
 // Validate the index (in case of a non-power of two ArraySize)
 static assert(FifoIndex < ArraySize);
 _fifos[FifoIndex].enqueue(value);
+}
 }

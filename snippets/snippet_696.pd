@@ -1,6 +1,19 @@
+template
+    < typename T      //< The type of data stored in this memory.
+    , auto Depth      //< Number of rows in this memory.
+    , auto WritePorts //< Number of concurrent write ports available.
+    , template <typename, auto> typename Memory = memory
+                      //< Template implementing the underlying memory blocks.
+    >
+class multi_port_memory
+{
+private:
+    using port_index_t = index_t<WritePorts>;
+
 Memory<T, Depth>[WritePorts] _memories;
     // Track which bank has the most recently written value for each address
     port_index_t[Depth] _which_port;
 
 public:
     using element_index_t = index_t<Depth>;
+}

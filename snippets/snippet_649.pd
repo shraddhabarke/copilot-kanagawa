@@ -1,5 +1,13 @@
+import test.internal.params as param
+import test.internal.assert as unit
+import test.internal.assert
+
+using id_t = uint12;
+using group_t = uint4;
+using flags_t = uint16;
+
 template <id_t Test, group_t Group = 0, flags_t Flags = 0, typename TestResult>
-inline void test_case((tag_t) -> TestResult fn)
+inline void test_case((unit::tag_t) -> TestResult fn)
 {
     static assert(Test != 0);
 

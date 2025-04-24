@@ -1,3 +1,24 @@
+import data.bits
+import data.optional
+import data.tuple
+import numeric.fixed.internal as fixed_internal
+import numeric.float32.internal
+import numeric.float32.internal.operator
+import numeric.float.internal
+
+enum float32_constants: uint32
+{
+    POS_MAX       = 0x7F7FFFFF,
+    NEG_MAX       = 0xFF7FFFFF,
+    POS_ZERO      = 0x00000000,
+    NEG_ZERO      = 0x80000000,
+    POS_ONE       = 0x3F800000,
+    NEG_ONE       = 0xBF800000,
+    POS_INFINITY  = 0x7F800000,
+    NEG_INFINITY  = 0xFF800000,
+    DEFAULT_NAN   = 0x7FC00000
+
+}
 inline float32 rcp(float32 x)
 {
     auto binary32 = cast<float32PackedFormat>(x);

@@ -1,3 +1,4 @@
+
 template<auto Width, auto Max, auto Zero, auto Nan, auto PosInf, auto NegInf>
 inline optional<uint<Width>> dim_exactly_internal(uint<Width> x, uint<Width> y)
 {

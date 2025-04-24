@@ -1,3 +1,151 @@
+import numeric.float.internal
+import data.bits
+
+const auto _mantissa_width = 23;
+const auto _exponent_width = 8;
+const auto _exponent_bias = 127;
+
+using float32PackedFormat = floatPackedFormat<23, 8>;
+
+struct float32ExpandedFormat
+{
+    uint24 mantissa;
+    int9 exponent;
+    uint1 sign;
+}
+
+struct float32StickyFormat
+{
+    uint1 sticky;
+    uint26 mantissaGuardRound;
+    int10 exponent;
+    uint1 sign;
+}
+
+struct productFormat
+{
+    uint24 sticky;
+    uint1 round;
+    uint1 guard;
+    uint24 product;
+}
+
+
+//| Negate input.
+inline float32 neg(float32 x)
+{
+    float32PackedFormat binary = cast<float32PackedFormat>(x);
+    binary.sign = ~binary.sign;
+    return cast<float32>(binary);
+}
+
+//| Add two float32 values with denorm off and return the float32 result.
+inline float32 float32_add_denormoff(float32 in1, float32 in2)
+{
+    // Unpack input
+    float32PackedFormat a;
+    float32PackedFormat b;
+    a = cast<float32PackedFormat> (in1);
+    b = cast<float32PackedFormat> (in2);
+    float32ExpandedFormat a_PostUnpack = unpackFloat32<Denorm::Off>(a);
+    float32ExpandedFormat b_PostUnpack = unpackFloat32<Denorm::Off>(b);
+
+    float32StickyFormat a_PostAlign;
+    float32StickyFormat b_PostAlign;
+
+    uint8 alignShiftAmountA;
+    uint8 alignShiftAmountB;
+    if (a_PostUnpack.exponent > b_PostUnpack.exponent)
+    {
+        alignShiftAmountA = 0;
+        alignShiftAmountB = a_PostUnpack.exponent - b_PostUnpack.exponent;
+    }
+    else
+    {
+        alignShiftAmountA = b_PostUnpack.exponent - a_PostUnpack.exponent;
+        alignShiftAmountB = 0;
+    }
+    a_PostAlign = align(a_PostUnpack, alignShiftAmountA);
+    b_PostAlign = align(b_PostUnpack, alignShiftAmountB);
+
+    //Addition
+    float32StickyFormat z_postAdd;
+    uint27 aTemp = cast<uint27>(a_PostAlign.mantissaGuardRound << 1 | a_PostAlign.sticky);
+    uint27 bTemp = cast<uint27>(b_PostAlign.mantissaGuardRound << 1 | b_PostAlign.sticky);
+
+    uint28 sumTemp = cast<uint28>(a_PostAlign.sign == b_PostAlign.sign ? aTemp + bTemp :
+                        (aTemp >= bTemp ? aTemp - bTemp : bTemp - aTemp));
+    z_postAdd.sign =  a_PostAlign.sign == b_PostAlign.sign ? a_PostAlign.sign :
+                        (aTemp >= bTemp ? a_PostAlign.sign : b_PostAlign.sign);
+
+    bool shiftSum = sumTemp >> 27 == 1;
+    z_postAdd.exponent = a_PostAlign.exponent + cast<uint1>(shiftSum);
+    z_postAdd.mantissaGuardRound = shiftSum ? cast <uint26> (sumTemp >> 2) : cast <uint26> (sumTemp >> 1);
+    z_postAdd.sticky = shiftSum ? cast <uint1> (sumTemp >> 1) | cast <uint1> (sumTemp) : cast <uint1> (sumTemp);
+
+    // Shift left to normalize small mantissa values
+    float32StickyFormat z_postNormalize = addNormalizeOutput1(z_postAdd);
+
+    //Rounding
+    float32ExpandedFormat z_postRounding;
+
+    bool guard = ((z_postNormalize.mantissaGuardRound >> 1) & 1) == 1;
+    bool round = (z_postNormalize.mantissaGuardRound & 1) == 1;
+    bool m0 = ((z_postNormalize.mantissaGuardRound >> 2) & 1) == 1;
+    bool sticky = z_postNormalize.sticky == 1;
+
+    bool roundUp = guard && (round || sticky || m0);
+    z_postRounding.mantissa = cast<decltype(z_postRounding.mantissa)>((z_postNormalize.mantissaGuardRound >> 2) + cast<uint1>(roundUp));
+    uint1 exp_inc = roundUp && (z_postNormalize.mantissaGuardRound >> 2 == 0xffffff) ? 1 : 0;
+    z_postRounding.exponent = z_postNormalize.exponent + exp_inc;
+    z_postRounding.sign = z_postNormalize.sign;
+
+    //Packing
+    float32PackedFormat zOutput;
+
+    //Handle special cases
+    specialCaseFlags a_flags = getSpecialCases<Denorm::Off>(a);
+    specialCaseFlags b_flags = getSpecialCases<Denorm::Off>(b);
+    bool justAInf = a_flags.inf && !b_flags.inf;
+    bool justBInf = !a_flags.inf && b_flags.inf;
+    bool AandBInf = a_flags.inf && b_flags.inf;
+    bool specialCaseSignsEqual = a.sign == b.sign;
+
+    bool specialCaseNaN = a_flags.nan || b_flags.nan || (AandBInf && !specialCaseSignsEqual);
+    bool specialCaseZero = a_flags.zero && b_flags.zero;
+    bool specialCaseInf = justAInf || justBInf || (AandBInf && specialCaseSignsEqual);
+    //Careful that you check for specialCaseZero first!
+    bool specialCaseReturnA = b_flags.zero;
+    bool specialCaseReturnB = a_flags.zero;
+    uint1 specialCaseSign = justAInf ? a_PostUnpack.sign :
+                            justBInf ? b_PostUnpack.sign :
+                            a_PostUnpack.sign & b_PostUnpack.sign;
+
+    bool positiveZero = z_postRounding.exponent == -126 && z_postRounding.mantissa == 0;
+    bool zeroOut = z_postRounding.exponent == -126 && ((z_postRounding.mantissa >> 23) & 1) == 0;
+    bool overflow = z_postRounding.exponent > 127;
+
+    zOutput.mantissa = specialCaseNaN ? 1 << 22 :
+                       (specialCaseZero || specialCaseInf) ? 0 :
+                       specialCaseReturnA ? a.mantissa :
+                       specialCaseReturnB ? b.mantissa:
+                       (overflow || zeroOut) ? 0 :
+                       cast<decltype(zOutput.mantissa)>(z_postRounding.mantissa);
+    zOutput.exponent = (specialCaseNaN || specialCaseInf) ? 255 :
+                       specialCaseZero ? 0 :
+                       specialCaseReturnA ? a.exponent :
+                       specialCaseReturnB ? b.exponent :
+                       (positiveZero || zeroOut) ? 0 :
+                       overflow ? 255 :
+                       cast<decltype(zOutput.exponent)>(z_postRounding.exponent + 127);
+    zOutput.sign = (specialCaseInf || specialCaseZero) ? specialCaseSign :
+                   specialCaseReturnA ? a.sign :
+                   specialCaseReturnB ? b.sign :
+                   positiveZero ? 0 : z_postRounding.sign;
+
+    return cast<float32> (zOutput);
+}
+
 inline float32 float32_sub_denormoff(float32 in1, float32 in2)
 {
     return float32_add_denormoff(in1, neg(in2));

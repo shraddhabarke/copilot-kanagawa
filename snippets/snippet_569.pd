@@ -1,3 +1,4 @@
+import processor.risc_v.internal.decoder
 inline void print_reg(Reg reg)
 {
     static assert (bitsizeof reg == bitsizeof ABI);

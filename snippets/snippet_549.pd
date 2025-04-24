@@ -1,3 +1,12 @@
+//| Type of unicode encoding.
+enum unicode_encoding_type : uint2
+{
+    utf_8,
+    utf_16,
+    utf_32,
+    undefined
+}
+
 using unicode_code_point_t = uint21;
 template<typename T>
 struct code_point_stream_to_int_context_impl

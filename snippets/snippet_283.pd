@@ -1,4 +1,18 @@
- inline T read
+import data.array
+import data.memory.bank.schedule
+import data.optional
+import numeric.int.operator
+import sync.atomic as sync
+
+//| A memory that is physically accessed over multiple clock cycles.
+template
+    < typename T //< The type of data stored in the memory.
+    , auto Depth //< Total number of elements stored in the memory.
+    , auto Banks //< Number physical memories that the logical memory comprises.
+    , template <typename, auto> typename Memory = memory //< Type of underlying memory to use.
+    >
+ 
+inline T read
     ( addr_t addr //< Address of the element to read.
     )
 {

@@ -1,1 +1,34 @@
-template <typename L, typename R, auto N> inline P::pair<L[N], R[N]> unzip(P::tuple2<L, R>[N] xs) { return unzip_with<L, R>(id, xs); }
+
+import data.function
+import data.optional as Opt
+import data.order    as Ord
+import data.tuple    as P
+import numeric.int.operator
+import type.coerce
+import type.stdtype
+
+template
+    < typename L //< Type of first projection of T.
+    , typename R //< Type of second projection of T.
+    , typename T //< Input array element type.
+    , auto N     //< Array length.
+    >
+inline P::pair<L[N], R[N]> unzip_with
+    ( (T) -> P::tuple2<L, R> f  //< Mapping from input array element to pair of
+                             //  result elements.
+    , T[N] xs
+    )
+{
+    P::pair<L[N], R[N]> result;
+    static for(const auto i : N)
+    {
+        auto p = f(xs[i]);
+        result.first[i] = p.first;
+        result.second[i] = p.second;
+    }
+    return result;
+}
+
+template <typename L, typename R, auto N> 
+inline P::pair<L[N], R[N]> unzip(P::tuple2<L, R>[N] xs) { 
+    return unzip_with<L, R>(id, xs); }

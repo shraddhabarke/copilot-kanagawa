@@ -1,3 +1,13 @@
+//| Returns the ceiling of the quotient and remainder when dividing `numerator` by `denominator`.
+// The quotient is returned in `first`.
+// The remainder is returned in `second`.
+// `Offset` is used to to adjust the range of repeated values.
+// For example, if `mod<4, 0>` is applied to the array: `[0, 1, 2, 3, 4, 5]`
+// the result is: `[0, 1, 2, 3, 0, 1]`.
+// If `mod<4, 1>` is applied to the same array, the result is:
+// `[4, 1, 2, 3, 4, 1]`
+import data.tuple
+
 template<auto Offset = 0>
 inline auto ceil_div_mod(auto numerator, auto denominator)
 {

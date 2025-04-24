@@ -1,3 +1,4 @@
+template<auto result_count, typename T>
 inline void run_vector_test(()->void test_fn, (index_t<result_count>)->T actual_fn, (index_t<result_count>)->T expected_fn, const string name)
 {
 const uint64 start_cycle = cycles();

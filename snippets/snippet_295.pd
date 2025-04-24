@@ -1,3 +1,14 @@
+import numeric.int.limits
+import type.coerce
+
+//| Returns `t - u`.
+// The result type is the same (unsigned) type as `t`.
+// `u` must be no greater than `t` (to ensure the result is non-negative).
+template
+    < typename T
+    , typename U
+    >
+
 inline T sub(T t, U u)
 {
     static assert(!limits<T>::is_signed);

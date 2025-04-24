@@ -1,4 +1,65 @@
+// required for recursive grammars such as JSON.
+template
+    < auto MICROCODE_TABLE_STATES_CAPACITY //< Number of states in the lookup table.
+    , auto GRAMMAR_RECURSION_DEPTH_MAX     //< Grammar recursion depths above
+                                           // 32 considered [deeply suspect](https://softwareengineering.stackexchange.com/q/279207/381274),
+                                           // and practical values are
+                                           // probably around 15 - 20. Also,
+                                           // `GRAMMAR_RECURSION_DEPTH_MAX = 15`
+                                           // is slightly more area efficient
+                                           // than 16 due to 4 vs 5 bit stack
+                                           // counter.
+    , bool ENABLE_COVERAGE                 //< Optional coverage check.
+    >
+class parser_recursive
+{
+    const auto MICROCODE_MEM_DEPTH = MICROCODE_TABLE_STATES_CAPACITY * NUM_MICROCODE_COLUMNS;
+public:
+    using microcode_entry_addr_t = index_t<MICROCODE_MEM_DEPTH>;
+    using microcode_coverage_memory_t = microcode_coverage_memory<MICROCODE_TABLE_STATES_CAPACITY, ENABLE_COVERAGE>;
+    using coverage_row_index_t = microcode_coverage_memory<MICROCODE_TABLE_STATES_CAPACITY, ENABLE_COVERAGE>::coverage_row_index_t;
+    using coverage_result_byte_index_t = microcode_coverage_memory_t::coverage_result_byte_index_t;
+
+    using stack_depth_t = count_t<GRAMMAR_RECURSION_DEPTH_MAX>;
+    // This stack design eliminates the need for BRAM stack operations
+    using stack_bits_t = uint<GRAMMAR_RECURSION_DEPTH_MAX>;
+    struct stack_t
+    {
+        stack_bits_t stack_bits;
+        stack_depth_t depth;
+    }
+    struct parser_state_t
+    {
+        microcode_row_index_t current_row_index; // 9 bits
+        stack_t stack;                           // Probably around 21 - 25 bits
+    }
+    //| Result type of parsing a code point.
+    struct result_t
+    {
+        signal_t signal;                 // 6 bits
+        action_t action;                 // 3 bits
+        unicode_code_point_t code_point; // 21 bits
+        parser_state_t parser_state;     // 30 - 34 bits
+    }
+private:
+    struct stack_result_t
+    {
+        stack_t stack;
+        bool error;
+    }
+    struct stack_top_t
+    {
+        microcode_row_index_t next_state;
+        bool error;
+    }
+public:
+    inline result_t initialize_parser_result(microcode_row_index_t initial_state)
+    {
+        return { 0, microcode_action::normal, 0, { initial_state, {0, 0} } };
+    }
+
 inline bool is_error(result_t parse_result)
     {
         return parse_result.parser_state.current_row_index == 0;
     }
+}

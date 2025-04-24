@@ -1,3 +1,10 @@
+//| Add two values of the input type `T` and return the result as the output type `R`,
+// which might be larger.  e.g. 3 fits in a `uint2`, but 3 + 3 does not.
+//
+// #### __Example__
+//
+//     >>> add<uint3>(3, 3);
+//     6
 template <typename R, typename T>
 inline R add(T a, T b)
 {

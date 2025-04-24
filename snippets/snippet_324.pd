@@ -1,3 +1,5 @@
+//| Check if the parser stack depth == 0 indicating that it is not inside
+    // an array or object.
 inline bool is_stack_empty(result_t parse_result)
     {
         return parse_result.parser_state.stack.depth == 0;

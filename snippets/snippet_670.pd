@@ -1,3 +1,16 @@
+template <auto SeedWidth /*< The bit-width of the LFSR. Widths from 2 to 32 inclusive are supported.*/>
+class lfsr_random
+{
+public:
+    using value_t = uint<SeedWidth>;
+
+private:
+    value_t _value = 1;
+
+public:
+    //| Get the next random number in the sequence, optionally seeding
+    // the random number generator first. Do not use zero for the
+    // seed value.
 value_t next(optional<uint<SeedWidth>> seed /*< If `is_valid` then seed the generator, otherwise ignore.*/)
     {
         sim_assert(!(seed.is_valid && (seed.value == 0)));
@@ -12,3 +25,4 @@ value_t next(optional<uint<SeedWidth>> seed /*< If `is_valid` then seed the gene
 
         return new_value;
     }
+}

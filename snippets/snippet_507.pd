@@ -1,3 +1,60 @@
+import data.bits
+import data.optional
+import data.tuple
+import numeric.int.operator.unsigned as unsigned
+import type.coerce
+
+using float64 = uint64;
+
+enum NativeFloatSupport : uint1
+{
+    On,
+    Off
+}
+
+//| Denormalization flag.
+enum Denorm : uint1
+{
+    On,
+    Off
+}
+
+template<auto MantissaWidth, auto ExponentWidth>
+struct floatPackedFormat
+{
+    uint<MantissaWidth> mantissa;
+    uint<ExponentWidth> exponent;
+    uint1 sign;
+}
+
+struct specialCaseFlags
+{
+    bool nan;
+    bool zero;
+    bool inf;
+    bool finite;
+}
+
+//| Check if nan, zero, inf, or finite.
+template <auto MantissaWidth, auto ExponentWidth, Denorm denorm_mode>
+inline specialCaseFlags getSpecialCases_internal(floatPackedFormat<MantissaWidth, ExponentWidth> a)
+{
+    specialCaseFlags flags;
+    auto nonfinite_value = static(cast<uint<ExponentWidth>>((1 << ExponentWidth) - 1));
+    flags.nan = a.exponent == nonfinite_value && a.mantissa != 0;
+    flags.inf = a.exponent == nonfinite_value && a.mantissa == 0;
+    flags.finite = a.exponent != nonfinite_value;
+    if (denorm_mode == Denorm::On)
+    {
+        flags.zero = a.exponent == 0 && a.mantissa == 0;
+    }
+    else
+    {
+        flags.zero = a.exponent == 0;
+    }
+    return flags;
+}
+
 template <typename Type, auto MantissaWidth, auto ExponentWidth, auto Bias, Denorm DenormMode>
 inline Type round_internal(Type x)
 {

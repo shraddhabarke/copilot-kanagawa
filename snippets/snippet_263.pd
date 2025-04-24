@@ -1,3 +1,7 @@
+import data.array
+import data.counter
+import data.fifo
+
 inline void async_then_void(() -> void task, () -> void then)
 {
     using task_t = decltype(task);

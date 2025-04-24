@@ -1,3 +1,6 @@
+
+//| Return the smallest integer not less than `x`: $\lceil x \rceil$
+template<Denorm denorm_mode>
 inline float32 ceil(float32 x)
 {
     return ceil_internal<float32, _mantissa_width, _exponent_width, _exponent_bias, denorm_mode>(x);

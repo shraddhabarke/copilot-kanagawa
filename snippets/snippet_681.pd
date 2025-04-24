@@ -1,4 +1,88 @@
+import sync.lock
+import sync.atomic
+import data.array
+import numeric.int.operator
+
+template
+    < typename T                    //< Datatype for each array element
+    , auto ArraySize                //< Number of elements in input arrays, must be a power of 2.
+    , auto ArrayDepth               //< Maximum number of arrays that can be stored, must be a power of 2.
+    , bool EnqueueBlocking = true   //< Block on enqueue if the FIFO is full until an entry
+                                    //  frees up. By default this is true. Otherwise,
+                                    //  the caller must ensure that the FIFO is not full.
+    , bool DequeueBlocking = true   //< Block on dequeue if the FIFO is empty until an entry
+                                    //  arrives. By default, this is true. Otherwise,
+                                    //  the caller must ensure that the FIFO is not empty.
+    >
+class fifo
+{
+public:
+    //| ArraySize must be a power of 2
+    static assert(0 == (ArraySize & (ArraySize - 1)));
+
+    //| ArrayDepth must be a power of 2
+    static assert(0 == (ArrayDepth & (ArrayDepth - 1)));
+
+    //| Input and output array type
+    using array_t = T[ArraySize];
+
+private:
+    using array_pointer_t = index_t<ArrayDepth>;
+
+    // Memories that hold raw data
+    memory<T, ArrayDepth>[ArraySize] _data_memories;
+
+    // Used to block reads while fifo is empty
+    semaphore<ArrayDepth, 0, DequeueBlocking> _read_semaphore;
+
+    // Used to block writes while the fifo is full
+    semaphore<ArrayDepth, ArrayDepth, EnqueueBlocking> _write_semaphore;
+
+    // Index of a row/column within the containing square
+    using index_within_square_t = index_t<ArraySize>;
+
+public:
+    //| Read one column from FIFO and discard `discard_column_count` subsequent columns from the same square.
+    //  Block if FIFO is empty and `DequeueBlocking` is true.
+    array_t dequeue_and_discard(index_t<ArraySize> discard_column_count)
+    {
+        count_t<ArraySize> total_column_count = discard_column_count + 1;
+
+        // Block the calling thread until the containing square is available
+        _read_semaphore.wait_multiple(total_column_count);
+
+        // Get the value of the read pointer, and increment the read pointer
+        decomposed_addr consumer_index = increment_address(total_column_count);
+
+        // Read one element from each memory
+        array_t result;
+
+        static for (const auto i : ArraySize)
+        {
+           result[i] = _data_memories[i][consumer_index.array_index];
+        }
+
+        // The memory addressing and muxing that occurs during a write gets the data
+        // in almost the desired form.  Each element of the output array is in 1 memory
+        // but output element 'i' might be in memory 'j'.  A rotation addresses this.
+        result = rotate_array_right<ArraySize>(result, consumer_index.index_within_square);
+
+        auto array_end = consumer_index.index_within_square + total_column_count;
+
+        // discard_count can only be used to discard values within the same square
+        sim_assert(array_end <= ArraySize);
+
+        if (array_end == ArraySize)
+        {
+            // An entire square has been dequeued
+            _write_semaphore.post_multiple(ArraySize);
+        }
+
+        return result;
+    }
+
 array_t dequeue()
     {
         return dequeue_and_discard(0);
     }
+}

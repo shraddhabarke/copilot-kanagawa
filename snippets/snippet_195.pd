@@ -1,3 +1,6 @@
+
+//| Return the nearest integer not greater in magnitude than `x`.
+template<Denorm denorm_mode>
 inline float32 trunc(float32 x)
 {
     return trunc_internal<float32, _mantissa_width, _exponent_width, _exponent_bias, denorm_mode>(x);

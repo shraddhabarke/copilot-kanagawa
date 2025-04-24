@@ -1,3 +1,26 @@
+//| Use the specified `Fixture` class to implement a test. A fixture used with
+// `test` function must implement a public method `void run(tag_t tag)` and use
+// asserts to indicate test failure. A fixture used with `check` must implement
+// a public method `bool run()` that returns `true` for success and `false` for
+// failure.
+//
+// #### __Example__
+//
+// class Foo
+// {
+//    public:
+//      void run(unit::tag_t tag)
+//      {
+//          unit::assert_equal(tag, 4, 2 + 2);
+//      }
+// }
+//
+// unit::test<1>(unit::fixture<Foo>());
+//
+template
+    < typename Fixture  //< Fixture class
+    >
+
 inline auto fixture()
 {
     static if (decltype(Fixture::run) == () -> bool)

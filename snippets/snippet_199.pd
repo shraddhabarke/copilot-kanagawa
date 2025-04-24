@@ -1,3 +1,4 @@
+template <auto N /*< Width of `value`.*/>
 inline float32 from_uint(uint<N> value)
 {
     return int_to_float<uint<N>, float32, _mantissa_width, _exponent_width, _exponent_bias>(value);

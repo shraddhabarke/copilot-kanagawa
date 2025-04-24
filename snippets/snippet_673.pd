@@ -1,3 +1,54 @@
+
+import data.array
+import data.fifo
+import data.order
+
+//| Given the frequency of each symbol, construct a standard Huffman code.
+// Should a code be discovered that exceeds the `MaxCodeLength` parameter, the
+// `compute` function will return false; optionally, the symbol frequency can
+// be halved and the algorithm attempted again. See `compute` for more information.
+// Another option on `compute` is to create a `universal` code that treats all
+// unused symbols as if they had a frequency of 1 so that a codeword, however
+// inefficient, exists.
+template
+    < auto NumSymbols      //< Maximum number of symbols in the symbol alphabet.
+    , auto TotalSymbolFreq //< Maximum value for the sum of all symbol frequencies.
+    , auto MaxCodeLength   //< Maximum supported length of any codeword.
+    , auto SorterWidth     //< Number of sorted elements to be extracted in each
+                           // pass through the alphabet. Higher values reduce
+                           // latency but also increase area.
+    >
+class encoder
+{
+    static assert(SorterWidth % 2 == 0);
+    const auto NumSymbolsPow2 = 1 << clog2(NumSymbols);
+
+  public:
+    //| Unsigned integer type capable of referencing any symbol.
+    using symbol_t = index_t<NumSymbols>;
+
+    //| Unsigned integer type capable of holding the maximum frequency of any symbol.
+    using symFreq_t = count_t<TotalSymbolFreq>;
+
+    //| Containing as many bits as the maximum code length.
+    using codeBits_t = uint<MaxCodeLength>;
+
+    //| Unsigned integer type wide enough to capture the maximum code length.
+    using codeLength_t = count_t<MaxCodeLength>;
+
+    //| Unsigned integer type for counting the frequency a particular code
+    // length occurs. The worst case would be if all symbols had the same code length.
+    using codeLengthFreq_t = count_t<NumSymbols>;
+
+    [[pipelined]] void reset(index_t<NumSymbols> tid)
+    {
+        static assert(NumSymbols > MaxCodeLength);
+        _codebook[tid] = {0, 0};
+        _freqs[tid] = {};
+    }
+
+    uint1 _validTag;
+
 inline bool compute_with_retry
 ( count_t<NumSymbols> numSymbols
 , codeLength_t maxCodeLength
@@ -23,3 +74,4 @@ do {
 // Assign each symbol its code according to RFC1951
  compute_next_code_and_assign(!failed ? maxCodeLength + numSymbols : 0, maxCodeLength);
  return failed;}
+}

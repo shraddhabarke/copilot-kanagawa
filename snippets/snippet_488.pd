@@ -1,3 +1,27 @@
+import data.counter
+
+//| An array of independent mutually exclusive locks, or mutexes.
+// Call `lock` to acquire a mutex and `unlock` to release it.
+template<auto NumMutexes>
+class multi_mutex
+{
+private:
+    memory<uint1, NumMutexes> _w;
+    memory<uint1, NumMutexes> _r;
+    bool is_initialized = false;
+
+public:
+    void init()
+    {
+        pipelined_for(NumMutexes, [](index_t<NumMutexes> i)
+        {
+            _r[i] = 0;
+            _w[i] = 0;
+        });
+
+        is_initialized = true;
+    }
+
 void lock(index_t<NumMutexes> index)
     {
         sim_assert(is_initialized);
@@ -19,3 +43,4 @@ void lock(index_t<NumMutexes> index)
             return result;
         });
     }
+}

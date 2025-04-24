@@ -1,3 +1,129 @@
+template
+    < typename Key
+    , typename Value
+    , auto Depth                                                //< Maximum number of elements that can be stored.
+    , auto Associativity                                        //< Number of locations to consider on each search iteration.
+                                                                // Larger values lead to more resource consumption and higher throughput.
+    , (Key)->index_t<Depth / Associativity> hash_fn
+        = toeplitz_hash<index_t<Depth / Associativity>, Key>    //< Function that maps a key to a location in the hash table.
+    , auto GenerationBits = 4                                   //< Number of bits to ammortize reset costs.
+                                                                // Higher values lead to more resource consumption, and lower the average cost of reset.
+    , auto MaxIterations = Depth                                //< Maximum number of search iterations before returning an error
+    , auto DataBanks = 1                                        //< Number of banks to store values.
+                                                                // If `Depth` is high, then increasing `DataBanks` can improve clock frequency.
+    , auto HistorySize = 1                                      //< Size of arrays used to detect hazards.  Larger values increase frequency and resource usage.
+    , auto MaxThreads = 512                                     //< Maximum number of threads that can be present inside of `insert_or_update` concurrently.
+                                                                // Caller does not need to ensure this limit is respected.
+                                                                // Higher values enable more concurrency which can improve performance if
+                                                                // the allocation function compiles to a deep pipeline or if `DataBanks` is set to a large value.
+                                                                // Lower values save resources by using narrower counters to track in-flight threads.
+    >
+class hash_table
+{
+private:
+    using generation_id_t = uint<GenerationBits>;
+    using element_index_t = index_t<Depth>;
+    using way_index_t = index_t<Associativity>;
+
+    // Avoid declaring arrays with 0 size
+    const bool UseHistory = (HistorySize > 0);
+
+    const auto HistoryArraySize = UseHistory ? HistorySize : 1;
+
+    struct tag
+    {
+        generation_id_t gen_id;
+        Key key;
+    }
+
+    rwlock<MaxThreads> _tag_lock;
+
+    const auto NumSets = Depth / Associativity;
+
+    memory<tag, NumSets>[Associativity] _tags;
+
+    pipelined_memory<Value, Depth, DataBanks> _data;
+
+    counter<MaxThreads, 0> _threads_in_flight;
+
+    // The type that keys are hashed to
+    using set_index_t = index_t<Depth / Associativity>;
+
+    using history_tuple = tuple3<set_index_t, generation_id_t, bool>;
+
+    using history_entry_t = optional<history_tuple>;
+
+    history_entry_t[HistoryArraySize] _outer_history;
+
+public:
+    //| All sets must have the same number of elements
+    static assert(0 == (Depth % Associativity));
+
+    //| Set count must be a power of 2
+    static assert(0 == (NumSets & (NumSets - 1)));
+
+    //| MaxIterations must be positive, otherwise no lookup operation could ever succeed
+    static assert(MaxIterations > 0);
+
+    //| Return value on a successful `insert_or_update`
+    struct result
+    {
+        //| True if this is the first time the associated key has been used since the hash table was reset.
+        bool inserted;
+
+        //| Values in the hash table before and after the lookup
+        // When an key is first inserted into the table, `value.first` is
+        // the value returned by `allocate_fn`.
+        pair<Value, Value> value;
+    }
+
+private:
+    struct lookup_one_set_result
+    {
+        bool continue_searching;
+
+        // True if a new key/value pair was inserted
+        bool inserted;
+
+        // is_valid == true iff an existing key/value pair was found
+        // or if a new one was inserted.
+        // False if the search failed.
+        optional<element_index_t> element_index;
+    }
+
+    //| Used to block the first thread of each generation until `_threads_in_flight` is zero
+    inline bool test_thread_count(bool reset)
+    {
+        bool result = false;
+
+        if (!reset || (_threads_in_flight.count() == 0))
+        {
+            result = true;
+
+            _threads_in_flight.add(1);
+        }
+
+        return result;
+    }
+
+public:
+
+    //| Combined function that can be used to:
+    //
+    // 1. Insert a new `(Key, Value)` pair.
+    // 2. Lookup the `Value` associated with a `Key` that is already present in the table.
+    // 3. Modify the `Value` associated with a `Key` that is already present in the table.
+    // 4. Reset the table to the initial state.
+    //
+    // Inserts, lookups, and modifications use an iterative search.
+    // A hash of the input key is used to determine the starting location for the search.
+    // On each iteration, `Associativity` locations are checked in parallel.  If a matching key is found
+    // then the hash table runs at full throughput.  Otherwise, the search loop proceeds,
+    // searching `Associativity` new locations on each iteration.
+    // Callers must ensure there are never concurrent calls to this function
+    // from separate call sites.
+    // Calls to `allocate_fn` occur in the same order as calls to `insert_or_update`.
+
 inline optional<result> insert_or_update
         ( Key key                           //< Key used to find a location to store the value
         , bool reset                        //< True if all elements in the hash table should be removed before performing the search.
@@ -115,3 +241,4 @@ inline optional<result> insert_or_update
 
         return r;
     }
+}

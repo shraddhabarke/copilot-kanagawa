@@ -1,3 +1,15 @@
+    //| Atomically read and write the memory up to `N` times.
+    //  Returns both the old and new value for the specified elements.
+    //  Must not be called concurrently with other calls that may write to the memory.
+    //  Throughput can be improved by de-duplicating accesses to the same address before calling this method.
+    //  Note that `modify` may be called multiple times concurrently (one call site per bank).
+    template
+        < auto N
+        , auto BankUpdateRate = 1 //< If a given thread accesses a given bank,
+                                  //  then the next `BankUpdateRate-1` threads must not access the same bank.
+                                  //  This enables the implementation of `modify` to be pipelined.
+        >
+
 inline pair<T, T>[N] atomically_vec
         ( optional<addr_t>[N] addresses    //< Addresses of the element to access.
         , (T, index_t<N>)->T modify        //< Function that accepts the value of an element read from the memory

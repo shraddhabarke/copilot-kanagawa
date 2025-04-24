@@ -1,3 +1,5 @@
+//| Return the larger of `x` and `y`. A NaN is treated as missing data, and the other value will be returned.
+template<Denorm denorm_mode>
 inline float32 max(float32 x, float32 y)
 {
     return (isnan(y) || gt<denorm_mode>(x, y)) ? x : y;

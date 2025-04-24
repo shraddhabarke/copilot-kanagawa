@@ -1,3 +1,6 @@
+    //| Send back the output data for a given thread at a word address
+    // from 0 to `(number of FFT * size of FFT / InputWordWidth) - 1`
+
 inline complex <NativeDataType> [OutputWordWidth] return_values(thread_addr_t thread_num, primary_output_addr_t address)
     {
         sim_assert(thread_num < NumThreads);

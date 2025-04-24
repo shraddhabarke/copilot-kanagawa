@@ -1,22 +1,71 @@
-void enqueue(array_t values)
+import sync.lock
+import sync.atomic
+import data.array
+import numeric.int.operator
+
+//| A FIFO that accepts rows of type `T[ArraySize]`,
+//  transposes each square group of `ArraySize x ArraySize` elements,
+//  and returns columns of type `T[ArraySize]`
+template
+    < typename T                    //< Datatype for each array element
+    , auto ArraySize                //< Number of elements in input arrays, must be a power of 2.
+    , auto ArrayDepth               //< Maximum number of arrays that can be stored, must be a power of 2.
+    , bool EnqueueBlocking = true   //< Block on enqueue if the FIFO is full until an entry
+                                    //  frees up. By default this is true. Otherwise,
+                                    //  the caller must ensure that the FIFO is not full.
+    , bool DequeueBlocking = true   //< Block on dequeue if the FIFO is empty until an entry
+                                    //  arrives. By default, this is true. Otherwise,
+                                    //  the caller must ensure that the FIFO is not empty.
+    >
+class fifo
+{
+public:
+    //| ArraySize must be a power of 2
+    static assert(0 == (ArraySize & (ArraySize - 1)));
+
+    //| ArrayDepth must be a power of 2
+    static assert(0 == (ArrayDepth & (ArrayDepth - 1)));
+
+    //| Input and output array type
+    using array_t = T[ArraySize];
+
+private:
+    using array_pointer_t = index_t<ArrayDepth>;
+
+public:    
+void enqueue_and_discard
+        ( array_t values                        //< The value of the first row to write into the FIFO.
+        , index_t<ArraySize> discard_row_count  //< The number of additional rows (with undefined content) to write into the FIFO.
+        )
     {
-        // Block until there is room for one more array
-        _write_semaphore.wait();
+        count_t<ArraySize> total_row_count = 1 + discard_row_count;
+
+        // Block until there is room for `total_row_count` more arrays
+        _write_semaphore.wait_multiple(total_row_count);
 
         // Get the value of the write pointer, and increment the write pointer
-        decomposed_addr producer_index = increment_address(1);
+        decomposed_addr producer_index = increment_address(total_row_count);
 
         // Store the values into the memories
         static for (const auto i : ArraySize)
         {
-            index_t<ArraySize> select = i - producer_index.index_within_square;
+            index_t<ArraySize> select = static_cast(i - producer_index.index_within_square);
 
             _data_memories[i][producer_index.square_base + select] = values[select];
         }
 
-        if (producer_index.index_within_square == (ArraySize - 1))
+        auto new_row_count = producer_index.index_within_square + total_row_count;
+        sim_assert(new_row_count <= ArraySize);
+
+        if (new_row_count == ArraySize)
         {
             // Allow an entire square to be dequeued
             _read_semaphore.post_multiple(ArraySize);
         }
+    }
+
+    //| Write one row into the FIFO. Block if FIFO is full and `EnqueueBlocking` is true.
+    void enqueue(array_t values)
+    {
+        enqueue_and_discard(values, 0);
     }

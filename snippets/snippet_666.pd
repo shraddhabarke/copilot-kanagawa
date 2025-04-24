@@ -1,7 +1,29 @@
+import data.fifo
+    
+
+//| An array of FIFOs.  
+template
+    < typename T                                             //< Datatype stored in each FIFO.
+    , auto Depth                                             //< Number of elements stored in each FIFO.
+    , auto ArraySize                                         //< The number of FIFOs.
+    , template <typename, auto> typename FifoType = FIFO     //< Type of FIFO to use.
+    >
+class fifo_array
+{
+public:
+    //| Index that identifies one FIFO.
+    using fifo_index_t = index_t<ArraySize>;
+
+private:
+    FifoType<T, Depth>[ArraySize] _fifos;
+
+public:
+
 void enqueue_all
 ( T[ArraySize] values //< Array of values to store.
 ) {
 static for (const auto i : ArraySize) {
     _fifos[i].enqueue(values[i]);
+}
 }
 }

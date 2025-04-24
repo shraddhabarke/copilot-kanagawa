@@ -1,6 +1,41 @@
+class RISC_V
+{
+    using core_t = Core<
+        HARTS,
+        IMEM_LENGTH,
+        DMEM_LENGTH,
+        MMIO_LENGTH,
+        IMEM_ORIGIN,
+        DMEM_ORIGIN,
+        MMIO_ORIGIN,
+        IMEM_TCM_SIZE,
+        Memory,
+        EXTENSIONS,
+        CONFIG,
+        ISA,
+        BTB_SIZE>;
+
+public:
+    using system_trap_t    = core_t::system_trap_t;
+    using trace_t          = core_t::trace_t;
+    using mmio_access_t    = core_t::mmio_access_t;
+    using mmio_load_t      = core_t::mmio_load_t;
+    using mmio_store_t     = core_t::mmio_store_t;
+    using external_fetch_t = core_t::external_fetch_t;
+    using custom_decode_t  = core_t::custom_decode_t;
+    using custom_execute_t = core_t::custom_execute_t;
+
+    using imem_addr_t      = core_t::imem_addr_t;
+    using dmem_addr_t      = core_t::dmem_addr_t;
+    using register_index_t = core_t::register_index_t;
+    using int_t            = core_t::int_t;
+    using uint_t           = core_t::uint_t;
+    using hart_index_t     = core_t::hart_index_t;
+
 inline void mmio_load_result
 ( hart_index_t hid  //< Index of the hart that performed the asynchronous load
                     // from memory mapped IO.
 , int_t value       //< Result of memory mapped IO load.
 ){
     core.mmio_load_result(hid, value);}
+}

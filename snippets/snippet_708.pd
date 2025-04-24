@@ -1,3 +1,40 @@
+
+class toeplitz
+{
+public:
+    using Hash_t=uint<HashWidth>;
+    using Data_t=uint<DataWidth>;
+    using  Key_t=uint<KeyWidth>;
+
+    static assert(KeyWidth >= HashWidth);
+    static assert(PipelineCycles > 0);
+
+private:
+    const auto DataChunkWidth = (DataWidth + PipelineCycles-1) / PipelineCycles; // Width of input data handled per "thread" in [[pipelined]] function _CalcHash
+    const auto TidWidth = (PipelineCycles < 2) ? 1 : clog2(PipelineCycles);
+
+    using Tid_t=uint<TidWidth>;
+    using DataChunk_t=uint<DataChunkWidth>;
+
+    // Extracts chunk of input data to process for the specified pipeline thread
+    // Data is extracted MSB first, per Toeplitz algorithm description.
+    //
+    // Example calculation:
+    //      DataWidth = 25
+    //      PipelineCycles = 3
+    //      DataChunkWidth = 9
+    //
+    //             ------- Input Data ------
+    //             1111111110000000000000000xx
+    //             876543210FEDCBA9876543210xx
+    //       tid   ---Aligned Input Data----    <rshift><lshift>
+    //        0    xxxxxxxxx                      16        0
+    //        1             xxxxxxxxx              7        0
+    //        2                      xxxxxxx00     0        2
+    //
+    //      rshift = DataWidth - (tid+1)*DataChunkWidth
+    //      lshift = (tid == PipelineCycles-1) ? (DataChunkWidth - DataWidth/PipelineCycles) : 0;
+
 inline DataChunk_t extract_data_chunk(Data_t data, Tid_t tid){
     // Toeplitz processes high order bits first, so chunk
     // number 0 is left-most. If DataWidth is not an even multiple of PipelineCycles
@@ -6,3 +43,4 @@ inline DataChunk_t extract_data_chunk(Data_t data, Tid_t tid){
     const auto rShiftBits = DataWidth + PadBits - (tid+1)*DataChunkWidth;
     const uint<DataWidth+PadBits> paddedData = data << PadBits;
     return cast<DataChunk_t>(paddedData >> rShiftBits); }
+}

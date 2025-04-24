@@ -1,3 +1,52 @@
+//| Multiple instance semaphore.
+template
+    < auto N               //< Number of semaphore instances.
+    , auto M               //< Maximum semaphore value.
+    , auto I               //< Initial value for the semaphore count. Must be less than or equal to `M`.
+    , auto Blocking = true //< By default, this is true and causes the semaphore to
+                           // block when wait is called. Setting this to false should only
+                           // be used when the caller can ensure that the semaphore count is
+                           // greater than 0 when wait is called. If it is not a diagnostics
+                           // assert is raised.
+    >
+class multi_semaphore
+{
+public:
+    using sem_ctr_t = count_t<M>;
+    using sem_idx_t = index_t<N>;
+
+    static assert(I <= M);
+
+private:
+
+    counter<M, I>[N] _counter;
+
+    bool wait_helper(sem_idx_t which, sem_ctr_t val, bool decrement_count)
+    {
+        bool result;
+
+        if (Blocking)
+        {
+            atomic do; while(!test_and_decrement(which, val, decrement_count));
+            result = true;
+        }
+        else
+        {
+            atomic
+            {
+                result = test_and_decrement(which, val, decrement_count);
+            }
+
+            sim_assert(result || !decrement_count);
+        }
+
+        return result;
+    }
+
+public:
+    //| Check if the current count is greater than or equal to value. If `decrement_count` flag is set,
+    // and the current count is sufficient, this method will also decrement the count.
+    // This function is not inherently threadsafe, and must be called from inside an `atomic` or `wait_for`.
 inline bool test_and_decrement(sem_idx_t which, sem_ctr_t val, bool decrement_count)
     {
         bool result = false;
@@ -24,3 +73,4 @@ inline bool test_and_decrement(sem_idx_t which, sem_ctr_t val, bool decrement_co
 
         return result;
     }
+}

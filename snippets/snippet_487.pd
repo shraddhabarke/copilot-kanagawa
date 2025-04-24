@@ -1,4 +1,71 @@
+// An array of independent reader/writer locks.
+template
+    < auto MaxThreads //< The maximum number of threads that might be manipulating the lock. This determines
+                      // the maximum number of read-locks that can be outstanding for a single lock. Typically 512 is
+                      // a sensible value to use here.
+    , auto NumLocks   //< The number of independent rwlocks to create. If we think of this class as implementing a
+                      // vector of rwlock, then this value represents the vector size.
+    >
+class multi_rwlock
+{
+private:
+    struct rwlock_state
+    {
+        uint1 num_writers;
+        count_t<MaxThreads> num_readers;
+    };
+
+    using rwlock_index_t=index_t<NumLocks>;
+    memory<rwlock_state, NumLocks> _w;
+    memory<rwlock_state, NumLocks> _r;
+    bool _is_initialized = false;
+
+public:
+    void init()
+    {
+        pipelined_for(NumLocks, [](index_t<NumLocks> i)
+        {
+            rwlock_state initial_state = {};
+
+            _r[i] = initial_state;
+            _w[i] = initial_state;
+        });
+
+        atomic
+        {
+            // The "atomic" is to prevent re-ordering of things such that
+            // this gets set before the above writes are all completed
+            _is_initialized = true;
+        }
+    }
+	
+       //| Release a reader or writer lock at the specified index. You must never unlock without having previously acquired
+    // the same type of lock, otherwise you will create a deadlock situation.
+    void unlock(rwlock_index_t index, bool is_reader)
+    {
+        sim_assert(_is_initialized);
+
+        atomic
+        {
+            auto r =  _r[index];
+
+            if (is_reader)
+            {
+                // Decrement read lock ptr (by incrementing unlock side ptr) and leave write-lock ptr alone
+                r.num_readers = static_cast(r.num_readers + 1);
+            }
+            else
+            {
+                // Decrement write lock ptr (by incrementing unlock side ptr) and leave read-lock ptr alone
+                r.num_writers = static_cast(r.num_writers + 1);
+            }
+
+            _r[index] = r;
+        }
+    }
+
 inline void write_unlock(rwlock_index_t index)
     {
         unlock(index, false);
     }
+}

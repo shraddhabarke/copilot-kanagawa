@@ -1,3 +1,37 @@
+//| Type of unicode encoding.
+enum unicode_encoding_type : uint2
+{
+    utf_8,
+    utf_16,
+    utf_32,
+    undefined
+}
+
+//| A single unicode code point.
+using unicode_code_point_t = uint21;
+
+template<typename T>
+struct code_point_stream_to_int_context_impl
+{
+    uint<bitsizeof(T)> accumulator;
+    bool negative;
+    bool has_content;
+}
+
+//| Context used by `code_point_stream_to_int`.
+template<typename T>
+struct code_point_stream_to_int_context
+{
+    //| The deserialized value.
+    T value;
+
+    //| True if an error has been encountered.
+    bool error;
+
+    //| Implementation details.
+    code_point_stream_to_int_context_impl<T> impl;
+}
+
 template<typename T>
 inline code_point_stream_to_int_context<T> code_point_stream_to_int
     ( unicode_code_point_t code_point             //< Input code point.
