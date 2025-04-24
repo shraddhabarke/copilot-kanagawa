@@ -1,3 +1,7 @@
+// A reader-writer lock that is in one of 2 states:
+// 1) locked for writing     - 1 writer thread in flight, no readers in flight
+// 2) not locked for writing - up to MaxReaders reader threads in flight
+// Caller ensures no more than MaxReaders readers in flight at a time
 template<auto MaxReaders>
 class rwlock
 {
@@ -6,9 +10,11 @@ private:
     // begin_strip
     bool _writer_in_flight = false;
     counter<MaxReaders, 0> _readers_in_flight;
+
     inline bool lock_internal(bool is_writer)
     {
         bool result = false;
+
         if (is_writer)
         {
             // Only allow a new writer if there is no in-flight reads or writers
@@ -19,6 +25,7 @@ private:
             // Allow a reader if there is no writer in-flight
             result = !_writer_in_flight;
         }
+
         if (result)
         {
             if (is_writer)
@@ -30,6 +37,35 @@ private:
                 _readers_in_flight.add(1);
             }
         }
+
         return result;
     }
     // end_strip
+
+public:
+    // Block the calling thread until the mutex is no longer locked
+    void lock(bool is_writer)
+    {
+        // begin_strip
+        wait([is_writer](){ return lock_internal(is_writer); });
+        // end_strip
+    }
+
+    // Allow a new thread to acquire the lock
+    void unlock(bool is_writer)
+    {
+        // begin_strip
+        atomic
+        {
+            if (is_writer)
+            {
+                _writer_in_flight = false;
+            }
+            else
+            {
+                _readers_in_flight.subtract(1);
+            }
+        }
+        // end_strip
+    }
+}

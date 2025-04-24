@@ -1,3 +1,20 @@
+import data.array
+import data.bits
+import data.counter
+import data.memory.pipelined
+import data.optional
+import data.random.toeplitz
+import data.tuple
+import sync.atomic
+import sync.atomic.init
+import sync.lock
+
+//| Computes a hash of input keys using an instance of the `toeplitz` class.
+template
+    < typename Hash //< Output hash type
+    , typename Key  //< Input key type
+    >
+
 inline Hash toeplitz_hash(Key key)
 {
     static toeplitz

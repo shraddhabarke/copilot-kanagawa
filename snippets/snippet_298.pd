@@ -1,3 +1,5 @@
+import data.tuple
+
 template<typename T>
 inline uint<bitsizeof T> abs(T a)
 {

@@ -1,3 +1,33 @@
+import numeric.decimal.internal
+
+const auto _width = 32;
+const auto _bias = 101;
+const auto _max_integer = 9999999;
+
+using bid32_t = uint<_width>;
+using decimal32PackedFormat_t = decimalPackedFormat<_width>;
+
+enum decimal32_constants: uint32
+{
+    POS_MAX       = 0x77F8967F,
+    NEG_MAX       = 0xF7F8967F,
+    POS_ZERO      = 0x32800000,
+    NEG_ZERO      = 0xB2800000,
+    POS_ONE       = 0x32800001,
+    NEG_ONE       = 0xB2800001,
+    POS_INFINITY  = 0x78000000,
+    NEG_INFINITY  = 0xF8000000,
+    DEFAULT_NAN   = 0x7C000000
+}
+
+// Function: getSpecialCases
+//
+// Check if nan, zero, inf, or finite
+inline specialCaseFlags getSpecialCases(bid32_t a)
+{
+    return getSpecialCases_internal<_width>(a);
+}
+
 template < auto UnrollingFactor //< Chunks of numerator bits of this size are processed in parallel,
                                 // meaning the outer loop only has to execute
                                 // `bitsizeof(uint<normalizedIntegerWidth>)/UnrollingFactor` iterations.

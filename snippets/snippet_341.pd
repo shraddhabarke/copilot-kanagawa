@@ -1,3 +1,4 @@
+
 template<auto I /*< Integer bit-width.*/, auto F /*< Fractional bit-width.*/>
 struct fixed
 {

@@ -1,1 +1,6 @@
+import .options
+import data.memory.byte_addressable
+import numeric.int.operator.modular as modular
+import processor.risc_v.internal.decoder
+
 inline Decoded decode(Current current) { return decode_instr<EXTENSIONS, CONFIG>(current.instr.value, custom_decode); }

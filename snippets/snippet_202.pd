@@ -1,8 +1,11 @@
-template< auto N                  
-//< Length of shift register, typename T              
-//< Type of each buffer entry, bool Initialize = true  
-//< true if the state values should be initialized to {}
->inline pair<T[N], T[N]> serial_in_parallel_out(T data)
+import data.tuple
+
+template
+    < auto N                  //< Length of shift register
+    , typename T              //< Type of each buffer entry
+    , bool Initialize = true  //< true if the state values should be initialized to {}
+    >
+inline pair<T[N], T[N]> serial_in_parallel_out(T data)
 {
     pair<T[N], T[N]> result;
 

@@ -1,3 +1,11 @@
+import .options as opt
+import control.async
+import data.array
+import data.counter
+import data.fifo
+import type.stdtype
+
+//| Keep calling `body` while the `condition` returns true.
 inline void while_do (() -> bool condition, () -> void body)
 {
     bool proceed;

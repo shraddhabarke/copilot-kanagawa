@@ -1,3 +1,41 @@
+import data.array
+import data.cache.internal
+import data.memory.pipelined
+
+//| A cache that only supports write operations with word-enable bits.
+template
+    < typename Key                                      //< The type of key for looking up a value in the cache.
+    , typename Word                                     //< The type of a single word stored in the cache.
+    , auto WordCount                                    //< The maximum number of words that can be written at one time.
+    , typename LUtime                                   //< The type to use for storing the time a cache entry was most recently used.
+                                                        //  Using a wider type makes LRU eviction more accurate for a set associative
+                                                        //  cache, but for a direct cache where LRU does not apply, using uint1 saves space.
+    , auto Associativity                                //< The number of entries to store for a given hash value, keeping the most
+                                                        //  recently used values.  Pass 1 to create a directly mapped cache.
+    , auto Depth                                        //< The total number of entries to cache.  Must be a multiple of `Associativity`.
+    , auto Banks = 1                                    //< The number of memory banks cache memory is split into.
+    >
+class cache
+{
+private:
+    //| Function used to write to the backing store.
+    (Key key, optional<Word>[WordCount] data) -> void store;
+
+    const auto SetCount = Depth / Associativity;
+
+    // An integer that represents a single set of `Associativity` values in the cache.
+    using set_index_t = index_t<SetCount>;
+
+    cache_tags<Key, LUtime, Associativity, Depth> _tags;
+
+    pipelined_memory<optional<Word>[WordCount], Depth, Banks, memory_norep> _data;
+
+    inline index_t<Depth> get_data_index(set_index_t set_index, index_t<Associativity> way_index)
+    {
+        return (set_index * Associativity) + way_index;
+    }
+
+public:
     void write
     ( Key key                           //< Key to lookup.
     , set_index_t set_index             //< Hashed value of `key`.
@@ -24,3 +62,4 @@
           store(tag_result.key_to_write.value, prev);
      }
  }
+}

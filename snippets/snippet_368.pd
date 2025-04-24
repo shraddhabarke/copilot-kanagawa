@@ -1,3 +1,4 @@
+
 template <auto N>
 inline int32 sign_extend(uint<N> x)
 {

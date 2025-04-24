@@ -1,3 +1,5 @@
+import hardware.dsp
+
 inline float32 mul(float32 x, float32 y)
 {
     return fmul32(x, y);

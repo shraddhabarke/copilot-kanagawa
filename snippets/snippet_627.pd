@@ -1,3 +1,8 @@
+    //| Returns `true` if the core is running. Can be used to wait for the core
+    // to finish running after stop request.
+    bool exit = false;
+    bool running = false;
+    const auto threads = 64;
 inline bool is_running()
     {
         return running;

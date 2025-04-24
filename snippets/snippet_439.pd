@@ -1,3 +1,5 @@
+import sync.atomic
+
 template<typename T /*< Variable type.*/>
 class pipelined_variable
 {

@@ -1,3 +1,5 @@
+template<typename T>
+
 inline void run_scalar_test(()->T test_fn, T expected, const string name)
 {
 const uint64 start_cycle = cycles();

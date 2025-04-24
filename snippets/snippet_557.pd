@@ -1,3 +1,14 @@
+import codec.compression.gzcomp as gz
+import codec.compression.gzcommon as gzc
+import codec.compression.lzcomp as lz
+import codec.crc
+
+enum compressor_mode : uint2
+{
+    DEFLATE,
+    TRAIN_THEN_DEFLATE
+};
+
 void reset(uint32 updateInterval, bool reuseLastCode)
 {
     _mode = compressor_mode::DEFLATE;

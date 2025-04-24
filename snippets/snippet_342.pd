@@ -1,3 +1,17 @@
+import data.bits
+import data.optional
+import numeric.fixed.internal as internal
+import numeric.int.operator as intop
+
+//| Fixed-point representation.
+template<auto I /*< Integer bit-width.*/, auto F /*< Fractional bit-width.*/>
+struct fixed
+{
+    int<I + F> value;
+}
+
+//| Internal function which conditionally performs a `checked_cast` on valid source values.
+// Valid values must be representable by the type: fixed<I, F>.
 template<auto I, auto F>
 inline optional<fixed<I, F>> checked_cast_opt_fixed(auto src, bool is_valid)
 {

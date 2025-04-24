@@ -1,7 +1,70 @@
+import data.array
+import data.bits
+
+template <typename Key, typename LUtime>
+struct cache_entry
+{
+    bool _valid;
+    bool _unwritten;
+    LUtime _lastUsed;
+    Key _key;
+}
+
+template <typename LUtime, typename entry_index_t>
+struct cache_entry_with_index
+{
+    bool _valid;
+    bool _unwritten;
+    LUtime _lastUsed;
+    entry_index_t _index;
+}
+
+template <typename Key, typename LUtime, auto EntriesPerTag>
+struct cache_tag
+{
+    cache_entry<Key, LUtime>[EntriesPerTag] _entries;
+}
+
+//| Handles metadata related to entries in the cache, but does not store data.
+template
+    < typename Key       //< The type of key for looking up a value in the cache.
+    , typename LUtime    //< The type to use for storing the time a cache entry was
+                         // most recently used. Using a wider type makes LRU eviction
+                         // more accurate for a set associative cache, but for a direct
+                         // cache where LRU does not apply, using `uint1` saves space.
+    , auto Associativity //< The number of entries to store for a given hash value,
+                         // keeping the most recently used values. Pass 1 to create
+                         // a directly mapped cache.
+    , auto Depth         //< The total number of entries to cache. Must be a multiple
+                         // of `Associativity`.
+    >
+class cache_tags
+{
+private:
+
+    // Function: initializeCacheTag
+    //
+    // Initializes a single cache_tag.
+    [[pipelined]] void InitializeCacheTag(set_index_t threadId)
+    {
+        cache_tag<Key, LUtime, Associativity> tag;
+        static for (const auto j : Associativity)
+        {
+            cache_entry<Key, LUtime> entry;
+            entry._valid = false;
+            entry._unwritten = false;
+            entry._lastUsed = 0; // not strictly necessary, but makes for cleaner debug output
+            tag._entries[j] = entry;
+        }
+        m_tags[threadId] = tag;
+    }
+
+public:
 void initialize()
 {
 // If this assert fires, Depth is not a multiple of Associativity.
 sim_assert(Depth == _setCount * Associativity);
 
 InitializeCacheTag(_setCount);
+}
 }

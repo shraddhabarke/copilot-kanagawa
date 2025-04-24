@@ -1,3 +1,7 @@
+    bool exit = false;
+    bool running = false;
+    const auto threads = 64;
+
 inline void stop()
     {
         atomic

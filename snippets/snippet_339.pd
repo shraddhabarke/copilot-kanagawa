@@ -1,3 +1,4 @@
+//| Calculate the optional address indices for each bank at specific iteration.
 template< auto Banks, typename Address, auto Addresses   //< Number of addresses processed per call.
 >inline optional<index_t<Addresses>>[Banks] schedule_write_requests
     ( optional<Address>[Addresses] addresses            //< Input addresses, valid duplicates __not__ allowed.

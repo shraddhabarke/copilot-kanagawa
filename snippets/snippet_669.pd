@@ -1,3 +1,4 @@
+import data.optional
 template <auto Width /*< The bit-width of the LFSR. Widths from 2 to 32 inclusive are supported.*/>
 inline uint<Width> lfsr(uint<Width> seed)
 {

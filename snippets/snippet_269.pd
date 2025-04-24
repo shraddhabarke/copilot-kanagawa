@@ -1,3 +1,4 @@
+
 inline void wait(()->bool fn)
 {
     const auto wrapper = [fn]() -> optional<uint1>

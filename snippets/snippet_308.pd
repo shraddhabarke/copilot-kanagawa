@@ -1,4 +1,13 @@
-inline auto increment(A a)
+//| Returns `(a + 1) mod M`.
+// `a` must be less than `M`.
+import numeric.int.limits
+import type.stdtype
+
+template
+    < typename T                    //< Type of the operand.  Must be unsigned.
+    , auto M = (1 << bitsizeof(T))  //< Modulus value.
+    >
+inline auto increment(T a)
 {
-    return add<A, uint1, M>(a, 1);
+    return add<T, uint1, M>(a, 1);
 }

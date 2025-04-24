@@ -1,3 +1,4 @@
+
 template<(tokens_t, count_t<Width>, bool)->void LzToGzCallback,
          (PrioritizeDictCallbackInput_t) -> PrioritizeDictCallbackOutput_t PrioritizeDictCallback,
          (ChooseMatchCallbackInput_t) -> ChooseMatchCallbackOutput_t ChooseMatchCallback>

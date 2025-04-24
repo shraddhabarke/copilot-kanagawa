@@ -1,6 +1,33 @@
+import data.counter
+import harness
+
+// A mutex that is in one of 2 states:
+// locked or unlocked
+class mutex
+{
+private:
+    // member variables and methods here
+    // begin_strip
+    bool _locked = false;
+
+    inline bool lock_internal()
+    {
+        bool result = !_locked;
+
+        if (result)
+        {
+            _locked = true;
+        }
+
+        return result;
+    }
+    // end_strip
+
+
 void lock()
 {
 // begin_strip
 wait_for(lock_internal());
 // end_strip
+}
 }

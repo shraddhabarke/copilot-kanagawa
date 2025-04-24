@@ -1,3 +1,10 @@
+import data.array
+import data.optional
+import data.tuple
+import data.vector as vec
+import numeric.int.operator
+
+
 template < auto Banks, typename Address, auto Addresses   //< Number of addresses processed per call.
 >inline count_t<Addresses>[Banks] read_requests_per_bank
     ( Address[Addresses] addresses                      //< Input addresses, duplicates allowed.

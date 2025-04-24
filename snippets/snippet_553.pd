@@ -1,3 +1,18 @@
+//| Fail test with the specified tag when the condition is false. Test failure
+// triggers `sim_assert`, prints information about failing test and the supplied
+// message, and sets global status to the test tag.
+
+import type.newtype
+
+using tag_t = newtype<uint32>;
+
+inline void print_failure(tag_t tag)
+{
+    println("Error: test case", tag.unwrap, "failed");
+    print("Isolate the test case by compiling with --define tag=");
+    println(tag.unwrap);
+}
+
 inline void assert_string(tag_t tag, bool cond, const string message)
 {
     if (!cond)

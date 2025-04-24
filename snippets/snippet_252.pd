@@ -1,3 +1,13 @@
+import .options as opt
+import control.async
+import data.array
+import data.counter
+import data.fifo
+import type.stdtype
+
+//| Execute body for a range of values starting from `begin` and ending before
+// `end`, incrementing by `step` on each iteration.
+
 template <typename T>
 inline void range_for (T begin, T end, auto step, (T) -> void body)
 {

@@ -1,1 +1,28 @@
-inline void increment() {    add(1); }
+import type.coerce
+import type.stdtype
+template
+    < auto Maximum //< The maximum count value.
+    , auto Initial = 0 //< The initial value of the counter.
+    >
+class counter
+{
+public:
+    using ctr_t = count_t<Maximum>;
+
+private:
+    ctr_t _first = Initial;
+    ctr_t _second = 0;
+
+public:
+    inline void increment() {    
+       add(1); }
+
+    //| Add amount to the counter.
+    inline void add(ctr_t amount)
+    {
+        atomic
+        {
+            _first = static_cast(_first + amount);
+        }
+    }
+}

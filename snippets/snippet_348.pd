@@ -1,3 +1,16 @@
+import data.bits
+import data.optional
+import numeric.fixed.internal as internal
+import numeric.int.operator as intop
+
+//| Fixed-point representation.
+template<auto I /*< Integer bit-width.*/, auto F /*< Fractional bit-width.*/>
+struct fixed
+{
+    int<I + F> value;
+}
+
+//| Return the larger of x and y.
 template<auto I, auto F>
 inline fixed<I, F> max(fixed<I, F> x, fixed<I, F> y)
 {

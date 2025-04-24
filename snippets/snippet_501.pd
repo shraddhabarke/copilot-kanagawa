@@ -1,15 +1,5 @@
-template<auto MantissaWidth, auto ExponentWidth>
-struct floatPackedFormat
+enum Denorm : uint1
 {
-    uint<MantissaWidth> mantissa;
-    uint<ExponentWidth> exponent;
-    uint1 sign;
-}
-
-struct specialCaseFlags
-{
-    bool nan;
-    bool zero;
-    bool inf;
-    bool finite;
+    On,
+    Off
 }

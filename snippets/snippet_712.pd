@@ -1,3 +1,26 @@
+template
+    < typename entry_type //< The type of an event record in the buffer.
+    , auto depth          //< The number of entries, must be a power of 2.
+    , string description  //< A string description of the buffer.
+    >
+class trace_buffer
+{
+private:
+    [[memory]] entry_type[depth] _log;
+    inspectable(_log, description);
+
+    using pointer_type=index_t<depth>;
+
+    // Verify pointer_type has correct width
+    static assert(depth == (1 << bitsizeof(pointer_type)));
+
+    pointer_type _write_pointer = 0;
+    bool _write_wrapped = false;
+    inspectable(_write_pointer, description);
+    inspectable(_write_wrapped, description);
+
+public:
+    //| Write one event to the circular buffer.
 void write(entry_type event)
     {
         pointer_type write_pointer;
@@ -19,3 +42,4 @@ void write(entry_type event)
 
         _log[write_pointer] = event;
     }
+}

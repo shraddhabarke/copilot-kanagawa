@@ -1,3 +1,7 @@
+import type.stdtype
+import data.counter
+class mutex
+{
 bool _locked = false; // true means locked
 inline bool test_set()
     {
@@ -11,3 +15,5 @@ inline bool test_set()
 
         return result;
     }
+}
+

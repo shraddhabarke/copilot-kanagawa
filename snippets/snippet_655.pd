@@ -1,3 +1,24 @@
+template
+    < auto M               //< Maximum semaphore value.
+    , auto I               //< Initial value for the semaphore count. Must be less than or equal to `M`.
+    , auto Blocking = true //< When true, this parameter causes the semaphore to block when wait is called.
+                           // Setting to false should only be used when the caller can ensure that the
+                           // semaphore count is greater than 0 when wait is called otherwise a `sim_assert`
+                           // is raised.
+    >
+class semaphore
+{
+public:
+    using sem_ctr_t = count_t<M>;
+
+    static assert(I <= M);
+
+private:
+
+    counter<M, I> _counter;
+
+public:
+
 inline bool test_and_decrement(sem_ctr_t val)
     {
         bool result = (_counter.count() >= val);
@@ -8,3 +29,4 @@ inline bool test_and_decrement(sem_ctr_t val)
 
         return result;
     }
+}

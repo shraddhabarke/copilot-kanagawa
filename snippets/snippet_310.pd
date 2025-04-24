@@ -1,3 +1,11 @@
+//| Returns `(a - b) mod M`.
+// `a` and `b` must be less than `M`.
+template
+    < typename A                    //< Type of the first operand.  Must be unsigned.
+    , typename B                    //< Type of the second operand.  Must be unsigned.
+    , auto M = (1 << bitsizeof(T))  //< Modulus value.
+    >
+
 inline auto sub(A a, B b)
 {
     static assert(!limits<A>::is_signed);

@@ -1,2 +1,38 @@
+import data.function
+import data.optional as Opt
+import data.order    as Ord
+import data.tuple    as P
+import numeric.int.operator
+import type.coerce
+import type.stdtype
+
+template <typename T, auto N>
+using array = T[N];
+// #### __Examples__
+//
+// Shift 5 right by 0:
+//
+//     >>> shift_array_right<5>({0, 1, 2, 3, 4}, 0);
+//     {0, 1, 2, 3, 4}
+//
+// Shift 5 right by 2 and return 4:
+//
+//     >>> shift_array_right<4>({0, 1, 2, 3, 4}, 2);
+//     {2, 3, 4, 0}
+//
+// Shift 5 right by 10 and return 4:
+//
+//     >>> shift_array_right<4>({0, 1, 2, 3, 4}, 10);
+//     {0, 0, 0, 0}
+template
+    < auto M     //< Number of output elements.
+    , typename T //< Data type of input array.
+    , auto N     //< Number of input elements.
+    , typename U //< Data type for shift amount. Must be unsigned. Care should
+                 //  be taken to minimize the bitwidth of U where posible
+                 //  since it affects the size of the multiplexers and hence
+                 //  area.
+    >
+
 inline T[M] shift_array_right(T[N] data, U amount) { // Require U be unsigned
  static assert(cast<U>(-1) > 0);  T[M] out; const auto Size = 1 << bitsizeof(U); static for(const auto i : M) { T[Size] data_i; static for(const auto j : Size) if (i + j < N) data_i[j] = data[i + j]; out[i] = data_i[amount]; } return out;}

@@ -1,5 +1,13 @@
+import data.optional
+
+template <typename T, auto N>
+using memory = [[memory]] T[N];
+
+template <typename T, auto N>
+using memory_norep = [[memory, non_replicated]] T[N];
+
 template <typename T>
-struct ecc
+struct myecc
 {
     //| True when an ECC error was detected, regardless of whether it was
     // corrected or not.
@@ -8,8 +16,9 @@ struct ecc
     // error was corrected.
     optional<T> data;
 }
+
 template <typename T>
-inline ecc<T> make_ecc(bool error, bool valid, T value)
+inline myecc<T> make_ecc(bool error, bool valid, T value)
 {
     return {error, make_optional(valid, value)};
 }

@@ -1,3 +1,13 @@
+//| This function is used while computing max of two multi-word variables a_words and b_words, to which a and b belong.
+//  It selects `a` if a_words > b_words, or `b` if b_words > a_words. It also returns the metadata to be used as incoming
+//  metadata for the next call to this function.
+//  Expected iteration order while calling this over multiple words: Most significant to least significant
+import numeric.int.multi_word.internal
+
+template
+    < typename T //< Type of the words
+    >
+
 inline pair<T, comp_metadata> max_with_metadata
     ( T a //< The first operand for max
     , T b //< The second operand for max

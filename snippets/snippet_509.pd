@@ -1,3 +1,13 @@
+//| Type of an input record for decompressor.
+enum input_kind : uint1
+{
+    data = 0      //< The input is raw data.
+,   reference = 1 //< The input is an `offset + length` referencing
+                  // previously-produced output.
+}
+
+//| Either a raw byte or a reference to a previously-produced byte.
+
 template<auto WindowSize>
 union compressed_byte_payload
 {

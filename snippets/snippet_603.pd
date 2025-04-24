@@ -1,3 +1,20 @@
+
+import harness
+import sync.lock
+import data.buffer.accumulating
+
+const auto bytes_per_cycle = 4;
+
+const auto expected_output_bytes = 37;
+
+// A 6-byte network header
+// that must be inserted at the start of each packet
+struct header
+{
+    uint32 ip;
+    uint16 port;
+}
+
 inline void insert_header_concurrent(
     uint8[bytes_per_cycle] input_data, 
     count_t<bytes_per_cycle> valid_count,

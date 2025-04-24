@@ -1,3 +1,5 @@
+//| Return the nearest integer to `x`, rounding halfway away from zero.
+template<Denorm denorm_mode>
 inline float32 round(float32 x)
 {
     return round_internal<float32, _mantissa_width, _exponent_width, _exponent_bias, denorm_mode>(x);

@@ -1,3 +1,10 @@
+//| Returns `t - 1`.
+// The result type is the same (unsigned) type as `t`.
+// `t` must be positive (to ensure the result is positive)
+template
+    < typename T
+    >
+
 inline T decrement(T t)
 {
     return sub(t, 1);

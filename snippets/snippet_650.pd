@@ -1,10 +1,10 @@
-[[reset, max_threads(1)]] void main(){
- auto result = test_main();
-if (result != 0) {
-    println("test_main() failed with error ", result);
+class main
+{
+    [[reset, max_threads(1)]] void run()
+    {
+        test_main();
+    }
 }
-else if (Params::verbose) {
-    println("test_main() succeeded");
-}
-barrier;
-sim_assert(result == 0);}
+
+[[name("_test_runner_main")]]
+export main;

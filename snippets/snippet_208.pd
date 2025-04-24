@@ -1,3 +1,40 @@
+import data.counter
+import data.memory
+import numeric.int.operator
+import sync.atomic
+import sync.lock
+import type.coerce
+import type.stdtype
+
+//| Basic FIFO.
+template
+    < typename T                  //< Type for each entry of the FIFO.
+    , auto Size                   //< Maximum number of entries that can be stored.
+    , bool EnqueueBlocking = true //< Block on enqueue if the FIFO is full until an entry
+                                  // frees up. By default this is true. Otherwise,
+                                  // the caller must ensure that the FIFO is not full.
+    , bool DequeueBlocking = true //< Block on dequeue if the FIFO is empty until an entry
+                                  // arrives. By default, this is true. Otherwise,
+                                  // the caller must ensure that the FIFO is not empty.
+    >
+class FIFO
+{
+public:
+    //| `Size` must be a power of 2.
+    static assert(0 == (Size & (Size - 1)));
+
+private:
+    using pointer_t = index_t<Size>;
+
+    // Memory that holds the raw data
+    memory<T, Size> _dataMem;
+
+    // Used to block reads while fifo is empty
+    semaphore<Size, 0, DequeueBlocking> _readSemaphore;
+
+    // Used to block writes while the fifo is full
+    semaphore<Size, Size, EnqueueBlocking> _writeSemaphore;
+
 count_t<Size> enqueue(T value, bool releaseDeferredDequeues)
     {
         // Block until the FIFO is no longer full
@@ -33,3 +70,4 @@ count_t<Size> enqueue(T value, bool releaseDeferredDequeues)
 
         return snappedDeferredDequeueCount;
     }
+}

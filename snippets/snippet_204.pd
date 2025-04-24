@@ -1,3 +1,53 @@
+import data.array
+
+//| All fields are 0-based
+// Year = 1995 means the year of Windows 95
+// Day = 0 means the first day of the month
+struct time_t
+{
+    uint6 seconds;
+    uint6 minutes;
+    uint5 hours;
+    uint5 day;
+    uint4 month;
+    uint12 year;
+}
+
+
+//| `time_t` with day as smallest element
+struct time_day_t
+{
+    uint5 day;
+    uint4 month;
+    uint12 year;
+}
+
+
+// Mapping of (month index, is leap year) -> cummulative days from the start of the month to the start of the year
+// Each row is 16 entries long (last 4 are unused)
+const memory<uint9, 32> cummulative_month_days_table =
+{
+    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 0, 0, 0, 0,
+    0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 0, 0, 0, 0
+};
+
+
+// Mapping of (month index, is leap year) -> days in each month
+// Each row is 16 entries long (last 4 are unused)
+const memory<uint5, 32> days_per_month_table =
+{
+    31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 0, 0, 0, 0,
+    31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 0, 0, 0, 0
+};
+
+
+//| Enough bits to represent the number of seconds since Jan 1 1970
+// for all years covered by epoch related functions
+using epoch_seconds_t = uint36;
+//| Enough bits to represent the number of days since Jan 1 1970
+// for all years covered by epoch related functions
+using epoch_days_t = uint19;
+
 inline optional<epoch_seconds_t> utc_time_to_epoch(time_t time)
 {
     optional<epoch_seconds_t> result;

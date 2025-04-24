@@ -1,3 +1,6 @@
+//| The positive difference between `x` and `y`: `max(x - y, 0)`.
+// Return NaN if `x` or `y` is NaN.
+template<Denorm denorm_mode>
 inline float32 dim(float32 x, float32 y)
 {
     float32 result;

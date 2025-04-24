@@ -1,3 +1,10 @@
+//| Count the number of write requests for each bank.
+//  More than 1 request per bank indicates conflict.
+template
+    < auto Banks
+    , typename Address
+    , auto Addresses   //< Number of addresses processed per call.
+    >
 inline count_t<Addresses>[Banks] write_requests_per_bank
     ( optional<Address>[Addresses] addresses            //< Input addresses, valid duplicates __not__ allowed.
     , (Address) -> index_t<Banks> address_to_bank_index //< Map `Address` to bank index.

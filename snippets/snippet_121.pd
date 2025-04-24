@@ -1,1 +1,33 @@
+import data.function
+import data.optional as Opt
+import data.order    as Ord
+import data.tuple    as P
+import numeric.int.operator
+import type.coerce
+import type.stdtype
+
+template <typename T, auto N>
+using array = T[N];
+
+//
+//     >>> zip_with(add, {1, 2, 3}, {4, 5, 6});
+//     {5, 7, 9}
+//
+//     >>> zip_with(make_optional<uint8>, {true, true, false}, {1, 2, 3});
+//     {{true, 1}, {true, 2}, {false, 3}}
+template <typename S, typename T, auto N>
+inline auto zip_with((S, T) -> auto f, S[N] x, T[N] y)
+{
+    using result_t = decltype(f(x[0], y[0]));
+
+    result_t[N] r;
+
+    static for(const auto i : N)
+    {
+        r[i] = f(x[i], y[i]);
+    }
+
+    return r;
+}
+
 template <typename T1, typename T2, auto N> inline P::pair<T1, T2>[N] zip(T1[N] x, T2[N] y) { return zip_with(P::make_pair<T1, T2>, x, y); }

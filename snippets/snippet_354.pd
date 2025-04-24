@@ -1,3 +1,15 @@
+import data.bits
+import data.optional
+import numeric.fixed.internal as internal
+import numeric.int.operator as intop
+
+//| Fixed-point representation.
+template<auto I /*< Integer bit-width.*/, auto F /*< Fractional bit-width.*/>
+struct fixed
+{
+    int<I + F> value;
+}
+
 template<auto I, auto F>
 inline optional<fixed<I, F>> exp2(fixed<I, F> x)
 {

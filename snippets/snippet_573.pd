@@ -1,3 +1,51 @@
+import control.fsm
+import data.array
+import data.array as A
+import data.bits
+import data.optional
+import data.optional as O
+import data.representation
+import data.vector
+import data.vector as V
+import sync.atomic
+
+//| Class which can evaluate the set of possible states that an input string
+// can reach in a non-deterministic finite automata.
+template
+    < auto InputWidth                        //< Number of inputs per cycle.
+    , auto StateCount                        //< Number of states in the NFA.
+    , typename T = uint8                     //< Input element type.
+    , auto TableDepth = (1 << bitsizeof(T))  //< Number of elements in the table which describes the NFA.
+    , auto MaxOutDegree = StateCount         //< Maximum out-degree of any node in the NFA graph.
+    , auto MaxBackwardJump = StateCount      //< The maximum value of `N` for any state transition
+                                             // from state `I` to state `I-N`.
+    , auto MaxForwardJump = StateCount       //< The maximum value of `N` for any state transition
+                                             // from state `I` to state `I+N`.
+    >
+class nfa
+{
+public:
+    //| Bit vector representation of a state.
+    // Multiple bits can be set, which represents the case where the input seen so far
+    // could result in the NFA ending in multiple states.
+    using state_t = bool[StateCount];
+
+    //| Describes a single vertex in the NFA graph.
+    using vertex_t = index_t<StateCount>;
+
+    //| Describes the edges leaving a particular vertex in the NFA graph.
+    using out_edges_t = vector<vertex_t, MaxOutDegree>;
+
+    //| One element of the table describing the NFA.
+    // There is one table element for each possible input.
+    // Element `i` of a `table_element_t` describes the
+    // outgoing edges of the NFA to execute
+    // if state `i` is enabled.
+    using table_element_t = out_edges_t[StateCount];
+
+    //| Process up to `InputWidth` more inputs.
+    // Returns the state of the NFA after processing those inputs.
+
 state_t advance( vector<T, InputWidth> input           //< Inputs.
 , optional<state_t> initial_state       //< If valid, then the state to start from.  If invalid, then the state from the previous call is used.
 , index_t<TableDepth> table_base_addr   //< Base address in the table which describes the NFA.
@@ -30,3 +78,4 @@ state_t advance( vector<T, InputWidth> input           //< Inputs.
 
             return table_element;
         });
+}

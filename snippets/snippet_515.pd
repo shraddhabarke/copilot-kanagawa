@@ -1,3 +1,4 @@
+//| Input type for the `ChooseMatchCallback` template function.
 template<auto Width, auto MaxLength, auto WindowSize, auto DictAssociativity>
 struct ChooseMatchCallbackInput
 {

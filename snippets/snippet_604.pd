@@ -1,4 +1,26 @@
-pipelined_for(512, [](index_t<512> tid){ // begin_strip
+import harness
+
+class tutorial
+{
+private:
+    const auto fork_outer_thread_count = 16;
+
+    memory<uint32, 4> _mem4 = {};
+    uint32 _sum;
+    uint32 _i;
+    uint32 _finished_count;
+
+    // begin_strip
+    uint32 _finished_count1;
+    uint32 _finished_count2;
+    // end_strip
+
+    // read-modify-write to a memory
+    void memory_update()
+    {
+        pipelined_for (512, [](index_t<512> tid)
+        {
+            // begin_strip
             // atomic block needed to synchronize access to the memory
             atomic
             {
@@ -9,4 +31,7 @@ pipelined_for(512, [](index_t<512> tid){ // begin_strip
 
             // begin_strip
             }
-            // end_strip }
+            // end_strip
+        });
+    }
+}

@@ -1,6 +1,21 @@
-inline void subtract(ctr_t amount) {
-    atomic
+template
+    < auto Maximum //< The maximum count value.
+    , auto Initial = 0 //< The initial value of the counter.
+    >
+class counter
+{
+public:
+    using ctr_t = count_t<Maximum>;
+
+private:
+    ctr_t _first = Initial;
+    ctr_t _second = 0;
+
+public:
+    inline void subtract(ctr_t amount) {
+        atomic
     {
         _second = modular::add(_second, amount);
     }
+}
 }

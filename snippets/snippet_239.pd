@@ -1,3 +1,55 @@
+import data.bits
+import numeric.float.internal
+
+const auto _mantissa_width = 52;
+const auto _exponent_width = 11;
+const auto _exponent_bias = 1023;
+
+using float32PackedFormat = floatPackedFormat<23, 8>;
+using float64PackedFormat = floatPackedFormat<52, 11>;
+
+enum float64_constants: uint64
+{
+    POS_MAX       = 0x7FEFFFFFFFFFFFFF,
+    NEG_MAX       = 0xFFEFFFFFFFFFFFFF,
+    POS_ZERO      = 0x0000000000000000,
+    NEG_ZERO      = 0x8000000000000000,
+    POS_ONE       = 0x3FF0000000000000,
+    NEG_ONE       = 0xBFF0000000000000,
+    POS_INFINITY  = 0x7FF0000000000000,
+    NEG_INFINITY  = 0xFFF0000000000000,
+    DEFAULT_NAN   = 0x7FF8000000000000
+}
+
+struct float64ExpandedFormat
+{
+    uint53 mantissa;
+    int12 exponent;
+    uint1 sign;
+}
+
+struct productFormat
+{
+    uint53 sticky;
+    uint1 round;
+    uint1 guard;
+    uint53 product;
+}
+
+struct float64StickyFormat
+{
+    uint1 sticky;
+    uint55 mantissaGuardRound;
+    int13 exponent;
+    uint1 sign;
+}
+
+struct stickyMantissaFormat
+{
+    uint1 sticky;
+    uint55 mantissaGuardRound;
+}
+
 template <auto N /*< Width of the unsigned integer.*/>
 inline optional<uint<N>> to_uint(uint64 value)
 {

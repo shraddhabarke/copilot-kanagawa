@@ -1,3 +1,29 @@
+//| Multiple instance semaphore.
+template
+    < auto N               //< Number of semaphore instances.
+    , auto M               //< Maximum semaphore value.
+    , auto I               //< Initial value for the semaphore count. Must be less than or equal to `M`.
+    , auto Blocking = true //< By default, this is true and causes the semaphore to
+                           // block when wait is called. Setting this to false should only
+                           // be used when the caller can ensure that the semaphore count is
+                           // greater than 0 when wait is called. If it is not a diagnostics
+                           // assert is raised.
+    >
+class multi_semaphore
+{
+public:
+    using sem_ctr_t = count_t<M>;
+    using sem_idx_t = index_t<N>;
+
+    static assert(I <= M);
+
+private:
+
+    counter<M, I>[N] _counter;
+
+public:
+
+    //| Return current value of semaphore. Provided primarily for debug/diagnostic purposes.
 inline sem_ctr_t count(sem_idx_t which)
     {
         sem_ctr_t result;
@@ -13,3 +39,4 @@ inline sem_ctr_t count(sem_idx_t which)
 
         return result;
     }
+}

@@ -1,3 +1,10 @@
+
+import data.optional
+import sync.atomic
+import type.newtype
+
+using tag_t = newtype<uint32>;
+
 tag_t update_status(optional<tag_t> new)
 {
     return second(atomically([new](tag_t old)

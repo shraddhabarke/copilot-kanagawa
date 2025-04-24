@@ -1,9 +1,32 @@
-uint32 nested_sum(){
-_sum = 0;
-pipelined_for(16, [](index_t<16> i){
-_i = i;
-    pipelined_for (16, [i](index_t<16> j)
-    { atomic
+import harness
+
+class tutorial
+{
+private:
+    const auto fork_outer_thread_count = 16;
+
+    memory<uint32, 4> _mem4 = {};
+    uint32 _sum;
+    uint32 _i;
+    uint32 _finished_count;
+
+    // begin_strip
+    uint32 _finished_count1;
+    uint32 _finished_count2;
+    // end_strip
+    
+       // 2 nested loops, compute a sum in the inner-most loop
+    uint32 nested_sum()
+    {
+        _sum = 0;
+
+        pipelined_for (16, [](index_t<16> i)
+        {
+            _i = i;
+
+            pipelined_for (16, [i](index_t<16> j)
+            {
+                atomic
                 {
                     auto amount_to_add = _i + j;
 
@@ -14,4 +37,10 @@ _i = i;
                     // end_strip
 
                     _sum += amount_to_add;
-                } });}); return _sum;}
+                }
+            });
+        });
+
+        return _sum;
+    }
+}

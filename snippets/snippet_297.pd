@@ -1,3 +1,11 @@
+//| If `b` is true, then returns `t - 1`.
+// Returns `t` otherwise.
+// The result type is the same (unsigned) type as `t`.
+// The caller must ensure that the decrement would not result in a negative
+// number.
+template
+    < typename T
+    >
 inline T decrement_if(T t, bool b)
 {
     return sub(t, cast<uint1>(b));

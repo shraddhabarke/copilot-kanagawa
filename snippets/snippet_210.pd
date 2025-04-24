@@ -1,5 +1,45 @@
+template
+    < typename T //< Type for each entry of the FIFO.
+    , auto Size  //< Maximum number of entries that can be stored.
+    >
+class fifo_nb
+{
+public:
+    //| `Size` must be a power of 2.
+    static assert(0 == (Size & (Size - 1)));
+
+private:
+    using pointer_t = index_t<Size>;
+    pointer_t _consumerIndex = 0;
+
+    // Memory that holds the raw data
+    memory<T, Size> _dataMem;
+
+    // Tracks number of elements in the queue
+    // Number elements in queue + num reserved elements
+    counter<Size, 0> _earlyCounter;
+
+    // Number of elements in the queue
+    counter<Size, 0> _lateCounter;
+
+public:
+    // Producer interface
+    
+    inline count_t<Size> count()
+    {
+        return _readSemaphore.count();
+    }
+
+    //| Return true if no more entries can be enqueued.
+    // Typical usage is to call `full` and `reserve_enqueue` in the same atomic block.
+    inline bool full()
+    {
+        return _earlyCounter.count() == Size;
+    }
+
 inline void reserve_enqueue()
     {
         sim_assert(!full());
         _earlyCounter.add(1);
     }
+}

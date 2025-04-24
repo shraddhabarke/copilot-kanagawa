@@ -1,3 +1,5 @@
+//| Return the smaller of x and y.
+
 template<auto Width, auto Nan>
 inline uint<Width> min_internal(uint<Width> x, uint<Width> y)
 {

@@ -1,3 +1,12 @@
+template
+    < auto MaxThreads //< The maximum number of threads that might be manipulating the lock.
+                      // This determines the maximum number of read-locks that can be outstanding.
+                      // Typically 512 is a reasonable value to use here.
+    >
+class rwlock
+{
+private:
+
 counter<MaxThreads, 0> _read_lock_counter;
     bool _write_locked = false;
 
@@ -21,3 +30,46 @@ counter<MaxThreads, 0> _read_lock_counter;
 
         return result;
     }
+
+public:
+
+    void lock(bool is_reader)
+    {
+        atomic do; while(!check_lock(is_reader));
+    }
+
+    inline void read_lock()
+    {
+        lock(true);
+    }
+
+    inline void write_lock()
+    {
+        lock(false);
+    }
+
+    inline void unlock(bool is_reader)
+    {
+        if (is_reader)
+        {
+            read_unlock();
+        }
+        else
+        {
+            write_unlock();
+        }
+    }
+
+    void read_unlock()
+    {
+        _read_lock_counter.subtract(1);
+    }
+
+    void write_unlock()
+    {
+        atomic
+        {
+            _write_locked = false;
+        }
+    }
+}

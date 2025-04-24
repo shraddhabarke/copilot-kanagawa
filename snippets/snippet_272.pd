@@ -1,4 +1,10 @@
-sim_assert(result.size == 1);
+inline bool read_bit
+        ( bit_addr_t address //< Address of bit to read.
+        )
+    {
+        vec::vector<bool, 1> result = read_bits<1>({{address}, 1});
+
+        sim_assert(result.size == 1);
 
         return result.data[0];
     }

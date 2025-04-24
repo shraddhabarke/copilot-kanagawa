@@ -1,3 +1,6 @@
+import data.tuple
+import type.stdtype
+
 template
 < auto N              //< Size of state array. Must be between 2 and 8 inclusive.
 , typename T          //< Type of the internal state.

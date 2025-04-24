@@ -1,3 +1,40 @@
+import data.bits
+import data.optional
+import data.tuple
+import numeric.int.operator.unsigned as unsigned
+import type.coerce
+
+using float64 = uint64;
+
+enum NativeFloatSupport : uint1
+{
+    On,
+    Off
+}
+
+//| Denormalization flag.
+enum Denorm : uint1
+{
+    On,
+    Off
+}
+
+template<auto MantissaWidth, auto ExponentWidth>
+struct floatPackedFormat
+{
+    uint<MantissaWidth> mantissa;
+    uint<ExponentWidth> exponent;
+    uint1 sign;
+}
+
+struct specialCaseFlags
+{
+    bool nan;
+    bool zero;
+    bool inf;
+    bool finite;
+}
+
 template <auto MantissaWidth, auto ExponentWidth, Denorm denorm_mode>
 inline specialCaseFlags getSpecialCases_internal(floatPackedFormat<MantissaWidth, ExponentWidth> a)
 {

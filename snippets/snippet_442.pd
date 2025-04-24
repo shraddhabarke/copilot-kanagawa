@@ -1,3 +1,29 @@
+import data.array
+import data.bits
+import data.memory
+import data.optional
+import type.coerce
+import type.stdtype
+
+//| Memory supporting reads/writes of up to `WordSize` elements per cycle at
+// aligned or unaligned address. The class internally instantiates `WordSize`
+// logical memories that are `bitsizeof T` wide and `TotalSize / WordSize` deep.
+template
+    < typename T                                            //< Type of the memory element
+    , auto WordSize                                         //< Number of elements per word
+    , auto TotalSize                                        //< Total number of elements in memory
+    , template <typename, auto> typename Memory = memory    //< Memory implementation
+    >
+class unaligned_read_unaligned_write_memory
+{
+private:
+    using element_index_t = index_t<WordSize>;
+
+public:
+    using addr_t = index_t<TotalSize>;
+    using element_count_t = count_t<WordSize>;
+    using word_t = T[WordSize];
+
 template <auto N = 1>
     inline word_t read(addr_t addr)
     {
@@ -19,3 +45,4 @@ template <auto N = 1>
         const auto rotate_amount = cast<index_t<WordSize / N>>(addr / N);
         return cast<word_t>(rotate_array_right<WordSize / N>(cast<T[WordSize / N][N]>(per_bank_value), rotate_amount));
     }
+}

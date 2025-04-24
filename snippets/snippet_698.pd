@@ -1,3 +1,18 @@
+import numeric.int.limits
+import data.order
+
+//| Increment-only counter that will saturate rather than overflow.
+template<auto Width>
+class saturating_counter
+{
+public:
+    using count_t=uint<Width>;
+
+private:
+    count_t _count = 0;
+
+public:
+
 count_t increment(count_t inc_amount, bool clear_before_inc)
     {
         uint<Width+1> new_value;
@@ -20,3 +35,4 @@ count_t increment(count_t inc_amount, bool clear_before_inc)
 
         return result;
     }
+}

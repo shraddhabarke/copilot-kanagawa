@@ -1,3 +1,306 @@
+import processor.risc_v.internal.decoder
+
+//| RV32i assembly instruction mnemonics (including pseudo instructions)
+enum Instruction : uint6
+{
+    UNKNOWN,
+    LUI,
+    AUIPC,
+    JAL,
+    JALR,
+    BEQ,
+    BNE,
+    BLT,
+    BGE,
+    BLTU,
+    BGEU,
+    LB,
+    LH,
+    LW,
+    LBU,
+    LHU,
+    SB,
+    SH,
+    SW,
+    ADDI,
+    SLTI,
+    SLTIU,
+    XORI,
+    ORI,
+    ANDI,
+    SLLI,
+    SRLI,
+    SRAI,
+    ADD,
+    SUB,
+    SLL,
+    SLT,
+    SLTU,
+    XOR,
+    SRL,
+    SRA,
+    OR,
+    AND,
+    FENCE,
+    ECALL,
+    EBREAK,
+    MUL,
+    MULH,
+    MULHSU,
+    MULHU,
+    CSRR,
+    RDCYCLE,
+    RDCYCLEH,
+    RDTIME,
+    RDTIMEH,
+    RDINSTRET,
+    RET,
+    J,
+    JR,
+    LI,
+    NOP,
+    MV
+}
+
+enum DisasmFormat : uint4
+{
+    empty,
+    rd,
+    rd_imm,
+    rd_csr,
+    rd_upper_imm,
+    rd_imm_pc,
+    imm_pc,
+    rd_rs1,
+    rd_rs1_rs2,
+    rd_rs1_imm,
+    rd_imm_rs1,
+    rs1,
+    rs1_rs2_imm,
+    rs2_imm_rs1
+}
+
+//| Print hexadecimal integer
+inline void print_hex(auto n)
+{
+    const auto digits = (3 + bitsizeof n) / 4;
+
+    static for(const auto i : digits)
+    {
+        const auto digit = cast<index_t<16>>(n >> (4 * (digits - i - 1)));
+
+        switch (digit)
+        {
+            case 0x0: print("0"); break;
+            case 0x1: print("1"); break;
+            case 0x2: print("2"); break;
+            case 0x3: print("3"); break;
+            case 0x4: print("4"); break;
+            case 0x5: print("5"); break;
+            case 0x6: print("6"); break;
+            case 0x7: print("7"); break;
+            case 0x8: print("8"); break;
+            case 0x9: print("9"); break;
+            case 0xa: print("a"); break;
+            case 0xb: print("b"); break;
+            case 0xc: print("c"); break;
+            case 0xd: print("d"); break;
+            case 0xe: print("e"); break;
+            case 0xf: print("f"); break;
+        }
+    }
+}
+
+//| Print register name
+inline void print_reg(Reg reg)
+{
+    static assert (bitsizeof reg == bitsizeof ABI);
+
+    switch (cast<ABI>(reg))
+    {
+        case ABI::zero: print("zero"); break;
+        case ABI::ra:   print("ra"); break;
+        case ABI::sp:   print("sp"); break;
+        case ABI::gp:   print("gp"); break;
+        case ABI::tp:   print("tp"); break;
+        case ABI::t0:   print("t0"); break;
+        case ABI::t1:   print("t1"); break;
+        case ABI::t2:   print("t2"); break;
+        case ABI::s0:   print("s0"); break;
+        case ABI::s1:   print("s1"); break;
+        case ABI::a0:   print("a0"); break;
+        case ABI::a1:   print("a1"); break;
+        case ABI::a2:   print("a2"); break;
+        case ABI::a3:   print("a3"); break;
+        case ABI::a4:   print("a4"); break;
+        case ABI::a5:   print("a5"); break;
+        case ABI::a6:   print("a6"); break;
+        case ABI::a7:   print("a7"); break;
+        case ABI::s2:   print("s2"); break;
+        case ABI::s3:   print("s3"); break;
+        case ABI::s4:   print("s4"); break;
+        case ABI::s5:   print("s5"); break;
+        case ABI::s6:   print("s6"); break;
+        case ABI::s7:   print("s7"); break;
+        case ABI::s8:   print("s8"); break;
+        case ABI::s9:   print("s9"); break;
+        case ABI::s10:  print("s10"); break;
+        case ABI::s11:  print("s11"); break;
+        case ABI::t3:   print("t3"); break;
+        case ABI::t4:   print("t4"); break;
+        case ABI::t5:   print("t5"); break;
+        case ABI::t6:   print("t6"); break;
+    }
+}
+
+inline void print_imm(auto n)
+{
+    if (n < 0)
+    {
+        print("-");
+        print(0 - n);
+    }
+    else
+    {
+        print(n);
+    }
+}
+
+//| Print instruction mnemonic
+inline void print_instr
+    ( Instruction instr //< Disassembled instruction mnemonic, usually returned by `disasm`
+    )
+{
+    switch (instr)
+    {
+        case Instruction::LUI:       print("lui"); break;
+        case Instruction::AUIPC:     print("auipc"); break;
+        case Instruction::JAL:       print("jal"); break;
+        case Instruction::JALR:      print("jalr"); break;
+        case Instruction::BEQ:       print("beq"); break;
+        case Instruction::BNE:       print("bne"); break;
+        case Instruction::BLT:       print("blt"); break;
+        case Instruction::BGE:       print("bge"); break;
+        case Instruction::BLTU:      print("bltu"); break;
+        case Instruction::BGEU:      print("bgeu"); break;
+        case Instruction::LB:        print("lb"); break;
+        case Instruction::LH:        print("lh"); break;
+        case Instruction::LW:        print("lw"); break;
+        case Instruction::LBU:       print("lbu"); break;
+        case Instruction::LHU:       print("lhu"); break;
+        case Instruction::SB:        print("sb"); break;
+        case Instruction::SH:        print("sh"); break;
+        case Instruction::SW:        print("sw"); break;
+        case Instruction::ADDI:      print("addi"); break;
+        case Instruction::SLTI:      print("slti"); break;
+        case Instruction::SLTIU:     print("sltiu"); break;
+        case Instruction::XORI:      print("xori"); break;
+        case Instruction::ORI:       print("ori"); break;
+        case Instruction::ANDI:      print("andi"); break;
+        case Instruction::SLLI:      print("slli"); break;
+        case Instruction::SRLI:      print("srli"); break;
+        case Instruction::SRAI:      print("srai"); break;
+        case Instruction::ADD:       print("add"); break;
+        case Instruction::SUB:       print("sub"); break;
+        case Instruction::SLL:       print("sll"); break;
+        case Instruction::SLT:       print("slt"); break;
+        case Instruction::SLTU:      print("sltu"); break;
+        case Instruction::XOR:       print("xor"); break;
+        case Instruction::SRL:       print("srl"); break;
+        case Instruction::SRA:       print("sra"); break;
+        case Instruction::OR:        print("or"); break;
+        case Instruction::AND:       print("and"); break;
+        case Instruction::FENCE:     print("fence"); break;
+        case Instruction::ECALL:     print("ecall"); break;
+        case Instruction::EBREAK:    print("ebreak"); break;
+        case Instruction::MUL:       print("mul"); break;
+        case Instruction::MULH:      print("mulh"); break;
+        case Instruction::MULHSU:    print("mulhsu"); break;
+        case Instruction::MULHU:     print("mulhu"); break;
+        case Instruction::CSRR:      print("csrr"); break;
+        case Instruction::RDCYCLE:   print("rdcycle"); break;
+        case Instruction::RDCYCLEH:  print("rdcycleh"); break;
+        case Instruction::RDTIME:    print("rdtime"); break;
+        case Instruction::RDTIMEH:   print("rdtimeh"); break;
+        case Instruction::RDINSTRET: print("rdinstret"); break;
+        case Instruction::RET:       print("ret"); break;
+        case Instruction::J:         print("j"); break;
+        case Instruction::JR:        print("jr"); break;
+        case Instruction::LI:        print("li"); break;
+        case Instruction::NOP:       print("nop"); break;
+        case Instruction::MV:        print("mv"); break;
+        case Instruction::UNKNOWN:   print("unknown"); break;
+    }
+}
+
+inline DisasmFormat disasm_format(Instruction instr)
+{
+    DisasmFormat format;
+
+    switch (instr)
+    {
+        case Instruction::LUI:       format = DisasmFormat::rd_upper_imm; break;
+        case Instruction::AUIPC:     format = DisasmFormat::rd_upper_imm; break;
+        case Instruction::JAL:       format = DisasmFormat::rd_imm_pc; break;
+        case Instruction::JALR:      format = DisasmFormat::rd_imm_rs1; break;
+        case Instruction::BEQ:       format = DisasmFormat::rs1_rs2_imm; break;
+        case Instruction::BNE:       format = DisasmFormat::rs1_rs2_imm; break;
+        case Instruction::BLT:       format = DisasmFormat::rs1_rs2_imm; break;
+        case Instruction::BGE:       format = DisasmFormat::rs1_rs2_imm; break;
+        case Instruction::BLTU:      format = DisasmFormat::rs1_rs2_imm; break;
+        case Instruction::BGEU:      format = DisasmFormat::rs1_rs2_imm; break;
+        case Instruction::LB:        format = DisasmFormat::rd_imm_rs1; break;
+        case Instruction::LH:        format = DisasmFormat::rd_imm_rs1; break;
+        case Instruction::LW:        format = DisasmFormat::rd_imm_rs1; break;
+        case Instruction::LBU:       format = DisasmFormat::rd_imm_rs1; break;
+        case Instruction::LHU:       format = DisasmFormat::rd_imm_rs1; break;
+        case Instruction::SB:        format = DisasmFormat::rs2_imm_rs1; break;
+        case Instruction::SH:        format = DisasmFormat::rs2_imm_rs1; break;
+        case Instruction::SW:        format = DisasmFormat::rs2_imm_rs1; break;
+        case Instruction::ADDI:      format = DisasmFormat::rd_rs1_imm; break;
+        case Instruction::SLTI:      format = DisasmFormat::rd_rs1_imm; break;
+        case Instruction::SLTIU:     format = DisasmFormat::rd_rs1_imm; break;
+        case Instruction::XORI:      format = DisasmFormat::rd_rs1_imm; break;
+        case Instruction::ORI:       format = DisasmFormat::rd_rs1_imm; break;
+        case Instruction::ANDI:      format = DisasmFormat::rd_rs1_imm; break;
+        case Instruction::SLLI:      format = DisasmFormat::rd_rs1_imm; break;
+        case Instruction::SRLI:      format = DisasmFormat::rd_rs1_imm; break;
+        case Instruction::SRAI:      format = DisasmFormat::rd_rs1_imm; break;
+        case Instruction::ADD:       format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::SUB:       format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::SLL:       format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::SLT:       format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::SLTU:      format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::XOR:       format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::SRL:       format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::SRA:       format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::OR:        format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::AND:       format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::FENCE:     format = DisasmFormat::empty; break;
+        case Instruction::ECALL:     format = DisasmFormat::empty; break;
+        case Instruction::EBREAK:    format = DisasmFormat::empty; break;
+        case Instruction::MUL:       format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::MULH:      format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::MULHSU:    format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::MULHU:     format = DisasmFormat::rd_rs1_rs2; break;
+        case Instruction::CSRR:      format = DisasmFormat::rd_csr; break;
+        case Instruction::RDCYCLE:   format = DisasmFormat::rd; break;
+        case Instruction::RDCYCLEH:  format = DisasmFormat::rd; break;
+        case Instruction::RDTIME:    format = DisasmFormat::rd; break;
+        case Instruction::RDTIMEH:   format = DisasmFormat::rd; break;
+        case Instruction::RDINSTRET: format = DisasmFormat::rd; break;
+        case Instruction::RET:       format = DisasmFormat::empty; break;
+        case Instruction::J:         format = DisasmFormat::imm_pc; break;
+        case Instruction::JR:        format = DisasmFormat::rs1; break;
+        case Instruction::LI:        format = DisasmFormat::rd_imm; break;
+        case Instruction::NOP:       format = DisasmFormat::empty; break;
+        case Instruction::MV:        format = DisasmFormat::rd_rs1; break;
+        case Instruction::UNKNOWN:   format = DisasmFormat::empty; break;
+    }
+
+    return format;
+}
+
 inline void print_disasm(uint32 addr, uint32 binary, Decoded decoded)
 {
     const auto instr = disasm(decoded);

@@ -1,4 +1,3 @@
-
 template <auto N /*< Width of the signed integer.*/>
 inline optional<int<N>> to_int(float32 value)
 {

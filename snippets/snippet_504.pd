@@ -1,3 +1,16 @@
+//| Convert a floating-point value to an integer value. This generic function
+// handles conversion both from `float32` and from `float64`.
+//
+// This function is not meant to be called by the general public. It is a worker
+// function called by the `to_int` functions in the `float32` and `float64` modules.
+// Those functions are responsible for passing the proper template parameters.
+template
+    < typename From      //< Type of the float to convert. This must be either `float32` or `float64`.
+    , typename To        //< Integer type to be converted to. This may be signed or unsigned.
+    , auto MantissaWidth
+    , auto ExponentWidth
+    , auto Bias
+    >
 inline optional<To> float_to_int(From input)
 {
     const auto int_width = bitsizeof(To);

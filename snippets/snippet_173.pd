@@ -1,3 +1,12 @@
+import data.bits
+import data.optional
+import data.tuple
+import numeric.fixed.internal as fixed_internal
+import numeric.float32.internal
+import numeric.float32.internal.operator
+import numeric.float.internal
+
+template <Denorm denorm_mode>
 inline bool eq(float32 in1, float32 in2)
 {
     // Unpack input

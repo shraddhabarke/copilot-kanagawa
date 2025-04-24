@@ -1,3 +1,32 @@
+import harness
+import sync.lock
+import data.buffer.accumulating
+
+const auto bytes_per_cycle = 4;
+
+const auto expected_output_bytes = 37;
+
+// A 6-byte network header
+// that must be inserted at the start of each packet
+struct header
+{
+    uint32 ip;
+    uint16 port;
+}
+
+// Reference (slow implementation)
+// input_data: Up to 4 bytes of payload
+// valid_count: Number of valid payload bytes
+// head: head.is_valid is set to true on the first call to 
+//       insert_header_serialized for each packet.  head.value
+//       should be inserted before the payload data.
+// end_of_packet: set to true on the last call to insert_header_serialized for a
+//                given packet
+// output_cb: function to call with output data accepts:
+//            4 bytes of payload
+//            count of number of valid payload bytes
+//            end_of_packet flag
+
 inline void insert_header_serialized(
     uint8[bytes_per_cycle] input_data, 
     count_t<bytes_per_cycle> valid_count,

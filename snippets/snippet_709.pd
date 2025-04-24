@@ -1,3 +1,20 @@
+class toeplitz
+{
+public:
+    using Hash_t=uint<HashWidth>;
+    using Data_t=uint<DataWidth>;
+    using  Key_t=uint<KeyWidth>;
+
+    static assert(KeyWidth >= HashWidth);
+    static assert(PipelineCycles > 0);
+
+private:
+    const auto DataChunkWidth = (DataWidth + PipelineCycles-1) / PipelineCycles; // Width of input data handled per "thread" in [[pipelined]] function _CalcHash
+    const auto TidWidth = (PipelineCycles < 2) ? 1 : clog2(PipelineCycles);
+
+    using Tid_t=uint<TidWidth>;
+    using DataChunk_t=uint<DataChunkWidth>;
+
 inline Key_t offset_key(Tid_t tid) {
     const uint<KeyWidth*2> DoubledKey = concat(cast<uint<KeyWidth>>(Key),cast<uint<KeyWidth>>(Key));
     return cast<Key_t>( DoubledKey >> ((2*KeyWidth - ((DataChunkWidth*tid)%KeyWidth))%KeyWidth) );inline bool bit_at(DataChunk_t data, index_t<DataChunkWidth> pos){
@@ -39,4 +56,6 @@ inline Key_t offset_key(Tid_t tid) {
         }
     }
     return partialHashes[0];
+}
+}
 }

@@ -1,3 +1,22 @@
+import data.array
+import data.memory.bank.schedule
+import data.optional
+import numeric.int.operator
+import sync.atomic as sync
+
+//| A memory that is physically accessed over multiple clock cycles.
+template
+    < typename T //< The type of data stored in the memory.
+    , auto Depth //< Total number of elements stored in the memory.
+    , auto Banks //< Number physical memories that the logical memory comprises.
+    , template <typename, auto> typename Memory = memory //< Type of underlying memory to use.
+    >
+
+template <
+        auto BankUpdateRate = 1 //< If a given thread accesses a given bank,
+                                //  then the next `BankUpdateRate-1` threads must not access the same bank.
+                                //  This enables the implementation of `modify` to be pipelined.
+        >
 inline pair<T, T> atomically
         ( addr_t addr //< Address of the element to read.
         , (T)->T modify  //< Function that accepts the value of the element read from the memory

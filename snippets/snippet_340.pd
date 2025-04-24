@@ -1,3 +1,12 @@
+import data.array
+import data.optional
+import data.tuple
+import data.vector as vec
+import numeric.int.operator
+
+// Validate all bank indices are less than Banks.
+// In the case where Banks=1, index_t<Banks> is uint<1> and could have the value 1.
+
 template <auto Banks, typename Address, auto Addresses>
 inline bool validate_bank_indices
     ( optional<Address>[Addresses] addresses

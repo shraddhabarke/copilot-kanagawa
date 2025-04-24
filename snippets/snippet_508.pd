@@ -1,3 +1,5 @@
+//| Return the nearest integer not greater in magnitude than x.
+
 template <typename Type, auto MantissaWidth, auto ExponentWidth, auto Bias, Denorm DenormMode>
 inline Type trunc_internal(Type x)
 {

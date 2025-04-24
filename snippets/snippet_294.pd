@@ -1,3 +1,4 @@
+import data.optional
 template<typename To, typename From>
 inline optional<To> safe_cast(From input)
 {

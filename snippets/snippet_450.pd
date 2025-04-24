@@ -1,3 +1,5 @@
+import hardware.dsp
+
 inline float32 sub(float32 x, float32 y)
 {
     return fsub32(x, y);

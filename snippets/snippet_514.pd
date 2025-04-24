@@ -1,3 +1,15 @@
+//| Given a 2D `Width` by `DictAssociativity` array of dictionary entries
+// (absolute pointers into the sliding window, which along with the `ptr`
+// argument the relative offset can be computed) return a 1D array of pointers
+// indicating the prioritised order in which they should matched to available
+// window ports. Since the `DictAssociativity` dimension of the input array
+// will be in FIFO (distance) order, this default function first prioritises
+// them by ascending byte position (following a greedy approach to finding the
+// most/longest matches) followed by ascending distance (since the `DEFLATE`
+// specification uses fewer bits for shorter distances). A custom function could,
+// for example, seek to reorder the entries using external state or could be
+// used to avoid certain distances that are known to give poor decompression performance.
+
 template <auto Width, auto WindowSize, auto DictAssociativity>
 inline PrioritizeDictCallbackOutput<Width, WindowSize, DictAssociativity>
     default_prioritize_dict_callback(PrioritizeDictCallbackInput<Width, WindowSize, DictAssociativity> input)

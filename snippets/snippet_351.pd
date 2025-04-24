@@ -1,3 +1,5 @@
+//Base-10 logarithm.
+
 template<auto I, auto F>
 inline optional<fixed<I, F>> log10(fixed<I, F> x)
 {

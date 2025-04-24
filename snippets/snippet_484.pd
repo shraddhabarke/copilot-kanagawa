@@ -1,4 +1,88 @@
+// An array of independent reader/writer locks.
+template
+    < auto MaxThreads //< The maximum number of threads that might be manipulating the lock. This determines
+                      // the maximum number of read-locks that can be outstanding for a single lock. Typically 512 is
+                      // a sensible value to use here.
+    , auto NumLocks   //< The number of independent rwlocks to create. If we think of this class as implementing a
+                      // vector of rwlock, then this value represents the vector size.
+    >
+class multi_rwlock
+{
+private:
+    struct rwlock_state
+    {
+        uint1 num_writers;
+        count_t<MaxThreads> num_readers;
+    };
+
+    using rwlock_index_t=index_t<NumLocks>;
+    memory<rwlock_state, NumLocks> _w;
+    memory<rwlock_state, NumLocks> _r;
+    bool _is_initialized = false;
+
+public:
+    void init()
+    {
+        pipelined_for(NumLocks, [](index_t<NumLocks> i)
+        {
+            rwlock_state initial_state = {};
+
+            _r[i] = initial_state;
+            _w[i] = initial_state;
+        });
+
+        atomic
+        {
+            // The "atomic" is to prevent re-ordering of things such that
+            // this gets set before the above writes are all completed
+            _is_initialized = true;
+        }
+    }
+
+    //| Attempt to acquire either a reader or a writer lock for the lock with the specified index.
+    void lock(rwlock_index_t index, bool is_reader)
+    {
+        sim_assert(_is_initialized);
+
+        wait_until([index, is_reader]
+        {
+            bool result = false;
+
+            auto r = _r[index];
+            auto w = _w[index];
+
+            bool no_write_locks = r.num_writers == w.num_writers;
+            count_t<MaxThreads> reader_count = static_cast(w.num_readers - r.num_readers);
+
+            if (is_reader)
+            {
+                // If not write locked and read locks available
+                if (no_write_locks && (reader_count < MaxThreads))
+                {
+                    w.num_readers = static_cast(w.num_readers + 1);
+
+                    result = true;
+                }
+            }
+            else
+            {
+                // If not write locked and no read locks
+                if (no_write_locks && (reader_count == 0))
+                {
+                    w.num_writers = static_cast(w.num_writers + 1);
+
+                    result = true;
+                }
+            }
+
+            _w[index] = w;
+
+            return result;
+        });
+    }
+
 inline void read_lock(rwlock_index_t index)
     {
         lock(index, true);
     }
+}

@@ -1,3 +1,20 @@
+import harness
+
+class tutorial
+{
+private:
+    const auto fork_outer_thread_count = 16;
+
+    memory<uint32, 4> _mem4 = {};
+    uint32 _sum;
+    uint32 _i;
+    uint32 _finished_count;
+
+    // begin_strip
+    uint32 _finished_count1;
+    uint32 _finished_count2;
+    // end_strip
+
 bool fork() {
    _finished_count = 0;
     // begin_strip
@@ -38,4 +55,5 @@ bool fork() {
         return result;
     });
     return result;
+}
 }

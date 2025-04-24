@@ -1,1 +1,64 @@
-template <typename R, typename T, auto N> inline R sum(T[N] x) { return map_reduce(static_cast<R>, add<R, R>, x); }
+import data.function
+import data.optional as Opt
+import data.order    as Ord
+import data.tuple    as P
+import numeric.int.operator
+import type.coerce
+import type.stdtype
+
+// #### __Examples__
+//
+//     >>> reduce(add, {0x9, 0x2, 0x5});
+//     0x10
+//
+//     >>> reduce<bool>([](bool x, bool y){ return x || y; }, {false, true, false});
+//     true
+//
+template <typename T, auto N>
+inline auto reduce((T, T) -> T f, T[N] x)
+{
+    static if (N == 1)
+    {
+        return x[0];
+    }
+    else
+    {
+        // Combine adjacent elements in x
+        const auto NewN = (N + 1) / 2;
+        T[NewN] new_array;
+
+        static for(const auto i : N/2)
+        {
+            new_array[i] = f(x[2*i], x[2*i + 1]);
+        }
+
+        // carry odd case
+        static if ((N % 2) == 1)
+        {
+            new_array[NewN - 1] = x[N - 1];
+        }
+
+        return reduce(f, new_array);
+    }
+}
+
+//| Implements map-reduce. Inputs are first mapped into the appropriate result
+// type, and then reduced to a single output using a binary reduction tree.
+//
+// #### __Example__
+//
+//     map_reduce
+//         ( [](uint8 a){ return a % 2 == 0; }
+//         , [](bool x, bool y){ return x && y; }
+//         , {2, 4, 6}
+//         );
+//     // true; all values are even.
+template <typename T, auto N, typename R>
+inline R map_reduce((T) -> R map_fn, (R, R) -> R reduce_fn, T[N] x)
+{
+    return reduce(reduce_fn, map(map_fn, x));
+}
+
+template <typename R, typename T, auto N> inline R sum(T[N] x) { 
+    return map_reduce(static_cast<R>, add<R, R>, x); 
+}

@@ -1,3 +1,4 @@
+import processor.risc_v.internal.decoder
 inline void print_trace(auto hid, auto pc, auto instr, Decoded decoded, optional<int32> value)
 {
     atomic

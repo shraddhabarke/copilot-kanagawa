@@ -1,3 +1,35 @@
+import numeric.float.internal
+import data.bits
+
+const auto _mantissa_width = 23;
+const auto _exponent_width = 8;
+const auto _exponent_bias = 127;
+
+using float32PackedFormat = floatPackedFormat<23, 8>;
+
+struct float32ExpandedFormat
+{
+    uint24 mantissa;
+    int9 exponent;
+    uint1 sign;
+}
+
+struct float32StickyFormat
+{
+    uint1 sticky;
+    uint26 mantissaGuardRound;
+    int10 exponent;
+    uint1 sign;
+}
+
+struct productFormat
+{
+    uint24 sticky;
+    uint1 round;
+    uint1 guard;
+    uint24 product;
+}
+
 template<Denorm denorm_mode>
 inline float32ExpandedFormat unpackFloat32(float32PackedFormat a)
 {

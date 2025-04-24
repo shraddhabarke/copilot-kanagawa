@@ -1,3 +1,12 @@
+import data.bits
+import data.optional
+import data.tuple
+import numeric.fixed.internal as fixed_internal
+import numeric.float32.internal
+import numeric.float32.internal.operator
+import numeric.float.internal
+
+
 inline float32 exp2(float32 x)
 {
     const auto structValue = cast<float32PackedFormat>(x);

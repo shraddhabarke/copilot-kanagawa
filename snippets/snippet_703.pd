@@ -1,3 +1,61 @@
+import hardware.config
+import data.array
+
+using transaction_size_t=uint64;
+
+class DRAM
+{
+public:
+    uint512 read(uint64 addr, transaction_size_t size, [[last]] bool is_last);
+    void write(uint64 addr, transaction_size_t size, uint512 data, uint64 byte_enable, [[last]] bool is_last);
+}
+
+extern DRAM;
+
+//| A wrapper over the external Verilog interface to FPGA on-board DRAM.
+// It provides methods to read and write DRAM.
+class DramChannel
+{
+private:
+    DRAM _dram;
+
+    inline void AssertAlignment(uint64 addr, transaction_size_t size)
+    {
+        sim_assert(0 == (addr % 64));
+        sim_assert(0 == (size % 64));
+    }
+
+    // Check that is_last is set for last flit and not set for other flits.
+    inline void AssertIsLast(transaction_size_t size, bool is_last)
+    {
+        // A single atomic is used to reduce impact on pipeline stages
+        atomic
+        {
+            // Get whether this is the first flit in a transaction
+            static bool _is_first = true;
+            bool is_first = _is_first;
+            _is_first = is_last;
+
+            // Get size after this flit
+            static transaction_size_t _remaining_size;
+            if (is_first)
+            {
+                _remaining_size = size;
+            }
+            _remaining_size -= 64;
+
+            // is_last should only be set on last flit
+            if (_remaining_size == 0)
+            {
+                sim_assert(is_last);
+            }
+            else
+            {
+                sim_assert(!is_last);
+            }
+        }
+    }
+public:
 inline void WriteBytes( uint64 addr               //< Transaction base address (must be 64-byte aligned).
 , transaction_size_t size   //< Transaction size in bytes (must be 64-byte aligned).
 , uint512 data              //< Data to write.
@@ -8,3 +66,4 @@ inline void WriteBytes( uint64 addr               //< Transaction base address (
 
         _dram.write(addr, size, data, cast<uint64>(byte_enable), is_last);
     }
+}

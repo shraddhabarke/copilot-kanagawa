@@ -1,5 +1,21 @@
+template
+    < typename T                                            //< Type of memory word
+    , auto DepthInBytes                                     //< Depth of memory in bytes
+    , template <typename, auto> typename Memory = memory    //< Memory implementation
+    >
+class byte_addressable_memory
+{
+    const auto BytesPerWord = bytesizeof T;
+    using mem_t = unaligned_read_unaligned_write_memory<uint8, BytesPerWord, DepthInBytes, Memory>;
+
+public:
+    using addr_t = mem_t::addr_t;
+    using byte_count_t = mem_t::element_count_t;
+    using word_t = T;
+
 template <auto N = 1>
     inline void write(addr_t addr, word_t value, byte_count_t size)
     {
         mem.write<N>(addr, cast<uint8[BytesPerWord]>(value), size);
     }
+}

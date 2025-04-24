@@ -1,3 +1,110 @@
+import numeric.decimal.internal
+
+// Function: bfloat16_add_denormoff
+//
+// Add two bfloat16 values with denorm off and return the bfloat16 result
+inline bfloat16 bfloat16_add_denormoff(bfloat16 in1, bfloat16 in2)
+{
+    // Unpack input
+    bfloat16PackedFormat a = cast<bfloat16PackedFormat> (in1);
+    bfloat16PackedFormat b = cast<bfloat16PackedFormat> (in2);
+    bfloat16ExpandedFormat a_PostUnpack = unpack_bfloat16<Denorm::Off>(a);
+    bfloat16ExpandedFormat b_PostUnpack = unpack_bfloat16<Denorm::Off>(b);
+
+    uint8 alignShiftAmountA;
+    uint8 alignShiftAmountB;
+    if (a_PostUnpack.exponent > b_PostUnpack.exponent)
+    {
+        alignShiftAmountA = 0;
+        alignShiftAmountB = a_PostUnpack.exponent - b_PostUnpack.exponent;
+    }
+    else
+    {
+        alignShiftAmountA = b_PostUnpack.exponent - a_PostUnpack.exponent;
+        alignShiftAmountB = 0;
+    }
+
+    bfloat16StickyFormat a_PostAlign = align(a_PostUnpack, alignShiftAmountA);
+    bfloat16StickyFormat b_PostAlign = align(b_PostUnpack, alignShiftAmountB);
+
+    //Addition
+    bfloat16StickyFormat z_postAdd;
+    uint11 aTemp = a_PostAlign.mantissaGuardRound << 1 | a_PostAlign.sticky;
+    uint11 bTemp = b_PostAlign.mantissaGuardRound << 1 | b_PostAlign.sticky;
+
+    uint12 sumTemp = static_cast(a_PostAlign.sign == b_PostAlign.sign ? aTemp + bTemp :
+                        (aTemp >= bTemp ? aTemp - bTemp : bTemp - aTemp));
+    z_postAdd.sign =  a_PostAlign.sign == b_PostAlign.sign ? a_PostAlign.sign :
+                        (aTemp >= bTemp ? a_PostAlign.sign : b_PostAlign.sign);
+
+    bool shiftSum = sumTemp >> 11 == 1;
+    z_postAdd.exponent = a_PostAlign.exponent + cast<uint1>(shiftSum);
+    z_postAdd.mantissaGuardRound = shiftSum ? cast <uint10> (sumTemp >> 2) : cast <uint10> (sumTemp >> 1);
+    z_postAdd.sticky = shiftSum ? cast <uint1> (sumTemp >> 1) | cast <uint1> (sumTemp) : cast <uint1> (sumTemp);
+
+    //Output Normalization
+    bfloat16StickyFormat z_postNormalize = addNormalizeOutput1(z_postAdd);
+
+    //Rounding
+    bfloat16ExpandedFormat z_postRounding;
+
+    bool guard = ((z_postNormalize.mantissaGuardRound >> 1) & 1) == 1;
+    bool round = (z_postNormalize.mantissaGuardRound & 1) == 1;
+    bool m0 = ((z_postNormalize.mantissaGuardRound >> 2) & 1) == 1;
+    bool sticky = z_postNormalize.sticky == 1;
+
+    bool roundUp = guard && (round || sticky || m0);
+    z_postRounding.mantissa = (z_postNormalize.mantissaGuardRound >> 2) + cast<uint1>(roundUp);
+    uint1 exp_inc = roundUp && (z_postNormalize.mantissaGuardRound >> 2 == 0xff) ? 1 : 0;
+    z_postRounding.exponent = z_postNormalize.exponent + exp_inc;
+    z_postRounding.sign = z_postNormalize.sign;
+
+    //Packing
+    bfloat16PackedFormat zOutput;
+
+    //Handle special cases
+    specialCaseFlags a_flags = getSpecialCases<Denorm::Off>(a);
+    specialCaseFlags b_flags = getSpecialCases<Denorm::Off>(b);
+    bool justAInf = a_flags.inf && !b_flags.inf;
+    bool justBInf = !a_flags.inf && b_flags.inf;
+    bool AandBInf = a_flags.inf && b_flags.inf;
+    bool specialCaseSignsEqual = a.sign == b.sign;
+
+    bool specialCaseNaN = a_flags.nan || b_flags.nan || (AandBInf && !specialCaseSignsEqual);
+    bool specialCaseZero = (a_flags.zero && b_flags.zero);
+    bool specialCaseInf = justAInf || justBInf || (AandBInf && specialCaseSignsEqual);
+    //Careful that you check for specialCaseZero first!
+    bool specialCaseReturnA = b_flags.zero;
+    bool specialCaseReturnB = a_flags.zero;
+    uint1 specialCaseSign = justAInf ? a_PostUnpack.sign :
+                            justBInf ? b_PostUnpack.sign :
+                            a_PostUnpack.sign & b_PostUnpack.sign;
+
+    bool positiveZero = z_postRounding.exponent == -126 && z_postRounding.mantissa == 0;
+    bool zeroOut = z_postRounding.exponent == -126 && ((z_postRounding.mantissa >> 7) & 1) == 0;
+    bool overflow = z_postRounding.exponent > 127;
+
+    zOutput.mantissa = specialCaseNaN ? 1 << 6 :
+                        (specialCaseZero || specialCaseInf || overflow) ? 0 :
+                        specialCaseReturnA ? a.mantissa :
+                        specialCaseReturnB ? b.mantissa:
+                        zeroOut ? 0 :
+                        z_postRounding.mantissa;
+    zOutput.exponent = (specialCaseNaN || specialCaseInf || overflow) ? 255 :
+                        specialCaseZero ? 0 :
+                        specialCaseReturnA ? a.exponent :
+                        specialCaseReturnB ? b.exponent :
+                        (positiveZero || zeroOut) ? 0 :
+                        z_postRounding.exponent + 127;
+    zOutput.sign = (specialCaseInf || specialCaseZero) ? specialCaseSign :
+                    specialCaseReturnA ? a.sign :
+                    specialCaseReturnB ? b.sign :
+                    positiveZero ? 0 : z_postRounding.sign;
+
+    return cast<bfloat16>(zOutput);
+}
+
+
 template <Denorm denorm_mode>
 inline bfloat16 add(bfloat16 in1, bfloat16 in2)
 {
