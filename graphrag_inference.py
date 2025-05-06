@@ -16,9 +16,12 @@ from graphrag.query.structured_search.global_search.community_context import (
     GlobalCommunityContext,
 )
 from graphrag.query.structured_search.global_search.search import GlobalSearch
-
+from graphrag.query.structured_search.local_search.mixed_context import (
+    LocalSearchMixedContext,
+)
+from graphrag.query.structured_search.local_search.search import LocalSearch
 api_key=""
-llm_model = "gpt-4o-mini"
+llm_model = "gpt-4o"
 
 config = LanguageModelConfig(
     api_key=api_key,
@@ -26,6 +29,7 @@ config = LanguageModelConfig(
     model=llm_model,
     max_retries=20,
 )
+
 model = ModelManager().get_or_create_chat_model(
     name="global_search",
     model_type=ModelType.OpenAIChat,
@@ -35,14 +39,14 @@ model = ModelManager().get_or_create_chat_model(
 token_encoder = tiktoken.encoding_for_model(llm_model)
 
 # parquet files generated from indexing pipeline
-INPUT_DIR = "/home/sbarke/graphrag/ragtest/output"
+INPUT_DIR = "/home/sbarke/copilot-kanagawa/ragtest/output"
 COMMUNITY_TABLE = "communities"
 COMMUNITY_REPORT_TABLE = "community_reports"
 ENTITY_TABLE = "entities"
 
 # community level in the Leiden community hierarchy from which we will load the community reports
 # higher value means we use reports from more fine-grained communities (at the cost of higher computation cost)
-COMMUNITY_LEVEL = 2
+COMMUNITY_LEVEL = 4
 
 community_df = pd.read_parquet(f"{INPUT_DIR}/{COMMUNITY_TABLE}.parquet")
 entity_df = pd.read_parquet(f"{INPUT_DIR}/{ENTITY_TABLE}.parquet")
@@ -73,7 +77,7 @@ context_builder_params = {
     "include_community_weight": True,
     "community_weight_name": "occurrence weight",
     "normalize_community_weight": True,
-    "max_tokens": 12_000,  # change this based on the token limit you have on your model (if you are using a model with 8k limit, a good setting could be 5000)
+    "max_tokens": 5000,  # change this based on the token limit you have on your model (if you are using a model with 8k limit, a good setting could be 5000)
     "context_name": "Reports",
 }
 
@@ -92,7 +96,7 @@ search_engine = GlobalSearch(
     model=model,
     context_builder=context_builder,
     token_encoder=token_encoder,
-    max_data_tokens=12_000,  # change this based on the token limit you have on your model (if you are using a model with 8k limit, a good setting could be 5000)
+    max_data_tokens=5000,  # change this based on the token limit you have on your model (if you are using a model with 8k limit, a good setting could be 5000)
     map_llm_params=map_llm_params,
     reduce_llm_params=reduce_llm_params,
     allow_general_knowledge=False,  # set this to True will add instruction to encourage the LLM to incorporate general knowledge in the response, which may increase hallucinations, but could be useful in some use cases.
@@ -101,9 +105,16 @@ search_engine = GlobalSearch(
     concurrent_coroutines=32,
     response_type="multiple paragraphs",  # free form text describing the response type and format, can be anything, e.g. prioritized list, single paragraph, multiple paragraphs, multiple-page report
 )
+
+
 async def main():
-    result = await search_engine.search("What is F*?")
-    print(result.response)
+    result = await search_engine.search("What is Kanagawa?")
+    print(result)
+    return result
+
+async def query_graphrag(prompt: str) -> str:
+    result = await search_engine.search(prompt)
+    return result.response
 
 if __name__ == "__main__":
     asyncio.run(main())

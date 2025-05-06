@@ -1,0 +1,254 @@
+Debugger
+
+- Overview
+- Installation Installing the Extension
+- Configuration Generating the launch.json file Sandpiper specific fields
+- Debugging Debugging using the interpreter Debugging using a trace file
+- Common tasks
+- Logpoints
+- Time Travel Debugging Reversed Continue Step Back Data Breakpoints
+- Troubleshooting
+- Example
+- Exercises
+
+- Installing the Extension
+
+- Generating the launch.json file Sandpiper specific fields
+
+- Sandpiper specific fields
+
+- Debugging using the interpreter
+- Debugging using a trace file
+
+- Reversed Continue
+- Step Back
+- Data Breakpoints
+
+
+Overview
+
+The Sandpiper debugger is based on Visual Studio Code (VSCode), and distributed as a VSCode extension file. The structure is illustrated in the following diagram.
+
+VsCode provides the GUI and all commands to the user. The Sandpiper Debug Adapter is a separate process that receives commands from VsCode using the Debug Adapter Protocol. The debugger in turn creates a separate process where the Sandpiper Interpreter executes, or internally instantiates a trace evaluator.
+
+
+Installation
+
+The Sandpiper VsCode extension is part of the Sandpiper nuget (located in the vsce folder) and contains: 1. Syntax highlighting for *.pd files 2. Debugger
+
+
+Installing the Extension
+
+Install VsCode by following the instructions here .
+
+Then install the Sandpiper extension by performing the following steps.
+
+1. In a command prompt/terminal run
+
+code --install-extension vscode-pd-extension-0.0.9.vsix
+
+Alternatively, install the extension from within VsCode by selecting the “Install from VSIX” option:
+
+1. Re-load Visual Studio Code
+2. Open File->Preferences->Settings->Extentions->PipeDream Language Extension
+3. Search for “Debugger PD” and enter the absolute path to Sandpiper’s DebugAdapter executable file. This file is provided in the Sandpiper nuget, located in the same vsce folder as the vsix extension
+4. Under Unix, verify that the DebugAdapter file is indeed executable, if it is not executable run chmod +x DebugAdapter to make it so
+5. Re-load Visual Studio Code (this must be done)
+
+
+Configuration
+
+Debugging with VsCode requires the creation of a configuration file called launch.json in the .vscode subfolder of the workspace. The file contains various configurations , which are then selectable in the Run and Debug pane:
+
+To start debugging, the user selects the desired configuration and then clicks on the green arrow. The debugger cannot run in a terminal like GDB, it only works in conjunction with VsCode.
+
+
+Generating the launch.json file
+
+The user starts VSCode in a working folder from the command line running
+
+code .
+
+Specifying . makes the intended workspace explicit. Otherwise VsCode uses a default workspace, the same for all projects. The first time the workspace does not contain any .vscode subfolder. Afterwards VSCode will keep a separate state for this workspace, such as opened files, breakpoints etc etc. For more information, refer to the workspace concept in the VSCode documentation .
+
+To create the launch.json file the user selects the Run menu and the option Add Configuration... therein.
+
+A menu appears with various options, the user selects the pipedream option.
+
+This creates the initial skeletal launch.json file and opens it for editing. Selecting Add Configuration... again will open the existing launch.json file. The file contains two configurations named Sandpiper Interpreter and Sandpiper Trace . The user must edit the values of a few fields before they can start debugging.
+
+Intellisense is enabled for launch.json files. The user can hover on any field to see a short help message, or the available values.
+
+The following generic fields are required and must be edited in the skeletal launch.json file.
+
+- program is usually the path to the C++ executable that contains the C++-side test program. This is the executable that will internally invoke the Sandpiper interpreter. The path can be absolute, or relative to cwd . It is also possible to use other programs, such as a Python script, to eventually activate the interpreter.
+- args is the list of comma-separated values to pass to the test program.
+- cwd is the current working directory for the test program. All relative paths resolve relative to this path. The builtin macro ${workspaceRoot} usually suffices.
+
+program is usually the path to the C++ executable that contains the C++-side test program. This is the executable that will internally invoke the Sandpiper interpreter. The path can be absolute, or relative to cwd . It is also possible to use other programs, such as a Python script, to eventually activate the interpreter.
+
+args is the list of comma-separated values to pass to the test program.
+
+cwd is the current working directory for the test program. All relative paths resolve relative to this path. The builtin macro ${workspaceRoot} usually suffices.
+
+
+Sandpiper specific fields
+
+For trace debugging the fields program and args are required by VsCode but their values are ignored.
+
+- trace is required only for trace based debugging; it is the path to the trace file. Usually this file is called PbTrace.txt , the user must provide a file system path to it. The path can be absolute, or relative to the cwd field. If this option is missing, or if the path is empty the debugger instead starts program .
+- symbolSearchPath is required for all configurations. This is the path to the debug symbols generated by the Sandpiper compiler. By default this file is called PipeDreamGeneratedDebugSymbols.csv .
+- wave is optionally used with traces. It is the path to a VCD file that the debugger creates. The debugger also attempts to start the program wave_reader to show that file. GTKWave is one reader that is freely available.
+- stopAtEntry is optional, valid in all configurations, with a default value of false. This option requests the debugger to stop execution at the first opportunity. In the trace case, this is at the start of the trace, before anything happens. If the program has a startup function, or any other function marked [[reset]] that is where execution starts.
+- stopAtExit is optional, only valid for traces, with a default value of true. When the option is set execution stops at the last operation in the trace.
+
+trace is required only for trace based debugging; it is the path to the trace file. Usually this file is called PbTrace.txt , the user must provide a file system path to it. The path can be absolute, or relative to the cwd field. If this option is missing, or if the path is empty the debugger instead starts program .
+
+symbolSearchPath is required for all configurations. This is the path to the debug symbols generated by the Sandpiper compiler. By default this file is called PipeDreamGeneratedDebugSymbols.csv .
+
+wave is optionally used with traces. It is the path to a VCD file that the debugger creates. The debugger also attempts to start the program wave_reader to show that file. GTKWave is one reader that is freely available.
+
+stopAtEntry is optional, valid in all configurations, with a default value of false. This option requests the debugger to stop execution at the first opportunity. In the trace case, this is at the start of the trace, before anything happens. If the program has a startup function, or any other function marked [[reset]] that is where execution starts.
+
+stopAtExit is optional, only valid for traces, with a default value of true. When the option is set execution stops at the last operation in the trace.
+
+
+Debugging
+
+To start execution the user selects first the Run and Debug icon on the far left side of the VSCode window. This is the icon with a right-arrow and a “bug” that was shown previously in the Configuration section. A menu appears at the top with a green right arrow selecting any of the available configurations in the launch.json file.
+
+There are two ways to debug a Sandpiper program: using the interpreter and using a trace file. Only the interpreter can currently generate a trace file. Look at the option PbOption_waveform for details.
+
+The default compilation setting in the Sandpiper compiler is to optimize. This reduces the effectiveness of the debugger, for instance eliminating local variables, inlining etc etc. For the best debugging experience optimizations should be disabled with --optimize=0 .
+
+The debugger does not work without a symbol file; the compiler currently only generates debug symbols when setting the --debug command line switch.
+
+
+Debugging using the interpreter
+
+The user selects the configuration named Sandpiper Interpreter . Clicking on the green arrow starts execution of the interpreter. The fields program and args must be present in the configuration.
+
+The debugger treats a Sandpiper program/trace like any program that can run on a CPU. Any program starts, executes, and terminates. These steps correspond to the start, core portion, and the end of the interpretation of the Sandpiper program bytecode by the interpreter. Setting breakpoints suspends execution when the selected Sandpiper source code line is active. This means interpreting the Sandpiper program until a basic block is active for the given source line. Once the program is suspended the user can single-step in the same manner as they would on a CPU. This means interpreting forward, from the stopping point. The debugger shows the values of global and local variables at the stop point. Local variables belong to threads , which in the Sandpiper case are effectively active stages in basic blocks. For each thread the debugger shows the current stage and the invoking function, if any.
+
+Sandpiper programs can execute under control of a host-side testbench (a C++ testbench) or they can execute under control of a Sandpiper testbench. In the first case, the program field indicates the C++ testbench. This program in turns instantiates the interpreter within itself. In the second case, the user should specify PbRun (Windows: PbRun.exe ) as program , a driver program provided with the Sandpiper nuget. The args field should include the path to the bytecode file for the Sandpiper program.
+
+
+Debugging using a trace file
+
+The user selects the configuration named Sandpiper Trace . Clicking on the green arrow starts execution of the trace. The field trace must be present in the configuration.
+
+The steps start, execute, and terminate correspond to the start, core portion, and the end of the trace respectively. Setting breakpoints suspends execution when a given source code line is active in the trace. This means proceeding to the next point in the trace where a basic block is active for the given source line. Execution with a trace can proceed both forward and backward. When stopped, the debugger indicates the point in the trace in terms of cycles . The wave reader can then go to the corresponding point in the VCD trace. Single-stepping means executing the trace forward or backward, from the stopping point. The debugger shows the values of global and local variables at the stop point, threads, and their stack trace.
+
+
+Common tasks
+
+To set a breakpoint the user can click on the left side of any Sandpiper source code line. A small red dot appears, provided the debugger can find a corresponding basic block. Otherwise the debugger shows a grey circle to indicate that the breakpoint is invalid. A solid grey dot indicates a breakpoint that is valid but currently disabled (by the user).
+
+The BREAKPOINTS pane shows all the breakpoints. Here the user can enable/disable them and by clicking on a breakpoint the user sees the corresponding source code in an editor pane. It is also possible to create function breakpoints , by clicking on the + sign in the BREAKPOINTS pane’s title and entering the function’s name. This is shown as the first breakpoint in the following picture, distinguished by a red/grey triangle bullet. The second breakpoint in the following picture is a data breakpoint and indicates the global variable of interest. It is indicated with a red/grey hexagon bullet. The third breakpoint in the picture is a logpoint and indicated with a diamond red/grey bullet. The forth is a source breakpoint, indicated with a red round bullet (enabled). The fifth is also a source breakpoint, indicated with a grey round bullet (disabled).
+
+During execution the Run menu indicates various options for controlling execution, such as Step Over, Into, Out and Continue . These actions are also easily accessible by keyboard shortcuts, or by using an additional small menu at the top. From left to right, the menu has arrows for continue, step over, step into, step out, restart execution from the beginning, and an orange square for terminating execution. The menu is shown in the following picture for an interpreter execution. The case of a trace execution is illustrated in the section Time Travel Debugging .
+
+While the program/trace is executing the continue arrow is replaced by a pause button, with two vertical bars. Hitting the pause button suspends execution and shows the state of all threads at that point.
+
+The CALL STACK pane is active when execution is suspended. It shows all active threads at that point in the trace and their stacks. Stacks are compressed down to a single line if there are too many threads for the pane’s size. The pane is scrollable.
+
+Selecting a specific thread activates the VARIABLES pane, wherein the local variables are shown in the Locals list. The Globals list shows the global variables that the selected thread might access. The Memories list shows the memories (local or global) that the selected thread might access. All values are in decimal. To see the type of a variable the user can hover over its name, meaning keep the pointer (mouse) over any part of the name.
+
+In the WATCH pane the user can select global variables that they always want to see. Hovering in the source editor over a global variable declaration also shows its value.
+
+The DEBUG CONSOLE pane shows the output from print statements in the Sandpiper program. Other information and error messages from the debugger also appears in this pane.
+
+
+Logpoints
+
+A Logpoint is a breakpoint variant that does not “break” into the debugger but instead logs a message to the console. It is useful for printf-style debugging, when the user is interested in observing the overall flow with print statements. Unlike print statements in the Sandpiper source code, logpoints do not require recompilation. The user can add/remove/disable/enable them from within the debugger, during the debugging session, and then they persist across sessions.
+
+To create a logpoint the user performs the following steps:
+
+1. Right-click on the intended source line, similarly to a source breakpoint. This brings up the following menu.
+
+1. Select Add Logpoint... which brings up the following dialog. Enter the desired message and hit return.
+
+
+Time Travel Debugging
+
+Time Travel Debugging (TTD) means executing a program “backwards”, and being able to single-step both forward and backward while debugging. TTD is typically implemented using traces that either provide all the required information, or guide an execution engine to reproduce exactly the original execution of the program. Sandpiper uses the former approach, and this option is ony available when using traces.
+
+One thing to bear in mind is that in Sandpiper TTD does not and cannot modify state. No matter how execution reaches a given cycle in the trace the variables and memories always have the same values.
+
+The Sandcastle VSIX extension includes a TTD-capable debugger as of version 0.0.9 .
+
+In the Sandpiper debugger there are two commands that provide the TTD functionality: Reversed Continue, and Step Back. These commands can be freely intermixed with any other forward-executing command.
+
+The following picture shows all the execution control buttons.
+
+
+Reversed Continue
+
+The Reversed Continue icon is a blue left-pointing arrowhead. It continues execution in reverse until a breakpoint is hit.
+
+If no breakpoints are hit reverse execution continues until the beginning of the trace (cycle 1).
+
+
+Step Back
+
+The Step Back icon is a blue left-pointing arced arrow. It continues execution in reverse until the previous source line.
+
+When stepping back at the beginning of a function reverse execution stops at the invoking call site.
+
+When stepping back a loop, reverse execution starts at the last iteration and back to the first.
+
+
+Data Breakpoints
+
+A data breakpoint suspends execution when the selected variable is modified. To set a data breakpoint the user stops at a point where the intended variable is in scope. Right-clicking on the variable name brings up the following menu with the option “Break on Value Change”. The data breakpoint is then visible in the BREAKPOINTS pane (see above), where it can be enabled/disabled/deleted. Data breakpoints trigger during either a forward or a backward execution.
+
+This feature is only available in trace mode, and only for global variables and memories. It is not available for local variables.
+
+
+Troubleshooting
+
+Check that the extension has been correctly installed by looking in $HOME/.vscode/extensions/microsoft.vscode-pd-extension-<x.y.z>
+
+On Windows, $HOME is %USERPROFILE% by default.
+
+On Linux, check that the file DebugAdapter is executable.
+
+Inside VsCode, opening any Sandpiper source file with file extension pd should show the syntax highlighted (colored keywords).
+
+Opening a Sandpiper report file (extension pdrpt ) should present a spreadsheet-like view of the data. In the compiler-generated files folder there is a ResourceReport.pdrpt file which can be used for testing.
+
+Make sure the compilation switches include --debug --optimize=0
+
+
+Example
+
+The Sandpiper nuget contains a samples/helloworld application, usable to test the debugger.
+
+After building the application as described in the readme.md file, the user starts VSCode as follows:
+
+cd helloworld<br>
+code .
+
+Inside VsCode the user performs the following steps:
+
+1. Open the source file helloworld.pd and put a breakpoint in the AddOne function, line 7.
+
+1. Select Run and Debug (Ctrl-Shift-D). This shows a dropdown with the three configurations Sandpiper Interpreter , Sandpiper Trace , and Cpp Debug
+2. Click on the green arrow for Sandpiper Interpreter . The application should start running and stop at the breakpoint. Navigate the various panes to familiarize with the Debugger. For instance, expand the Locals pane to see the local variable x with value 3.
+3. Click on the continue button. The application terminates.
+4. Repeat the debugging, using the trace file PbTrace.txt generated when running the interpreter in the previous step. Select Run and Debug (Ctrl-Shift-D) and click on Sandpiper Trace . In addition to the commands available in the “Sandpiper Interpreter” case, now there are debugger commands for reverse execution e.g. for Time-Travel Debugging.
+5. Click on the continue button. The application stops at the last cycle, does not terminate. Only a subsequent continue will. This is because stopAtExit is enabled by default.
+
+
+Exercises
+
+Add a function that AddOne calls. Experiment with stepping in/out, and with the reverse execution buttons.
+
+Add a pipelined function, single step. Select the various threads.
+
+Add a global variable and create a data breakpoint for it.
+
+Add the wave option in the launch.json file to create and visualize a VCD trace.
+
+Use the Cpp Debug configuration to debug the C++ testbench (e.g. in main.cpp). Note that we can only attach to the C++ program, and only once the interpreter is stopped somewhere.

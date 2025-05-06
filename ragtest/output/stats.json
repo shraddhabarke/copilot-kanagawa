@@ -1,31 +1,31 @@
 {
-    "total_runtime": 230.21913838386536,
+    "total_runtime": 194.87970685958862,
     "num_documents": 6,
     "input_load_time": 0,
     "workflows": {
         "create_base_text_units": {
-            "overall": 0.12867259979248047
+            "overall": 0.08396220207214355
         },
         "create_final_documents": {
-            "overall": 0.05823516845703125
+            "overall": 0.03196883201599121
         },
         "extract_graph": {
-            "overall": 157.96426701545715
+            "overall": 156.29580879211426
         },
         "finalize_graph": {
-            "overall": 0.08775877952575684
+            "overall": 0.06641697883605957
         },
         "create_communities": {
-            "overall": 0.0973052978515625
+            "overall": 0.05169987678527832
         },
         "create_final_text_units": {
-            "overall": 0.10997891426086426
+            "overall": 0.06774401664733887
         },
         "create_community_reports": {
-            "overall": 64.79661011695862
+            "overall": 35.492732763290405
         },
         "generate_text_embeddings": {
-            "overall": 6.851926326751709
+            "overall": 2.623094081878662
         }
     }
 }
